@@ -3,7 +3,6 @@ use tauri::Manager;
 
 mod project_store;
 
-
 #[derive(Serialize)]
 struct RuntimeStatus {
     application: &'static str,
@@ -22,28 +21,44 @@ fn runtime_status() -> RuntimeStatus {
     }
 }
 
+fn store_root(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
+    app.path()
+        .app_data_dir()
+        .map_err(|e| format!("Cannot resolve application data directory: {e}"))
+}
+
+// Project commands are async so Tauri runs their file I/O off the main (UI) thread.
+
 #[tauri::command]
-fn project_create(app: tauri::AppHandle, name: String) -> Result<project_store::ProjectRecord, String> {
-    let root = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    project_store::create(&root, &name)
+async fn project_create(
+    app: tauri::AppHandle,
+    name: String,
+) -> Result<project_store::ProjectRecord, String> {
+    project_store::create(&store_root(&app)?, &name)
 }
 
 #[tauri::command]
-fn project_list(app: tauri::AppHandle) -> Result<Vec<project_store::ProjectSummary>, String> {
-    let root = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    project_store::list(&root)
+async fn project_list(app: tauri::AppHandle) -> Result<project_store::ProjectListing, String> {
+    project_store::list(&store_root(&app)?)
 }
 
 #[tauri::command]
-fn project_open(app: tauri::AppHandle, id: String) -> Result<project_store::ProjectRecord, String> {
-    let root = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    project_store::open(&root, &id)
+async fn project_open(
+    app: tauri::AppHandle,
+    id: String,
+) -> Result<project_store::ProjectRecord, String> {
+    project_store::open(&store_root(&app)?, &id)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![runtime_status, project_create, project_list, project_open])
+        .invoke_handler(tauri::generate_handler![
+            runtime_status,
+            project_create,
+            project_list,
+            project_open
+        ])
         .run(tauri::generate_context!())
         .expect("error while starting Optic Rift");
 }
