@@ -1,0 +1,219 @@
+{
+  "version": "0.3",
+  "repository": {
+    "owner": "Knapp-Kevin",
+    "name": "optic-rift",
+    "defaultBranch": "main",
+    "description": "Local-first Windows image and video creative studio"
+  },
+  "riskTier": "high",
+  "compatibilityModes": [
+    "native",
+    "compatible",
+    "boundary"
+  ],
+  "actors": {
+    "allowedTypes": [
+      "maintainer",
+      "human_developer",
+      "human_reviewer",
+      "autonomous_agent",
+      "semi_autonomous_agent",
+      "review_agent",
+      "external_contributor"
+    ],
+    "unknownActorDefault": "deny",
+    "agentIdentityRequired": true,
+    "registry": [
+      {
+        "id": "Knapp-Kevin",
+        "actorType": "maintainer",
+        "platformIdentities": [
+          "https://github.com/Knapp-Kevin"
+        ],
+        "status": "active"
+      }
+    ],
+    "trustEvolution": {
+      "enabled": false
+    }
+  },
+  "protectedPaths": [
+    {
+      "pattern": "governance/**",
+      "reason": "Qortara policy and lifecycle evidence",
+      "review": "human_required"
+    },
+    {
+      "pattern": "AGENTS.md",
+      "reason": "Agent entrypoint",
+      "review": "human_required"
+    },
+    {
+      "pattern": "docs/README.md",
+      "reason": "Canonical architectural filing index",
+      "review": "maintainer_required"
+    },
+    {
+      "pattern": ".github/**",
+      "reason": "Repository security rules and automation",
+      "review": "human_required"
+    },
+    {
+      "pattern": "src-tauri/capabilities/**",
+      "reason": "Desktop permissions and command exposure",
+      "review": "security_required"
+    },
+    {
+      "pattern": "src-tauri/src/**",
+      "reason": "Native file access and model worker supervision",
+      "review": "security_required"
+    },
+    {
+      "pattern": "src/modelContent.ts",
+      "reason": "Content labels and preview behavior",
+      "review": "human_required"
+    },
+    {
+      "pattern": "docs/contracts/**",
+      "reason": "Model licensing, consent, privacy and user content rules",
+      "review": "human_required"
+    },
+    {
+      "pattern": "package.json",
+      "reason": "Frontend dependency and build scripts",
+      "review": "maintainer_required"
+    },
+    {
+      "pattern": "src-tauri/Cargo.toml",
+      "reason": "Native dependency and build configuration",
+      "review": "security_required"
+    }
+  ],
+  "sensitiveSurfaces": [
+    "governance-policy",
+    "ci-cd",
+    "secrets",
+    "desktop-permissions",
+    "model-execution",
+    "model-downloads",
+    "licensing",
+    "privacy",
+    "adult-content",
+    "release"
+  ],
+  "branchPolicy": {
+    "requiredControls": {
+      "approvals": 1,
+      "stale-review-dismissal": true,
+      "conversation-resolution": true,
+      "force-push-block": true,
+      "deletion-block": true
+    }
+  },
+  "enforcement": {
+    "localPreflight": {
+      "requiredForAgents": true,
+      "requiredForHumans": false
+    },
+    "ciGate": {
+      "required": true,
+      "blockOnMissingEvidence": true,
+      "blockOnBreakingChanges": true
+    },
+    "reviewGate": {
+      "requiredForProtectedPaths": true,
+      "highRiskRequiresHumanApproval": true
+    },
+    "releaseGate": {
+      "requiredForProductionImpact": true
+    }
+  },
+  "evidence": {
+    "prRequiredFields": [
+      "intent",
+      "scope",
+      "linkedIssue",
+      "riskClass",
+      "tests",
+      "docsImpact"
+    ],
+    "agentRequiredFields": [
+      "actorIdentity",
+      "workClaim",
+      "planEvidence",
+      "implementationEvidence",
+      "testEvidence"
+    ]
+  },
+  "review": {
+    "agentSelfApprovalAllowed": false,
+    "contracts": {
+      "protectedPath": {
+        "quorum": 1,
+        "evidenceClasses": [
+          "deterministic-gate",
+          "human-approval"
+        ],
+        "diversityPredicates": [
+          "distinct-identity"
+        ],
+        "escalateToHuman": [
+          "trust-below-standard",
+          "gate-flagged"
+        ]
+      },
+      "sensitiveSurface": {
+        "quorum": 1,
+        "evidenceClasses": [
+          "deterministic-gate",
+          "human-approval"
+        ],
+        "diversityPredicates": [
+          "distinct-identity"
+        ],
+        "escalateToHuman": [
+          "trust-below-standard",
+          "novel-surface",
+          "gate-flagged"
+        ]
+      },
+      "highRisk": {
+        "quorum": 1,
+        "evidenceClasses": [
+          "deterministic-gate",
+          "adversarial-empirical",
+          "human-approval"
+        ],
+        "diversityPredicates": [
+          "distinct-identity"
+        ],
+        "escalateToHuman": [
+          "trust-below-standard",
+          "novel-surface",
+          "gate-flagged"
+        ]
+      }
+    }
+  },
+  "ledger": {
+    "path": "governance/ledger.jsonl",
+    "appendOnly": true,
+    "hashChained": true
+  },
+  "dependencies": {
+    "owns": [],
+    "consumes": [],
+    "requiresImpactAnalysisFor": [
+      "public-api",
+      "schema",
+      "model-execution",
+      "security"
+    ]
+  },
+  "emergency": {
+    "enabled": false,
+    "authorizedActorTypes": [],
+    "backfillIssueRequired": true
+  }
+}

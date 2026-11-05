@@ -1,7 +1,8 @@
 # ADR-0001: Windows-first desktop architecture
 
 - Date: 2026-11-05
-- Status: **Provisional / performance qualification required**
+Status: Proposed
+- Qualification: Windows playback/media performance unmeasured; this is not an accepted shell decision.
 - Decision owner: repository owner
 - Scope: initial Optic Rift alpha, not a release claim
 
