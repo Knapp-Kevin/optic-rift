@@ -2,9 +2,11 @@
 
 > **Architectural source of truth:** [Optic Rift Architectural Index](docs/ARCHITECTURE_INDEX.md). Start there before planning or implementing a component.
 
-> **Architecture, product claim ownership and documentation:** [Architectural Index](docs/ARCHITECTURE_INDEX.md). Start here before designing or implementing a component.
-
 **A local-first creative studio for images and video.**
+
+![Optic Rift approved logo](public/branding/optic-rift-approved-256.webp)
+
+Approved visual identity and Windows icon generation: [branding guide](assets/branding/README.md).
 
 Optic Rift aims to make AI-assisted visual creation approachable: describe an idea, bring in your own media, preview and edit it, discover models by what they can do, and export the result. The interface is the product; individual models are replaceable engines, not the identity of the application.
 
@@ -20,8 +22,6 @@ Optic Rift aims to make AI-assisted visual creation approachable: describe an id
 - **Graceful failures.** Isolate GPU models and their Python dependencies from the editor. If the engine crashes, the project and media remain safe.
 - **Performance is a feature.** Keep playback and UI responsive while generation, transcodes, and heavy decoding run off the UI thread.
 - **Friendly UX.** No workflow graphs, Python packages, model component vocabulary, or terminal commands required for ordinary use.
-
-For the proposed system designs and unresolved decisions, start at the [explicit architectural index](docs/ARCHITECTURE_INDEX.md). The [Wayfinder decision map](https://github.com/Knapp-Kevin/optic-rift/issues/4) tracks architecture questions separately from implementation work. All proposed designs remain unaccepted until their owners and evidence gates are satisfied.
 
 ## Architecture direction
 

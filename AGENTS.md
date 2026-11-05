@@ -5,7 +5,7 @@ This is the single portable entry point for coding agents. Follow Qortara Logic'
 ## Read before changing anything
 
 1. [README.md](README.md) owns the product goal and current public status. It does not certify features.
-2. [docs/ARCHITECTURE_INDEX.md](docs/ARCHITECTURE_INDEX.md) is the **only canonical architectural index and product-truth routing map**. Both [root README](README.md) and [docs README](docs/README.md) only point to it; neither maintains a competing owner register. Accepted decisions own design, exact source/contracts own implementation, and executed evidence owns qualification.
+2. [docs/ARCHITECTURE_INDEX.md](docs/ARCHITECTURE_INDEX.md) is the **only canonical architectural index and product-truth routing map**. Both [root README](README.md) and [docs README](docs/README.md) point to it, not a competing owner table. Accepted decisions own design, exact source/contracts own implementation, and actual execution receipts own qualification.
 3. [governance/manifest.json](governance/manifest.json) is the repository's Qortara Logic governance manifest (schema `urn:qortara-logic:schema:policy:governance-manifest`). It is the sole repository policy for actor trust, protected paths and reviews.
 4. Consult the canonical Qortara Logic [engine source and schemas](https://github.com/MythologIQ-Labs-LLC/qortara-logic) for policy semantics. Do not duplicate its schemas, fork its gates or treat a plugin description as a runtime capability.
 5. Inspect the live GitHub branch, permissions, rulesets, open changes, committed files, current tree and existing receipts for each session. A chat summary or prior claimed PASS is not source authority.
