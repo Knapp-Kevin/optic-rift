@@ -1,5 +1,7 @@
 # Optic Rift
 
+> **Architectural source of truth:** [Optic Rift Architectural Index](docs/ARCHITECTURE_INDEX.md). Start there before planning or implementing a component.
+
 **A local-first creative studio for images and video.**
 
 Optic Rift aims to make AI-assisted visual creation approachable: describe an idea, bring in your own media, preview and edit it, discover models by what they can do, and export the result. The interface is the product; individual models are replaceable engines, not the identity of the application.
