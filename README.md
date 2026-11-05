@@ -17,6 +17,8 @@ Optic Rift aims to make AI-assisted visual creation approachable: describe an id
 - **Performance is a feature.** Keep playback and UI responsive while generation, transcodes, and heavy decoding run off the UI thread.
 - **Friendly UX.** No workflow graphs, Python packages, model component vocabulary, or terminal commands required for ordinary use.
 
+For the proposed system designs and unresolved decisions, start at the [single architectural index](docs/README.md). The [Wayfinder decision map](https://github.com/Knapp-Kevin/optic-rift/issues/4) tracks architecture questions separately from implementation work. All proposed designs remain unaccepted until their owners and evidence gates are satisfied.
+
 ## Architecture direction
 
 Preferred initial stack: **Tauri 2 + React/TypeScript UI + Rust native core + FFmpeg for native media work + isolated Python/PyTorch model runners**. Windows 11 is the initial target. The architecture decision record and acceptance gates are **proposed in [draft PR #1](https://github.com/Knapp-Kevin/optic-rift/pull/1)**, not yet present on `main` or accepted. Qt remains a fallback pending real Windows benchmarks.
