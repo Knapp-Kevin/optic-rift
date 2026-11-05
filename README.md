@@ -1,5 +1,7 @@
 # Optic Rift
 
+> **Architectural source of truth:** [Optic Rift Architectural Index](docs/ARCHITECTURE_INDEX.md). Start there before planning or implementing a component.
+
 > **Architecture, product claim ownership and documentation:** [Architectural Index](docs/ARCHITECTURE_INDEX.md). Start here before designing or implementing a component.
 
 **A local-first creative studio for images and video.**

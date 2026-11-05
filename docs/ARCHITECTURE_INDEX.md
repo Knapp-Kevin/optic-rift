@@ -2,6 +2,8 @@
 
 **Index identity:** `docs/ARCHITECTURE_INDEX.md` is Optic Rift's **one canonical architectural filing and product-truth routing index**. This identity was explicitly directed by the repository owner on 2026-11-05. All project READMEs and agent entry points route here; no README or Wayfinder issue is a competing architecture index.
 
+**Adoption history:** The explicit index path was established on `main` through [PR #12](https://github.com/Knapp-Kevin/optic-rift/pull/12) at merge commit `2230f43459fe8e10a1c895a2189a7e13ab2969eb`. This proposal extends the owner register with eight still-**Proposed** design pages; their acceptance remains separately gated.
+
 **Index status:** Established as the agreed *routing location*, **not** an independent architecture approval, runtime qualification, release authorization, or replacement for individual source owners. Individual documents own their actual claims. The source/decision/evidence supporting a claim is the truth for that claim, not a copied summary here.
 
 **Reading path:** [root README](../README.md) → **this index** → relevant owner source → executed evidence, where applicable.
