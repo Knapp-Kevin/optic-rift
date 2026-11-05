@@ -24,5 +24,5 @@ export function listInDiscovery(descriptor: ModelContentDescriptor, includeAdult
 
 /** No explicit/unverified content automatically appears as a discovery preview, even after opt-in. */
 export function allowAutomaticPreview(descriptor: ModelContentDescriptor): boolean {
-  return descriptor.audience === "general" && descriptor.evidence !== "unknown";
+  return descriptor.audience === "general" && (descriptor.evidence === "reviewed-model-card" || descriptor.evidence === "developer-review");
 }
