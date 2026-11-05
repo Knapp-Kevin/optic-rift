@@ -7,14 +7,35 @@
 | Question | Accountable source | Status / boundary |
 | --- | --- | --- |
 | What should Optic Rift be? | [Project README](../README.md) and owner-accepted decisions | Product intent; not implemented-feature proof |
-| Which rules govern repository changes? | [Qortara Logic repository governance manifest](../governance/manifest.json) | Repository policy proposal until merged and host enforcement qualified |
+| Which rules govern repository changes? | [Qortara Logic repository governance manifest](../governance/manifest.json) | **Merged on main**, but GitHub ruleset/native enforcement remains unqualified ([issue #2](https://github.com/Knapp-Kevin/optic-rift/issues/2)) |
 | What do Qortara contracts mean? | [Canonical Qortara Logic engine and schemas](https://github.com/MythologIQ-Labs-LLC/qortara-logic/tree/6ee2d7b15a1c5732e1ae2d2485e2fded0bd100ac/src/qortara_logic) | Schema provenance at source commit `6ee2d7b`; hosted engine version must be checked independently |
 | How do agents start work? | [AGENTS.md](../AGENTS.md) | Portable index pointer; no duplicated policy rules |
-| What architecture is proposed? | [Desktop foundation PR #1](https://github.com/Knapp-Kevin/optic-rift/pull/1), including `docs/architecture/ADR-0001-windows-desktop.md` | **Draft**, not accepted or merged to main |
+| What architecture is proposed? | [Architecture shelves below](#architecture-shelves-proposed), plus [desktop foundation PR #1](https://github.com/Knapp-Kevin/optic-rift/pull/1) | **Proposals** on separate review branches, not accepted implementations |
 | What product constraints are proposed? | [PR #1](https://github.com/Knapp-Kevin/optic-rift/pull/1) model-discovery, adult-preview and performance docs | Draft design and code, not tested Windows behavior |
 | Which changes are outstanding? | Live GitHub [issues](https://github.com/Knapp-Kevin/optic-rift/issues) and [pull requests](https://github.com/Knapp-Kevin/optic-rift/pulls) | Status at time of access; no duplicated issue tracker |
 | Which behaviors actually passed? | Exact-version executed test/Windows evidence and Qortara runtime records | Absent until genuinely executed and authenticated |
 | What is published? | Signed release artifacts and real deployment/installation checks | No release proven by documentation |
+
+## Architecture shelves (proposed)
+
+This is the **only** filing register for Optic Rift architecture. The listed documents own non-overlapping architectural questions; they are **proposals under review**, not accepted ADRs, runtime contracts or evidence. Each proposed design's status and acceptance live at its destination, not in a duplicated approval list. Resolve decisions through the [Wayfinder architecture map](https://github.com/Knapp-Kevin/optic-rift/issues/4) and its issue tickets; the map indexes decisions, while this table indexes architecture claim owners. Neither substitutes for Qortara lifecycle enforcement.
+
+| Architectural shelf / ownership | Single owner document | Decision / maturity |
+| --- | --- | --- |
+| Whole studio and architecture paths | [Studio composition and alternatives](architecture/studio-composition.md) | Proposed; revisit against [media boundary](https://github.com/Knapp-Kevin/optic-rift/issues/6) |
+| Stable project identity, immutable source media and derivation history | [Project and asset lineage](architecture/project-asset-lineage.md) | Proposed; [asset decision](https://github.com/Knapp-Kevin/optic-rift/issues/5) |
+| Video/image preview, frame accuracy, ordinary media editing and export | [Media pipeline](architecture/media-pipeline.md) | Proposed; [Windows prototype decision](https://github.com/Knapp-Kevin/optic-rift/issues/6) |
+| Transformation request, queue, state machine, cancellation and commit | [Transformations and durable jobs](architecture/transformations-and-jobs.md) | Proposed; [job boundary](https://github.com/Knapp-Kevin/optic-rift/issues/7) |
+| Model discovery-to-runtime trust boundary and source consent integration | [Model runtime and trust](architecture/model-runtime-and-trust.md) | Proposed; [model/rights decision](https://github.com/Knapp-Kevin/optic-rift/issues/9). Detailed catalog/content rules belong to PR #1 contracts |
+| Studio workspace UX, navigation and journey actions | [Studio interactions](architecture/studio-interactions.md) | Proposed; [interaction decision](https://github.com/Knapp-Kevin/optic-rift/issues/8) |
+| Stage boundaries and explicit deferred/outlier capabilities | [Roadmap and outlier register](architecture/roadmap-and-outliers.md) | Proposed; [alpha scope decision](https://github.com/Knapp-Kevin/optic-rift/issues/10) |
+| Outcome acceptance, test/evidence and handoff criteria | [Qualification and evidence](architecture/qualification-and-evidence.md) | Proposed; actual measurements absent |
+| Desktop shell selection, current native UI/IPC source | [ADR-0001 within draft desktop PR #1](https://github.com/Knapp-Kevin/optic-rift/blob/feature/windows-desktop-foundation-20261105-no-ci/docs/architecture/ADR-0001-windows-desktop.md) | **Provisional, unmerged**; not reproduced in this branch |
+| Concrete model/catalog/content and provisional media benchmark contracts | [Draft desktop PR #1](https://github.com/Knapp-Kevin/optic-rift/pull/1) | Unmerged candidate contracts; their own files are topic owners |
+
+**Status rule:** A diagram or recommended path does not establish implementation, schema acceptance, CI, independent review or production readiness. The current \`main\` tree does not contain the draft desktop app from PR #1. No design in this section should be marked Accepted until the corresponding Wayfinder question is resolved, required review/owner acceptance occurs and the precise accepted artifact is recorded. If a decision changes the shell, update the existing ADR-0001 at its owner rather than creating ADR-0001 again.
+
+**How designs graduate:** (1) resolve a named decision ticket with observed evidence and owner input where required; (2) update its one architectural owner and any affected contracts/ADR with a revision-bound supersession note; (3) have the single index point to that accepted version; (4) only then prepare an implementation spec and feature tickets. Deferred features stay in [the outlier register](architecture/roadmap-and-outliers.md), not a forgotten pile or implied alpha promises.
 
 ## Filing and conflict rules
 
