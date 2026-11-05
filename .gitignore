@@ -13,3 +13,4 @@ __pycache__/
 local-projects/
 model-cache/
 generated/
+src-tauri/gen/schemas/
