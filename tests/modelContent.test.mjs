@@ -7,6 +7,7 @@ const mature = { audience: "mature", evidence: "developer-review" };
 const general = { audience: "general", evidence: "developer-review" };
 const unknown = { audience: "unverified", evidence: "unknown" };
 const suspicious = { audience: "general", evidence: "unknown" };
+const userClaimedGeneral = { audience: "general", evidence: "user-reported" };
 
 test("adult-focused models are hidden by default and included on deliberate opt-in", () => {
   assert.equal(listInDiscovery(adult, false), false);
@@ -19,6 +20,7 @@ test("adult discovery never implicitly authorizes automatic explicit previews", 
   assert.equal(allowAutomaticPreview(mature), false);
   assert.equal(allowAutomaticPreview(unknown), false);
   assert.equal(allowAutomaticPreview(suspicious), false);
+  assert.equal(allowAutomaticPreview(userClaimedGeneral), false);
   assert.equal(allowAutomaticPreview(general), true);
 });
 test("audience labels distinguish adult, mature, and unsupported safety claims", () => {
