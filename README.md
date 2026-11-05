@@ -4,6 +4,10 @@
 
 **A local-first creative studio for images and video.**
 
+![Optic Rift approved logo](public/branding/optic-rift-approved-256.webp)
+
+Approved visual identity and Windows icon generation: [branding guide](assets/branding/README.md).
+
 Optic Rift aims to make AI-assisted visual creation approachable: describe an idea, bring in your own media, preview and edit it, discover models by what they can do, and export the result. The interface is the product; individual models are replaceable engines, not the identity of the application.
 
 **Status (2026-11-05):** architecture and first vertical slice are in development. This is not yet a released or validated editor. No video-generation model is currently qualified.
