@@ -1,6 +1,6 @@
 # Project, asset lineage and non-destructive revisions
 
-- Status: **PROPOSED**. Domain sketch and candidate storage paths; not a published schema.
+Status: Proposed. Domain sketch and candidate storage paths; not a published schema.
 - Claim owner: asset identity, project persistence, reference/revision semantics and recovery.
 - Wayfinder decision: [Durable project and asset-lineage contract](https://github.com/Knapp-Kevin/optic-rift/issues/5).
 - Inheritance: draft desktop ADR-0001 suggests SQLite plus on-disk assets; this proposal does not turn it into an accepted commitment.

@@ -1,6 +1,6 @@
 # Architecture rollout paths and deferred capability register
 
-- Status: **PROPOSED**. Sequencing and scope only; not a completed roadmap or owner approval.
+Status: Proposed. Sequencing and scope only; not a completed roadmap or owner approval.
 - Claim owner: staged architecture admission, outlier register and revisit triggers.
 - Wayfinder: [First releasable journey decision](https://github.com/Knapp-Kevin/optic-rift/issues/10).
 - Product charter: [README](../../README.md). All phases preserve the same project/asset identity and editor surface.

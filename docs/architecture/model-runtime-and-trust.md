@@ -1,6 +1,6 @@
 # Model discovery, runtime isolation, licensing and content trust
 
-- Status: **PROPOSED**. Candidate cross-component boundary, not an installed model or executable policy.
+Status: Proposed. Candidate cross-component boundary, not an installed model or executable policy.
 - Claim owner: integration boundary between model discovery, compatibility, user consent, worker execution and resulting asset provenance.
 - Wayfinder: [Model, license, privacy and content decision](https://github.com/Knapp-Kevin/optic-rift/issues/9).
 - Specific model-catalog and adult content UX contracts already exist in **draft PR #1**, [model discovery](https://github.com/Knapp-Kevin/optic-rift/blob/feature/windows-desktop-foundation-20261105-no-ci/docs/contracts/model-discovery-and-execution.md) and [adult previews](https://github.com/Knapp-Kevin/optic-rift/blob/feature/windows-desktop-foundation-20261105-no-ci/docs/contracts/adult-content-and-preview.md). They remain the scoped contract owners; do not duplicate their rules here.

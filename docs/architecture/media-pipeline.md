@@ -1,6 +1,6 @@
 # Media playback, precision editing, extraction and export
 
-- Status: **PROPOSED**; actual native playback and performance are unmeasured.
+Status: Proposed; actual native playback and performance are unmeasured.
 - Claim owner: video/image media processing and timeline/render equivalence.
 - Decision: [Windows media boundary qualification](https://github.com/Knapp-Kevin/optic-rift/issues/6).
 - Depends on [project lineage](project-asset-lineage.md). Existing performance goals and desktop fallback belong to [draft PR #1](https://github.com/Knapp-Kevin/optic-rift/pull/1), not to this file.

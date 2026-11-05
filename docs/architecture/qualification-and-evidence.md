@@ -1,6 +1,6 @@
 # Architecture qualification and user-outcome evidence
 
-- Status: **PROPOSED** verification contract; no stage/benchmark claims are accepted here.
+Status: Proposed verification contract; no stage/benchmark claims are accepted here.
 - Claim owner: architecture-wide acceptance traceability and evidence handoff, not the test implementation or lifecycle ledger.
 - Actual per-target thresholds remain owned by [draft performance gates in PR #1](https://github.com/Knapp-Kevin/optic-rift/pull/1), pending adoption.
 - Qortara governance source: [manifest](../../governance/manifest.json), not this document.

@@ -1,6 +1,6 @@
 # Studio interaction model and user-journey routes
 
-- Status: **PROPOSED**; interaction design, not a functioning UI screenshot or finished product.
+Status: Proposed; interaction design, not a functioning UI screenshot or finished product.
 - Claim owner: creative workspace navigation, selection actions, progressive disclosure and user outcomes.
 - Wayfinder: [Cross-media experience decision](https://github.com/Knapp-Kevin/optic-rift/issues/8).
 - Source: owner's image, video, restoration, frame extraction, photo-to-concept, repeated reference and cross-media journeys.

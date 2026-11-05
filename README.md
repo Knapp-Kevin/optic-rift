@@ -1,5 +1,7 @@
 # Optic Rift
 
+> **Architecture, product claim ownership and documentation:** [Architectural Index](docs/ARCHITECTURE_INDEX.md). Start here before designing or implementing a component.
+
 **A local-first creative studio for images and video.**
 
 Optic Rift aims to make AI-assisted visual creation approachable: describe an idea, bring in your own media, preview and edit it, discover models by what they can do, and export the result. The interface is the product; individual models are replaceable engines, not the identity of the application.
@@ -17,7 +19,7 @@ Optic Rift aims to make AI-assisted visual creation approachable: describe an id
 - **Performance is a feature.** Keep playback and UI responsive while generation, transcodes, and heavy decoding run off the UI thread.
 - **Friendly UX.** No workflow graphs, Python packages, model component vocabulary, or terminal commands required for ordinary use.
 
-For the proposed system designs and unresolved decisions, start at the [single architectural index](docs/README.md). The [Wayfinder decision map](https://github.com/Knapp-Kevin/optic-rift/issues/4) tracks architecture questions separately from implementation work. All proposed designs remain unaccepted until their owners and evidence gates are satisfied.
+For the proposed system designs and unresolved decisions, start at the [explicit architectural index](docs/ARCHITECTURE_INDEX.md). The [Wayfinder decision map](https://github.com/Knapp-Kevin/optic-rift/issues/4) tracks architecture questions separately from implementation work. All proposed designs remain unaccepted until their owners and evidence gates are satisfied.
 
 ## Architecture direction
 

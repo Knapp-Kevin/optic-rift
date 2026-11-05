@@ -1,6 +1,6 @@
 # Studio composition and architectural paths
 
-- Status: **PROPOSED**, not owner-accepted, implemented, qualified or released.
+Status: Proposed, not owner-accepted, implemented, qualified or released.
 - Claim owner: system boundaries and architectural alternatives only.
 - Decision path: [Wayfinder map](https://github.com/Knapp-Kevin/optic-rift/issues/4); native-shell qualification [media decision](https://github.com/Knapp-Kevin/optic-rift/issues/6).
 - Basis: user journeys, [product charter](../../README.md), Qortara architectural-index protocol; provisional desktop [ADR-0001 in draft PR #1](https://github.com/Knapp-Kevin/optic-rift/pull/1).

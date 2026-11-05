@@ -1,6 +1,6 @@
 # Cross-media transformations and durable job boundaries
 
-- Status: **PROPOSED**, not a committed API or implemented scheduler.
+Status: Proposed, not a committed API or implemented scheduler.
 - Claim owner: operation interface, job lifecycle and transformation coordination.
 - Wayfinder decision: [Transformation job boundary](https://github.com/Knapp-Kevin/optic-rift/issues/7).
 - Companion owners: [project identity](project-asset-lineage.md), [media implementation](media-pipeline.md), [model trust](model-runtime-and-trust.md).
