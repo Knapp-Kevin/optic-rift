@@ -51,7 +51,17 @@
     },
     {
       "pattern": "docs/README.md",
-      "reason": "Canonical architectural filing index",
+      "reason": "Documentation entrypoint and canonical index navigation (not the architecture index)",
+      "review": "maintainer_required"
+    },
+    {
+      "pattern": "docs/ARCHITECTURE_INDEX.md",
+      "reason": "Explicit canonical architecture index and product-truth routing",
+      "review": "maintainer_required"
+    },
+    {
+      "pattern": "docs/architecture/**",
+      "reason": "Architecture designs, ADRs and scoped decision owners",
       "review": "maintainer_required"
     },
     {
