@@ -1,6 +1,7 @@
 use serde::Serialize;
 use tauri::Manager;
 
+pub mod media;
 mod project_store;
 
 #[derive(Serialize)]
