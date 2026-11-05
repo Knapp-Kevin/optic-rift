@@ -38,3 +38,5 @@
 .hf-result,.hf-error{font-size:12px;margin:14px 0 0;line-height:1.6}.hf-result{color:#a5dfbe}.hf-error{color:#ffb3b3}
 .hf-note{margin-top:15px}
 @media(max-width:650px){.hf-head,.hf-input-row{flex-direction:column}.hf-head .hf-state{align-self:flex-start}}
+
+.brand-icon-img{width:34px;height:34px;border-radius:8px;display:block;object-fit:cover;flex-shrink:0}

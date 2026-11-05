@@ -112,7 +112,7 @@ export default function App() {
   return (
     <div className="app">
       <aside className="navigation">
-        <div className="brand"><span className="brand-icon">◉</span><span>OPTIC <b>RIFT</b><small>VISUAL STUDIO</small></span></div>
+        <div className="brand"><img className="brand-icon-img" src="/branding/optic-rift-approved-256.webp" alt="" /><span>OPTIC <b>RIFT</b><small>VISUAL STUDIO</small></span></div>
         <div className="nav-group">
           <div className="group-label">WORKSPACE</div>
           <button className={view === "projects" ? "nav selected" : "nav"} onClick={() => setView("projects")}>▤ <span>Projects</span></button>

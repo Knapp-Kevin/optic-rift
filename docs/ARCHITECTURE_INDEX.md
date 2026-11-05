@@ -29,6 +29,7 @@
 | Windows desktop stack, native media preview and performance fallback | [ADR-0001: Windows-first desktop](architecture/ADR-0001-windows-desktop.md) ([draft foundation PR #1](https://github.com/Knapp-Kevin/optic-rift/pull/1)) | Proposed; this stacked branch, unqualified |
 | Whole studio composition, project lineage, media pipeline, transformations/jobs, model trust, studio UX, outliers and qualification | [Architecture proposal PR #11](https://github.com/Knapp-Kevin/optic-rift/pull/11) | Proposed; eight topic files, not merged or accepted |
 | User-journey-to-decision routing | [Wayfinder architectural decision map](https://github.com/Knapp-Kevin/optic-rift/issues/4) | Planning questions, not implementation approval |
+| Visual identity and approved emblem, icon generation | [Optic Rift branding owner](../assets/branding/README.md) | Owner-approved design; Windows icons still need generation and qualification |
 | Product requirements | [README charter](../README.md) | Owner intent; no release qualification |
 | Governance and change authority | [Qortara manifest](../governance/manifest.json), [enforcement gap issue](https://github.com/Knapp-Kevin/optic-rift/issues/2) | Manifest merged; actual GitHub/runtime enforcement incomplete |
 
