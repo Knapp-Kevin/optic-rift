@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import ProjectChooser from "./ProjectChooser";
+import type { ProjectRecord } from "./projects";
 
-type View = "studio" | "models" | "settings";
+type View = "projects" | "studio" | "models" | "settings";
 type MediaKind = "image" | "video";
 type MediaItem = { id: string; name: string; kind: MediaKind; url: string; size: number };
 type RuntimeStatus = { application: string; stage: string; generation_ready: boolean; project_storage_ready: boolean };
@@ -15,7 +17,8 @@ const formatTime = (seconds: number) => {
 const compactSize = (size: number) => (size / (1024 * 1024)).toFixed(1) + " MB";
 
 export default function App() {
-  const [view, setView] = useState<View>("studio");
+  const [view, setView] = useState<View>("projects");
+  const [project, setProject] = useState<ProjectRecord | null>(null);
   const [items, setItems] = useState<MediaItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [prompt, setPrompt] = useState("");
@@ -105,6 +108,7 @@ export default function App() {
         <div className="brand"><span className="brand-icon">◉</span><span>OPTIC <b>RIFT</b><small>VISUAL STUDIO</small></span></div>
         <div className="nav-group">
           <div className="group-label">WORKSPACE</div>
+          <button className={view === "projects" ? "nav selected" : "nav"} onClick={() => setView("projects")}>▤ <span>Projects</span></button>
           <button className={view === "studio" ? "nav selected" : "nav"} onClick={() => setView("studio")}>▣ <span>Studio</span></button>
           <button className={view === "models" ? "nav selected" : "nav"} onClick={() => setView("models")}>◈ <span>Models</span></button>
           <button className={view === "settings" ? "nav selected" : "nav"} onClick={() => setView("settings")}>⚙ <span>Settings</span></button>
@@ -117,9 +121,11 @@ export default function App() {
 
       <div className="shell">
         <header className="topbar">
-          <div className="breadcrumbs">OPTIC RIFT <span>/</span> {view === "studio" ? "Creative studio" : view === "models" ? "Model library" : "Preferences"}</div>
-          <div className="top-actions"><span className="pill">PRE-ALPHA</span><button className="top-button" onClick={() => setView("models")}>Model manager</button></div>
+          <div className="breadcrumbs">OPTIC RIFT <span>/</span> {view === "projects" ? "Projects" : view === "studio" ? "Creative studio" : view === "models" ? "Model library" : "Preferences"}</div>
+          <div className="top-actions"><button className="project-pill" onClick={() => setView("projects")} title="Choose a project">{project ? "Project: " + project.name : "No project open"}</button><span className="pill">PRE-ALPHA</span><button className="top-button" onClick={() => setView("models")}>Model manager</button></div>
         </header>
+
+        {view === "projects" && <ProjectChooser current={project} onOpened={(opened) => { setProject(opened); setView("studio"); }} />}
 
         {view === "studio" && <main className="workspace">
           <section className="media-panel">
@@ -197,7 +203,7 @@ export default function App() {
           </div>
           <div className="feature-grid"><div className="feature"><span className="feature-icon">⌕</span><h3>Discover by capability</h3><p>Browse text-to-image, image-to-video, video-to-video, inpainting, restoration, and more.</p><strong>Planned</strong></div><div className="feature"><span className="feature-icon">◈</span><h3>Know before you download</h3><p>Review model audience labels, content warnings, gating, licensing, disk requirements, and hardware compatibility.</p><strong>Planned</strong></div><div className="feature"><span className="feature-icon">▣</span><h3>Install only what you want</h3><p>Separate model dependencies, explicit consent, and measured worker readiness.</p><strong>Planned</strong></div></div><p className="disclosure">Model discovery and execution are not connected in this pre-alpha shell. No Hugging Face token is requested or stored.</p></main>}
 
-        {view === "settings" && <main className="content-page"><div className="page-eyebrow">PREFERENCES</div><h1>Your studio stays on your computer.</h1><p className="lead">Local files, user-controlled AI models, and clear permission boundaries come first.</p><div className="setting-row"><span><strong>Application shell</strong><small>{status?.stage ?? "Browser preview: native Rust bridge unavailable"}</small></span><strong>{status ? "Tauri / Rust" : "Browser-only preview"}</strong></div><div className="setting-row"><span><strong>Model execution</strong><small>Independent Python engines; none connected yet</small></span><strong>Not ready</strong></div><div className="setting-row"><span><strong>Persistent projects</strong><small>Native non-destructive media/project storage is planned</small></span><strong>Not ready</strong></div><div className="setting-row"><span><strong>Local/cloud policy</strong><small>No cloud generation is enabled or silently selected</small></span><strong>Local first</strong></div></main>}
+        {view === "settings" && <main className="content-page"><div className="page-eyebrow">PREFERENCES</div><h1>Your studio stays on your computer.</h1><p className="lead">Local files, user-controlled AI models, and clear permission boundaries come first.</p><div className="setting-row"><span><strong>Application shell</strong><small>{status?.stage ?? "Browser preview: native Rust bridge unavailable"}</small></span><strong>{status ? "Tauri / Rust" : "Browser-only preview"}</strong></div><div className="setting-row"><span><strong>Model execution</strong><small>Independent Python engines; none connected yet</small></span><strong>Not ready</strong></div><div className="setting-row"><span><strong>Persistent projects</strong><small>Named projects are saved locally and reopen after restart. Imported media is not saved into projects yet.</small></span><strong>Names only</strong></div><div className="setting-row"><span><strong>Local/cloud policy</strong><small>No cloud generation is enabled or silently selected</small></span><strong>Local first</strong></div></main>}
       </div>
     </div>
   );
