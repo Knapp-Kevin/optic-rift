@@ -153,7 +153,7 @@ export default function App() {
               {isVideo ? <>
                 <input className="scrubber" type="range" aria-label="Scrub video" min={0} max={Math.max(duration, 0.01)} step={0.01} value={Math.min(playhead, duration || 0)} onChange={(e) => seek(Number(e.target.value))} />
                 <div className="trim-tools"><button onClick={setInPoint}>Mark in: {formatTime(trimIn)}</button><button onClick={setOutPoint}>Mark out: {trimOut === null ? "end" : formatTime(trimOut)}</button><span>Preview markers only; exporting trims is not available yet.</span></div>
-                <div className="timeline-clip"><span>▶</span><strong>{selected.name}</strong></div>
+                <div className="timeline-clip"><span>▶</span><strong>{selected?.name}</strong></div>
               </> : <div className="timeline-empty">Select a video to see its clip timeline.</div>}
             </div>
           </section>
