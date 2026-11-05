@@ -18,6 +18,10 @@ Text-to-image, image-to-image, image-to-video, text-to-video, inpainting, outpai
 
 Persist model repo ID, immutable revision SHA, file hashes, inference adapter and version, license **for code and weights**, inherited base-model restrictions, gated access status, user acceptance record, seed, parameters and generation output hash. Mark missing information unknown and do not infer commercial rights.
 
+## Hugging Face access
+
+Optional read tokens are entered, tested and stored through the [dedicated Hugging Face access contract](hugging-face-access.md). Credential acceptance is distinct from gating, model licensing, format support and runtime readiness.
+
 ## Execution boundary
 
 Model workers execute in separate, minimally privileged Python processes or environments. No arbitrary model repository code runs in the desktop process. Never default to trust_remote_code, pickle weights, arbitrary install scripts, or privileged shell activation. The user explicitly approves downloads, terms, compute use, and any network inference. No built-in model is mandatory to view/edit/export ordinary media.

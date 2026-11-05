@@ -25,6 +25,7 @@
 
 | Scoped ownership | Present owning location | Maturity |
 | --- | --- | --- |
+| Hugging Face credential setup, credential storage, connection-test boundaries | [Hugging Face access contract](contracts/hugging-face-access.md) | Proposed implementation on an unmerged branch; Windows keyring/build acceptance missing |
 | Windows desktop stack, native media preview and performance fallback | [ADR-0001: Windows-first desktop](architecture/ADR-0001-windows-desktop.md) ([draft foundation PR #1](https://github.com/Knapp-Kevin/optic-rift/pull/1)) | Proposed; this stacked branch, unqualified |
 | Whole studio composition, project lineage, media pipeline, transformations/jobs, model trust, studio UX, outliers and qualification | [Architecture proposal PR #11](https://github.com/Knapp-Kevin/optic-rift/pull/11) | Proposed; eight topic files, not merged or accepted |
 | User-journey-to-decision routing | [Wayfinder architectural decision map](https://github.com/Knapp-Kevin/optic-rift/issues/4) | Planning questions, not implementation approval |
