@@ -27,3 +27,18 @@ Model workers execute in separate, minimally privileged Python processes or envi
 Explain plainly: "We found this model, but Optic Rift doesn't yet know how to run it"; "This model requires more graphics memory than currently available"; "This model allows personal use only"; or "Sign in to Hugging Face and accept the model's access terms."
 
 Unknown rights, unavailable GPUs and driver issues are blockers, not low-confidence green indicators.
+
+## Audience/content labels are distinct from capabilities and license rights
+
+A model's task capabilities (text-to-video, inpainting, etc.) and intended audience/content classification are independent fields. An adult-focused model is **not** a new technical capability or a reason to prevent discovery of lawful tools. Do not conflate adult content, noncommercial restrictions, or gated access.
+
+- Use **Adult-focused (18+) · Explicit** for a model specifically intended for generating pornographic/sexually explicit material, backed by review of an appropriate source. Include model-card evidence and review status.
+- Use **Mature themes** for non-pornographic but potentially sensitive adult themes where evidence supports that label.
+- Use **General purpose** only with reviewed evidence; otherwise use **Content classification unverified**, not an unsupported "safe" claim.
+- A general-purpose model may still generate explicit outputs. **Output labels are assessed separately from model audience labels.** Do not infer every output is explicit or nonexplicit based solely on the originating model.
+- Adult discovery is off by default, opt-in, and scoped independently from an explicit-preview reveal. Opting in does not autoplay explicit previews or silently change the selected inference engine.
+- Show content classification, evidence/source, model capability, license, support state and gating status separately.
+- Show clear terms again at explicit download, model activation and when necessary for sharing/export.
+- **Never silently suppress lawful content from a user-owned local project** merely because adult discovery is disabled; the discovery preference controls browse listings, not the user's existing files.
+
+See [adult content and preview contract](adult-content-and-preview.md). Model discovery currently does not run in the pre-alpha shell; these are forward-compatibility requirements.

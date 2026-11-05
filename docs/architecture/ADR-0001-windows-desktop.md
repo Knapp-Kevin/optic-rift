@@ -48,6 +48,10 @@ A model is not operational merely because Hugging Face indexes it or because one
 
 Open the app into a ready-to-use studio. Import a local image/video; preview it. Show an editable sequence only when an edit is real and can be exported. Generative actions explain which missing engine/model prevents execution and provide a non-destructive path to install with user approval. Provide presets and human descriptions before exposing advanced controls.
 
+## Content presentation and model freedom
+
+The studio supports an opt-in adult-oriented model discovery experience, with content labels separate from license, task capability, execution readiness, and model-family metadata. The underlying architecture does not require an adult-content filter on ordinary local editing. The UI must not display explicit model thumbnails by default or accidentally reveal them through recommended-model surfaces, notifications, recent-history panels, or background previews. See [content contract](../contracts/adult-content-and-preview.md). Protect minors and real people against nonconsensual sexual material and meet applicable law and model license terms. The pre-alpha preference is session-only and is not an age-verification system.
+
 ## Qualification before a release recommendation
 
 See [performance gates](../engineering/performance-gates.md). Measure on the owner Windows 11 / RTX 5070 Ti 16 GB machine, **not** hypothetical Rust/Tauri benchmarks. Compare Qt only if native playback measurements or usability justify the extra implementation.

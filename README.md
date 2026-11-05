@@ -16,6 +16,7 @@ Optic Rift aims to make AI-assisted visual creation approachable: describe an id
 - **Graceful failures.** Isolate GPU models and their Python dependencies from the editor. If the engine crashes, the project and media remain safe.
 - **Performance is a feature.** Keep playback and UI responsive while generation, transcodes, and heavy decoding run off the UI thread.
 - **Friendly UX.** No workflow graphs, Python packages, model component vocabulary, or terminal commands required for ordinary use.
+- **Clear adult-content choice.** Support lawful adult-oriented models and creation without a blanket pornography ban. Clearly mark adult-focused models **Adult (18+) / Explicit**, keep their discovery behind deliberate opt-in, conceal explicit previews by default, and preserve safeguards for minors, nonconsensual sexual imagery and other illegal or abusive content. Model intent and actual output labels are separate. See [adult-content UX policy](docs/contracts/adult-content-and-preview.md).
 
 ## Architecture direction
 
