@@ -29,10 +29,10 @@ If these sources disagree, record **drift with exact paths and revisions**, iden
 | Question | Accountable source | Status / boundary |
 | --- | --- | --- |
 | What should Optic Rift be? | [Project README](../README.md) and owner-accepted decisions | Product intent; not implemented-feature proof |
-| Which rules govern repository changes? | [Qortara Logic repository governance manifest](../governance/manifest.json) | **Merged on main**, but GitHub ruleset/native enforcement remains unqualified ([issue #2](https://github.com/Knapp-Kevin/optic-rift/issues/2)) |
+| Which rules govern repository changes? | [Qortara Logic repository governance manifest](../governance/manifest.json) | Manifest merged; active main ruleset has **0 mandatory approving reviews** and no native Qortara lifecycle enforcement ([issue #2](https://github.com/Knapp-Kevin/optic-rift/issues/2)) |
 | What do Qortara contracts mean? | [Canonical Qortara Logic engine and schemas](https://github.com/MythologIQ-Labs-LLC/qortara-logic/tree/6ee2d7b15a1c5732e1ae2d2485e2fded0bd100ac/src/qortara_logic) | Schema provenance at source commit `6ee2d7b`; hosted engine version must be checked independently |
 | How do agents start work? | [AGENTS.md](../AGENTS.md) | Portable index pointer; no duplicated policy rules |
-| What architecture is proposed? | [Architecture shelves below](#architecture-shelves-proposed), plus [desktop foundation PR #1](https://github.com/Knapp-Kevin/optic-rift/pull/1) | **Proposals** on separate review branches, not accepted implementations |
+| What architecture is proposed? | [Architecture shelves below](#architecture-shelves-proposed), plus [desktop foundation PR #1](https://github.com/Knapp-Kevin/optic-rift/pull/1) | **Proposals**, indexed here without accepting a runtime architecture or claiming shipped functionality |
 | What product constraints are proposed? | [PR #1](https://github.com/Knapp-Kevin/optic-rift/pull/1) model-discovery, adult-preview and performance docs | Draft design and code, not tested Windows behavior |
 | Which changes are outstanding? | Live GitHub [issues](https://github.com/Knapp-Kevin/optic-rift/issues) and [pull requests](https://github.com/Knapp-Kevin/optic-rift/pulls) | Status at time of access; no duplicated issue tracker |
 | Which behaviors actually passed? | Exact-version executed test/Windows evidence and Qortara runtime records | Absent until genuinely executed and authenticated |
@@ -52,6 +52,7 @@ This file is the **only** filing register for Optic Rift architecture. The liste
 | Studio workspace UX, navigation and journey actions | [Studio interactions](architecture/studio-interactions.md) | Proposed; [interaction decision](https://github.com/Knapp-Kevin/optic-rift/issues/8) |
 | Stage boundaries and explicit deferred/outlier capabilities | [Roadmap and outlier register](architecture/roadmap-and-outliers.md) | Proposed; [alpha scope decision](https://github.com/Knapp-Kevin/optic-rift/issues/10) |
 | Outcome acceptance, test/evidence and handoff criteria | [Qualification and evidence](architecture/qualification-and-evidence.md) | Proposed; actual measurements absent |
+| Approved brand artwork, visual assets and icon generation | [Visual identity and source provenance](../assets/branding/README.md) | Approved image published in [PR #17](https://github.com/Knapp-Kevin/optic-rift/pull/17); native taskbar/installer adoption remains unqualified |
 | Desktop shell selection, current native UI/IPC source | [ADR-0001 within draft desktop PR #1](https://github.com/Knapp-Kevin/optic-rift/blob/feature/windows-desktop-foundation-20261105-no-ci/docs/architecture/ADR-0001-windows-desktop.md) | **Provisional, unmerged**; not reproduced in this branch |
 | Concrete model/catalog/content and provisional media benchmark contracts | [Draft desktop PR #1](https://github.com/Knapp-Kevin/optic-rift/pull/1) | Unmerged candidate contracts; their own files are topic owners |
 
@@ -86,7 +87,7 @@ This file is the **only** filing register for Optic Rift architecture. The liste
 
 Source schema: `urn:qortara-logic:schema:policy:governance-manifest` at Qortara Logic `6ee2d7b15a1c5732e1ae2d2485e2fded0bd100ac`; hosted plugin reports read-only contract 1.3 and a separately reported backend revision. The source and deployed versions must not be assumed identical without verification.
 
-Current GitHub observation at initial assessment (2026-11-05): `main` was reported unprotected, no repository rulesets existed, and the detailed branch protection API returned HTTP 403 for the connector. The manifest declares intended review/protection controls but cannot enact them. It also requires CI evidence, yet no CI workflow or qualifying status checks exist; do **not** invent either. An owner must enable protections via an authorized GitHub administration surface and require checks only once they genuinely exist. The single owner cannot self-certify an independent approval.
+Historical initial assessment (2026-11-05) reported no main rulesets. **Later live GitHub readback** found active ruleset `26658544` on `main`, blocking deletion/non-fast-forward changes and requiring pull requests, but configured for **zero** approving reviews, no required check contexts, and role-based bypass. It does not satisfy the independent/Qortara lifecycle requirements. The manifest declares stricter controls than the current GitHub ruleset; a declared requirement does not enact it. CI and native Qortara evidence are not established by this documentation; do **not** invent either. An owner must enable protections via an authorized GitHub administration surface and require checks only once they genuinely exist. The single owner cannot self-certify an independent approval.
 
 **No native lifecycle ledger or independent audit receipt is created by this bootstrap.** Track adoption and gaps in [issue #2](https://github.com/Knapp-Kevin/optic-rift/issues/2).
 
