@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { SIZE_PRESETS, settingsError, type GpuCheck, type GpuDecision, type ModelLibrary, type Provenance } from "./models";
 import { saveWithPicturesConsent } from "./exportPrivacy";
-import { localImageSourceChoices, type LocalImageSource } from "./imageToImage";
+import { imageToImageStepError, localImageSourceChoices, type LocalImageSource } from "./imageToImage";
 
 const errorText = (e: unknown) => (typeof e === "string" ? e : e instanceof Error ? e.message : "The desktop bridge is unavailable.");
 
@@ -88,7 +88,8 @@ export default function GeneratePanel({ prompt, mode, historyVersion, projectId,
     : SIZE_PRESETS[preset];
   const missingSource = mode === "image-to-image" && !source;
   const seed = seedText.trim() === "" ? null : Number(seedText);
-  const problem = settingsError(prompt, { width: size.width, height: size.height, steps, guidance, seed });
+  const problem = settingsError(prompt, { width: size.width, height: size.height, steps, guidance, seed })
+    || imageToImageStepError(mode, steps, strength);
   const runtimeReady = Boolean(library?.runtime.installed);
 
   /** Check who else is using the GPU first; ask before sharing it with another app. */
@@ -97,7 +98,7 @@ export default function GeneratePanel({ prompt, mode, historyVersion, projectId,
     setError(""); setConfirm(null); setChecking(true);
     try {
       const check = await invoke<GpuCheck>("gpu_check", {
-        repo, revision, width: size.width, height: size.height, mode,
+        repo, revision, width: size.width, height: size.height, steps, mode,
         sourceJobId: mode === "image-to-image" ? sourceId : null,
         strength: mode === "image-to-image" ? strength : null,
       });
