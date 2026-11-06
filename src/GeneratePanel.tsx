@@ -12,6 +12,8 @@ type Props = {
   prompt: string;
   mode: "text-to-image" | "image-to-image";
   layout?: "inspector" | "create";
+  /** Create layout only: false while the Create workspace is hidden. */
+  visible?: boolean;
   onPromptChange?: (text: string) => void;
   onModeChange?: (mode: "text-to-image" | "image-to-image") => void;
   historyVersion: number;
@@ -24,7 +26,7 @@ type Props = {
 
 type WorkerEvent = { event: string; job_id?: string; step?: number; total?: number; seconds?: number };
 
-export default function GeneratePanel({ prompt, mode, layout = "inspector", onPromptChange, onModeChange, historyVersion, projectId, libraryVersion, onOpenModels, onResult, onGenerated }: Props) {
+export default function GeneratePanel({ prompt, mode, layout = "inspector", visible = true, onPromptChange, onModeChange, historyVersion, projectId, libraryVersion, onOpenModels, onResult, onGenerated }: Props) {
   const [library, setLibrary] = useState<ModelLibrary | null>(null);
   const [model, setModel] = useState("");
   const [negative, setNegative] = useState("");
@@ -262,10 +264,12 @@ export default function GeneratePanel({ prompt, mode, layout = "inspector", onPr
               <button className="secondary" onClick={() => void stageSave()}>Save copy (may sync)</button></>}
           </div>
         </div>
-        {confirm && <div className="create-gpu-consent gpu-confirm" role="alertdialog" aria-label="Another app is using the GPU">
-          <strong>Your GPU is in use</strong><p>{confirm.message}</p>
+        {confirm && <div className="create-gpu-consent gpu-confirm" role="alertdialog" aria-modal="true" aria-labelledby="create-gpu-title" aria-describedby="create-gpu-message"
+          onKeyDown={(e) => { if (e.key === "Escape") setConfirm(null); }}>
+          <strong id="create-gpu-title">Your GPU is in use</strong><p id="create-gpu-message">{confirm.message}</p>
           {confirm.apps.length > 0 && <ul>{confirm.apps.map((a) => <li key={a.pid}>{a.name} · {(a.dedicated_mb / 1024).toFixed(1)} GB</li>)}</ul>}
-          <div className="model-actions"><button className="secondary" onClick={() => setConfirm(null)}>Not now</button>
+          {/* The Generate button is disabled while this is open, so move keyboard focus here (safe default). */}
+          <div className="model-actions"><button className="secondary" autoFocus onClick={() => setConfirm(null)}>Not now</button>
             <button className="primary" onClick={() => void generate(confirm.apps.map((a) => a.pid))}>Generate anyway</button></div>
         </div>}
         {error && <p className="project-error create-stage-alert" role="alert">{error}</p>}
@@ -276,15 +280,16 @@ export default function GeneratePanel({ prompt, mode, layout = "inspector", onPr
         <label htmlFor="create-prompt">Describe {mode === "image-to-image" ? "the change" : "your idea"}</label>
         <div className="create-prompt-row">
           <textarea id="create-prompt" value={prompt} onChange={(e) => onPromptChange?.(e.target.value)}
-            maxLength={2000} rows={2} placeholder="Describe what you want to create…" />
+            maxLength={2000} rows={2} placeholder={mode === "image-to-image" ? "Describe how the image should change…" : "Describe what you want to create…"} />
           <button className="primary" type="button" disabled={!hasModel || jobId !== null || checking || confirm !== null || Boolean(problem) || !model || missingSource}
             onClick={() => void requestGenerate()}>{jobId ? "Generating…" : checking ? "Checking GPU…" : mode === "image-to-image" ? "Transform" : "Generate"}</button>
         </div>
-        {problem && <small className="project-error" role="status">{problem}</small>}
+        {/* An untouched, empty prompt is a starting state, not an error. */}
+        {problem && prompt.trim() ? <small className="project-error" role="status">{problem}</small> : null}
       </section>
 
       <GenerationFilmstrip refreshVersion={historyVersion} selectedId={mode === "image-to-image" ? sourceId : selected?.record.job_id ?? null}
-        onSelect={onGallerySelect} onError={onGalleryError} />
+        onSelect={onGallerySelect} onError={onGalleryError} active={visible} />
 
       <aside className="create-settings" aria-label="Image generation settings">
         <h2>Generation settings</h2>
@@ -300,7 +305,8 @@ export default function GeneratePanel({ prompt, mode, layout = "inspector", onPr
         {mode === "image-to-image" && <>
           <label htmlFor="create-source">Starting image</label>
           <select id="create-source" value={sourceId} disabled={jobId !== null || checking} onChange={(e) => setSourceId(e.target.value)}>
-            {!sources.length && <option value="">No saved generations yet</option>}
+            {/* Without an explicit empty choice the browser would display the first history item as selected. */}
+            <option value="">{sources.length ? "Choose a starting image…" : "No saved generations yet"}</option>
             {sources.map((item) => <option key={item.id} value={item.id}>{item.id.slice(0, 8)} · {item.width}×{item.height}</option>)}
           </select>
           <label htmlFor="create-strength">Change strength: {strength.toFixed(2)}</label>

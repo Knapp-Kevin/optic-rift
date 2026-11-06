@@ -110,7 +110,7 @@
 .create-settings h2{font-size:16px;margin:0 0 4px}
 .create-settings label{font-size:12px;color:#c6d3ec;font-weight:700}
 .create-settings select,.create-settings input:not([type=range]){width:100%;min-width:0;padding:10px;background:#202b43;color:#e7eeff;border:1px solid #40516f;border-radius:7px;font-size:12px}
-.create-settings input[type=range]{width:100%;accent-color:#8fa7ff}
+.create-settings input[type=range]{width:100%;margin:0;accent-color:#8fa7ff}
 .create-settings small{font-size:11px;color:#9cacca;line-height:1.5}
 .create-settings .model-hint{margin:10px 0 0}
 .create-settings .create-mode-switch{display:flex;flex-wrap:wrap}
@@ -133,9 +133,22 @@
   .create-settings{order:3;max-height:410px}
   .studio-tabs>span{display:none}
 }
-.create-filmstrip>.model-hint{font-size:10px;line-height:1.2;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
-.create-thumbnails{min-height:61px}
+.create-filmstrip>.model-hint{font-size:10px;line-height:1.2;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;margin:0}
+/* Filmstrip sizes to its content so tiles and their labels are never clipped by the scrollbar. */
+.create-panel{grid-template-rows:minmax(160px,1fr) auto auto}
+.create-filmstrip-heading>div:first-child{flex:1}
+.create-filmstrip-heading .model-actions{flex-wrap:nowrap;flex:0 0 auto;flex-direction:row;gap:6px}
+.create-thumbnails{flex:none;min-height:76px;align-items:stretch;padding-bottom:6px;scrollbar-color:#3c4a67 transparent}
+.create-thumbnail{height:68px;width:108px}
+.create-thumbnail .generation-thumbnail{height:44px;width:100px}
+.create-thumbnail-name{font-size:10px;max-width:100px}
+/* Percent heights do not resolve in an auto-sized grid row, which cropped thumbnails. A definite flex box
+   with max-* bounds letterboxes every aspect ratio instead. */
+.generation-thumbnail{display:flex;align-items:center;justify-content:center}
+.generation-thumbnail img{width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain}
 
 .create-progress{position:absolute;z-index:3;top:50%;left:50%;transform:translate(-50%,-50%);width:min(370px,88%);padding:18px;background:#121c32ed;color:#e6edff;border:1px solid #627cad;border-radius:12px;box-shadow:0 10px 35px #0008;display:flex;flex-direction:column;gap:12px;text-align:center}
 .create-progress strong{font-size:14px}
 .create-progress progress{width:100%;height:9px;accent-color:#91a7ff}
+/* The editor now sits under the 52px Studio tab bar; without this the whole page scrolled by that amount. */
+.studio-tabs~.workspace{min-height:calc(100vh - 120px)}

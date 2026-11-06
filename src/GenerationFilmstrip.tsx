@@ -10,14 +10,17 @@ type Props = {
   selectedId: string | null;
   onSelect: (item: Provenance, imageUrl: string) => void;
   onError: (message: string) => void;
+  /** False while Create is hidden: revealed previews are concealed again and their data dropped. */
+  active?: boolean;
 };
 
-export default function GenerationFilmstrip({ refreshVersion, selectedId, onSelect, onError }: Props) {
+export default function GenerationFilmstrip({ refreshVersion, selectedId, onSelect, onError, active = true }: Props) {
   const [records, setRecords] = useState<Provenance[]>([]);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState<string | null>(null);
   const [refresh, setRefresh] = useState(0);
   const [previewsRevealed, setPreviewsRevealed] = useState(false);
+  useEffect(() => { if (!active) setPreviewsRevealed(false); }, [active]);
 
   useEffect(() => {
     let active = true;

@@ -46,3 +46,42 @@ test("History does not render sensitive thumbnails or select source by default",
   assert.match(engine, /className="create-progress"/);
   assert.match(engine, /aria-live="polite"/);
 });
+
+test("Create survives Edit media switches and re-conceals previews while hidden", () => {
+  const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8");
+  const panel = readFileSync(new URL("../src/GeneratePanel.tsx", import.meta.url), "utf8");
+  const strip = readFileSync(new URL("../src/GenerationFilmstrip.tsx", import.meta.url), "utf8");
+  // Hidden rather than unmounted, so a running job keeps its progress, Cancel and result.
+  assert.match(app, /createOpened && <main className="create-workspace" hidden=\{!\(view === "studio" && studioMode === "create"\)\}/);
+  assert.match(app, /visible=\{view === "studio" && studioMode === "create"\}/);
+  assert.match(panel, /active=\{visible\}/);
+  assert.match(strip, /if \(!active\) setPreviewsRevealed\(false\)/);
+});
+
+test("GPU consent takes keyboard focus and an empty prompt is not shown as an error", () => {
+  const panel = readFileSync(new URL("../src/GeneratePanel.tsx", import.meta.url), "utf8");
+  assert.match(panel, /role="alertdialog" aria-modal="true"/);
+  assert.match(panel, /autoFocus onClick=\{\(\) => setConfirm\(null\)\}>Not now/);
+  assert.match(panel, /e\.key === "Escape"\) setConfirm\(null\)/);
+  assert.match(panel, /\{problem && prompt\.trim\(\) \? <small className="project-error"/);
+});
+
+test("Filmstrip sizes to its tiles and letterboxes thumbnails instead of cropping", () => {
+  const css = readFileSync(new URL("../src/styles.css", import.meta.url), "utf8");
+  assert.match(css, /\.create-panel\{grid-template-rows:minmax\(160px,1fr\) auto auto\}/);
+  assert.match(css, /\.create-filmstrip-heading \.model-actions\{flex-wrap:nowrap;flex:0 0 auto;flex-direction:row/);
+  assert.match(css, /\.generation-thumbnail\{display:flex;align-items:center;justify-content:center\}/);
+  assert.match(css, /\.generation-thumbnail img\{width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain\}/);
+});
+
+test("Image-to-image never displays an unchosen history item as the selected source", () => {
+  const panel = readFileSync(new URL("../src/GeneratePanel.tsx", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../src/styles.css", import.meta.url), "utf8");
+  assert.match(panel, /<option value="">\{sources\.length \? "Choose a starting image…" : "No saved generations yet"\}<\/option>/);
+  assert.match(css, /\.create-settings input\[type=range\]\{width:100%;margin:0;/);
+});
+
+test("Edit media accounts for the Studio tab bar instead of scrolling the page", () => {
+  const css = readFileSync(new URL("../src/styles.css", import.meta.url), "utf8");
+  assert.match(css, /\.studio-tabs~\.workspace\{min-height:calc\(100vh - 120px\)\}/);
+});

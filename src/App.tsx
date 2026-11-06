@@ -29,6 +29,7 @@ export default function App() {
   const [prompt, setPrompt] = useState("");
   const [studioMode, setStudioMode] = useState<"create" | "edit">("edit");
   const [studioModeChosen, setStudioModeChosen] = useState(false);
+  const [createOpened, setCreateOpened] = useState(false);
   const [creationMode, setCreationMode] = useState<"text-to-image" | "image-to-image">("text-to-image");
   const [libraryVersion, setLibraryVersion] = useState(0);
   const [historyVersion, setHistoryVersion] = useState(0);
@@ -72,6 +73,8 @@ export default function App() {
       .catch(() => { if (active) setStudioMode("edit"); });
     return () => { active = false; };
   }, [view, libraryVersion, studioModeChosen]);
+
+  useEffect(() => { if (view === "studio" && studioMode === "create") setCreateOpened(true); }, [view, studioMode]);
 
   function selectItem(id: string) {
     setSelectedId(id);
@@ -169,13 +172,17 @@ export default function App() {
             </div>
             <span>{studioMode === "create" ? "Generate local images. Video generation models are discoverable in Models." : "Edit the media you have opened."}</span>
           </nav>
-          {studioMode === "create" ? <main className="create-workspace">
-            <GeneratePanel layout="create" prompt={prompt} onPromptChange={setPrompt} mode={creationMode}
+        </>}
+        {/* Create stays mounted once opened, so a running job, its progress/Cancel and the current result
+            survive a switch to Edit media or another page. Hidden content is not rendered visibly. */}
+        {createOpened && <main className="create-workspace" hidden={!(view === "studio" && studioMode === "create")}>
+            <GeneratePanel layout="create" visible={view === "studio" && studioMode === "create"} prompt={prompt} onPromptChange={setPrompt} mode={creationMode}
               onModeChange={setCreationMode} historyVersion={historyVersion} projectId={project?.id ?? null}
               libraryVersion={libraryVersion} onOpenModels={() => setView("models")}
               onResult={(media) => { addGenerated(media); setStudioMode("edit"); setStudioModeChosen(true); }}
               onGenerated={() => setHistoryVersion((v) => v + 1)} />
-          </main> : <main className="workspace">
+          </main>}
+        {view === "studio" && studioMode === "edit" && <main className="workspace">
           <section className="media-panel">
             <div className="section-title"><div><h2>Media library</h2><p>Your images and clips</p></div><span className="count">{items.length}</span></div>
             <input ref={inputRef} type="file" accept="image/*,video/*" multiple hidden onChange={addMedia} aria-label="Select image and video files" />
@@ -198,7 +205,7 @@ export default function App() {
               {selected && previewFailed && <div className="empty-canvas preview-failed" role="alert"><div className="empty-icon">⚠</div><h1>Can't preview {selected.name}</h1><p>{selected.kind === "image" ? IMAGE_PREVIEW_FAILED : VIDEO_PREVIEW_FAILED}</p></div>}
               {selected?.kind === "image" && !previewFailed && <img key={selected.id} onError={() => markFailed(selected.id, IMAGE_PREVIEW_FAILED)} src={selected.url} alt={selected.name} style={{ filter: "brightness(" + brightness + "%) contrast(" + contrast + "%)", transform: "rotate(" + rotation + "deg)" }} />}
               {selected?.kind === "video" && !previewFailed && <video key={selected.id} ref={videoRef} src={selected.url} controls preload="metadata" playsInline onLoadedMetadata={(event) => { const length = event.currentTarget.duration; setDuration(Number.isFinite(length) ? length : 0); setPlayhead(0); }} onTimeUpdate={(event) => setPlayhead(event.currentTarget.currentTime)} onError={() => markFailed(selected.id, VIDEO_PREVIEW_FAILED)} />}
-              {!selected && <div className="empty-canvas"><div className="empty-icon">◉</div><h1>Make something extraordinary.</h1><p>Start with a photo or video. Explore AI generation as compatible models become available.</p><button className="primary" onClick={() => inputRef.current?.click()}>Import your first clip</button></div>}
+              {!selected && <div className="empty-canvas"><div className="empty-icon">◉</div><h1>Make something extraordinary.</h1><p>Start with a photo or video, or choose Create to generate an image locally.</p><button className="primary" onClick={() => inputRef.current?.click()}>Import your first clip</button></div>}
             </div>
             <div className="player-controls">
               {isVideo ? <><button className="control" onClick={() => seek(playhead - 0.1)} title="Step back 0.1 seconds">↶ 0.1s</button><button className="control" onClick={() => seek(playhead + 0.1)} title="Step forward 0.1 seconds">0.1s ↷</button><span className="time">{formatTime(playhead)} / {formatTime(duration)}</span></> :
@@ -228,7 +235,6 @@ export default function App() {
           </aside>
           {message && <div className="notice" role="status"><span>{message}</span><button onClick={() => setMessage("")} aria-label="Dismiss notification">×</button></div>}
         </main>}
-        </>}
 
         {view === "models" && <main className="content-page"><div className="page-eyebrow">MODEL LIBRARY</div><h1>Find the right tool for your idea.</h1><p className="lead">Discover image and video models on Hugging Face, see what they do, what hardware they need and how they are licensed, and install the ones Optic Rift can run on this computer.</p>
           <ModelBrowser includeAdult={includeAdultModels} onLibraryChanged={() => setLibraryVersion((v) => v + 1)} />
