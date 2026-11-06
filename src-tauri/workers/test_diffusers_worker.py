@@ -188,6 +188,19 @@ class ImageToImageProtocol(unittest.TestCase):
                 with self.subTest(request=invalid), self.assertRaises(w.RequestError):
                     worker.generate(invalid)
 
+    def test_zero_effective_denoising_steps_fail_before_image_or_gpu_access(self):
+        from unittest import mock
+
+        worker = self.loaded_worker()
+        with mock.patch.object(w.img2img_reference, "prepare_reference",
+                               side_effect=AssertionError("decoded image unnecessarily")):
+            with mock.patch.object(worker, "apply_budget",
+                                   side_effect=AssertionError("GPU invoked unnecessarily")):
+                for steps, strength in ((1, 0.65), (10, 0.05)):
+                    with self.subTest(steps=steps, strength=strength):
+                        with self.assertRaisesRegex(w.RequestError, "denoising step"):
+                            worker.generate(self.base_request(steps=steps, strength=strength))
+
     def test_verified_reference_reaches_budget_boundary_without_cuda(self):
         from unittest import mock
         import hashlib
