@@ -85,6 +85,22 @@ pub async fn video_cache_metadata<R: tauri::Runtime>(
     video_metadata_cache::cache_public_metadata(local, request).await
 }
 
+/// Clear only the receipt and JSON configuration belonging to one pinned model.
+#[tauri::command]
+pub async fn video_cache_clear<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
+    repo: String,
+    revision: String,
+    accept: bool,
+) -> Result<(), String> {
+    let (_, local) = model_store::dirs(&app)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        video_metadata_cache::remove_metadata(&local, &repo, &revision, accept)
+    })
+    .await
+    .map_err(|_| "Metadata cache cleanup stopped.".to_string())?
+}
+
 #[tauri::command]
 pub fn open_model_page<R: tauri::Runtime>(
     app: tauri::AppHandle<R>,
