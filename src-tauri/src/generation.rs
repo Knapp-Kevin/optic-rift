@@ -422,6 +422,15 @@ struct ImageReference {
     sha256: String,
 }
 
+/// JSON number for an f32 setting using its shortest decimal form, so a slider value of 0.65 is
+/// sent and recorded as 0.65 rather than the widened 0.6499999761581421.
+fn decimal_f32(value: Option<f32>) -> Value {
+    value
+        .filter(|v| v.is_finite())
+        .and_then(|v| v.to_string().parse::<f64>().ok())
+        .map_or(Value::Null, Value::from)
+}
+
 /// SDXL img2img truncates steps * strength to an integer. Reject a zero-step
 /// combination before model loading or starting a GPU job. This is independent
 /// of source-file integrity validation and does not change text-to-image.
@@ -628,7 +637,7 @@ fn run_job<R: tauri::Runtime>(
         "op": "generate", "job_id": req.job_id, "prompt": req.prompt, "negative_prompt": req.negative_prompt,
         "width": req.width, "height": req.height, "steps": req.steps, "guidance": req.guidance,
         "seed": req.seed, "output_path": png, "vram_budget_mb": budget_mb,
-        "mode": req.mode.as_str(), "reference": reference.as_ref(), "strength": req.strength,
+        "mode": req.mode.as_str(), "reference": reference.as_ref(), "strength": decimal_f32(req.strength),
     }))?;
     let job = req.job_id.clone();
     let end = w.wait_for(
@@ -677,7 +686,7 @@ fn run_job<R: tauri::Runtime>(
         created_unix_ms: SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0),
         prompt: req.prompt.trim().into(),
         negative_prompt: req.negative_prompt.trim().into(),
-        parameters: json!({"width": req.width, "height": req.height, "steps": req.steps, "guidance": req.guidance, "seed": end["seed"], "mode": req.mode.as_str(), "strength": req.strength}),
+        parameters: json!({"width": req.width, "height": req.height, "steps": req.steps, "guidance": decimal_f32(Some(req.guidance)), "seed": end["seed"], "mode": req.mode.as_str(), "strength": decimal_f32(req.strength)}),
         model: json!({
             "repo": model.manifest.repo, "revision": model.manifest.revision, "adapter": model.manifest.adapter,
             "adapter_version": model.manifest.adapter_version, "variant": model.manifest.variant,
@@ -924,6 +933,19 @@ mod tests {
             "floor for small images"
         );
         assert!(job_need_mb(weights, 1536, 1536) > job_need_mb(weights, 1024, 1024));
+    }
+
+    #[test]
+    fn f32_settings_are_recorded_as_their_decimal_values() {
+        assert_eq!(decimal_f32(Some(0.65)), json!(0.65));
+        assert_eq!(decimal_f32(Some(7.5)), json!(7.5));
+        assert_eq!(decimal_f32(None), Value::Null);
+        assert_eq!(decimal_f32(Some(f32::NAN)), Value::Null);
+        assert_ne!(
+            json!(0.65f32),
+            json!(0.65),
+            "documents the widening this avoids"
+        );
     }
 
     #[test]
