@@ -307,14 +307,31 @@ def image_problem(image, width, height):
 
 
 def save_png(image, path):
+    """Publish a verified PNG without replacing an existing job's output.
+
+    A unique temporary file prevents stale/linked staging paths from being reused.
+    The hard link claims the destination atomically only if it does not already
+    exist; os.replace could silently overwrite a file created after preflight.
+    Both names are in the same app-owned output directory.
+    """
     partial = path + ".partial"
-    image.save(partial, format="PNG")
-    digest = hashlib.sha256()
-    with open(partial, "rb") as fh:
-        for chunk in iter(lambda: fh.read(1 << 20), b""):
-            digest.update(chunk)
-    os.replace(partial, path)
-    return digest.hexdigest()
+    created = False
+    try:
+        with open(partial, "xb") as fh:
+            created = True
+            image.save(fh, format="PNG")
+        digest = hashlib.sha256()
+        with open(partial, "rb") as fh:
+            for chunk in iter(lambda: fh.read(1 << 20), b""):
+                digest.update(chunk)
+        os.link(partial, path)  # No-overwrite, atomic creation on Windows NTFS.
+        return digest.hexdigest()
+    finally:
+        if created:
+            try:
+                os.unlink(partial)
+            except FileNotFoundError:
+                pass
 
 
 def stdin_lines():
