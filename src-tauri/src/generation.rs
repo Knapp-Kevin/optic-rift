@@ -1038,6 +1038,41 @@ mod tests {
     }
 
     #[test]
+    fn thumbnail_is_bounded_and_does_not_copy_original_full_size() {
+        let mut source = Vec::new();
+        {
+            let mut encoder = png::Encoder::new(&mut source, 512, 256);
+            encoder.set_color(png::ColorType::Rgb);
+            encoder.set_depth(png::BitDepth::Eight);
+            let mut writer = encoder.write_header().unwrap();
+            writer.write_image_data(&vec![138u8; 512 * 256 * 3]).unwrap();
+        }
+        let resized = thumbnail_png(&source).unwrap();
+        assert!(resized.len() < 512 * 1024);
+        let mut reader = png::Decoder::new(std::io::Cursor::new(resized)).read_info().unwrap();
+        assert_eq!((reader.info().width, reader.info().height), (256, 128));
+        let mut buffer = vec![0u8; reader.output_buffer_size().unwrap()];
+        let result = reader.next_frame(&mut buffer).unwrap();
+        assert_eq!(result.color_type, png::ColorType::Rgb);
+        assert_eq!(buffer[0..3], [138, 138, 138]);
+        assert!(thumbnail_png(b"not a PNG").is_err());
+    }
+
+    #[test]
+    fn thumbnail_rejects_oversize_before_pixel_decode() {
+        let mut png = Vec::new();
+        {
+            let mut encoder = png::Encoder::new(&mut png, 1537, 1537);
+            encoder.set_color(png::ColorType::Rgb);
+            encoder.set_depth(png::BitDepth::Eight);
+            let mut writer = encoder.write_header().unwrap();
+            // Only a valid header is needed: dimensions are rejected before reading pixel data.
+            writer.write_image_data(&vec![0u8; 1537 * 1537 * 3]).unwrap();
+        }
+        assert!(thumbnail_png(&png).unwrap_err().contains("preview limit"));
+    }
+
+    #[test]
     fn png_header_parsing() {
         let mut png = b"\x89PNG\r\n\x1a\n\0\0\0\rIHDR".to_vec();
         png.extend(1024u32.to_be_bytes());
