@@ -62,3 +62,12 @@ test("Config download follows only the Hub's own resolve-cache redirect", () => 
   assert.match(native, /let expected = format!\("\/api\/resolve-cache\/models\/\{repo\}\/\{revision\}\/\{file\}"\);/);
   assert.match(native, /target\.host_str\(\) == base\.host_str\(\)/);
 });
+
+test("Switching adult discovery opt-in invalidates the prior model browser", () => {
+  const app = source("src/App.tsx");
+  // A keyed remount discards stale catalog results and in-flight selection state
+  // before React can paint an opted-out view with previously flagged listings.
+  assert.match(app, /<ModelBrowser key=\{includeAdultModels \? "adult-discovery-on" : "adult-discovery-off"\}/);
+  assert.match(app, /setIncludeAdultModels\(false\)/);
+  assert.match(app, /setIncludeAdultModels\(allowed\)/);
+});
