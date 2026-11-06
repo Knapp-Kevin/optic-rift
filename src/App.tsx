@@ -211,7 +211,7 @@ export default function App() {
         </main>}
 
         {view === "models" && <main className="content-page"><div className="page-eyebrow">MODEL LIBRARY</div><h1>Find the right tool for your idea.</h1><p className="lead">Discover image and video models on Hugging Face, see what they do, what hardware they need and how they are licensed, and install the ones Optic Rift can run on this computer.</p>
-          <ModelBrowser key={includeAdultModels ? "adult-discovery-on" : "adult-discovery-off"} includeAdult={includeAdultModels} onLibraryChanged={() => setLibraryVersion((v) => v + 1)} />
+          <ModelBrowser includeAdult={includeAdultModels} onLibraryChanged={() => setLibraryVersion((v) => v + 1)} />
           <HuggingFaceAccess />
           <div className="adult-preference">
             <div className="preference-top"><div><strong>Adult-oriented model discovery</strong><p>Models designed to create explicit sexual content will be labeled <b>Adult-focused (18+) · Explicit</b>. They will be excluded from discovery unless you opt in.</p></div><span className="adult-tag">18+</span></div>
