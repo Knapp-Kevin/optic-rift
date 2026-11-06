@@ -26,6 +26,13 @@ Optional read tokens are entered, tested and stored through the [dedicated Huggi
 
 Model workers execute in separate, minimally privileged Python processes or environments. No arbitrary model repository code runs in the desktop process. Never default to trust_remote_code, pickle weights, arbitrary install scripts, or privileged shell activation. The user explicitly approves downloads, terms, compute use, and any network inference. No built-in model is mandatory to view/edit/export ordinary media.
 
+## Installed weight integrity at use time
+
+- Downloaded model files receive verified SHA-256 values during installation. The cheap `Installed` listing checks file presence and size only; it is **not** a full integrity verification.
+- Before every fresh GPU **model load**, Optic Rift re-hashes every recorded model file and compares the digest to the installation manifest. Same-size modifications, missing files, unexpected links/junctions within a revision, and invalid manifest digests fail closed before any weights enter the inference worker.
+- Warm generations reuse the already loaded worker without re-hashing gigabytes on each image; after an idle unload, the next load verifies again. The GPU-sharing availability snapshot is repeated after disk verification because other apps can become active during the hash pass.
+- This detects changes present when verification runs, **not** replacements by a separate local process after the hash check, and it does not authenticate who authored or signed the model weights in Hugging Face. Real Windows verification and performance timing at the new exact commit remain required.
+
 ## Generated-output export privacy
 
 - In-app outputs remain under the app-owned local directory until the user explicitly chooses an export destination.

@@ -218,6 +218,93 @@ pub fn remove(models: &Path, repo: &str, revision: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// The installer hashes model files once, but their contents can be changed afterwards.
+/// Verify every file again before a *fresh worker load*, not between warm image jobs.
+/// The snapshot is not a defense against another local process replacing a file
+/// after verification. Never treat size-only installed-state checks as integrity proof.
+pub fn verify_installed_files(model: &InstalledModel) -> Result<(), String> {
+    let dir = &model.dir;
+    let manifest = &model.manifest;
+    if manifest.files.is_empty() {
+        return Err("The installed model has no recorded files; reinstall it.".into());
+    }
+    verify_real_directory(dir)?;
+    verify_real_directory(
+        dir.parent()
+            .ok_or("The model installation folder is invalid.")?,
+    )?;
+    for file in &manifest.files {
+        if !safe_relative(&file.path)
+            || file.sha256.len() != 64
+            || !file
+                .sha256
+                .bytes()
+                .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+        {
+            return Err("The model manifest contains an invalid path or digest; reinstall it.".into());
+        }
+
+        // Reject in-tree symlinks and Windows junctions before hashing. Without this
+        // check, the file could be redirected outside the user-approved model folder.
+        let mut path = dir.to_path_buf();
+        let segments: Vec<_> = file.path.split('/').collect();
+        for segment in &segments[..segments.len() - 1] {
+            path.push(segment);
+            verify_real_directory(&path)?;
+        }
+        path.push(segments[segments.len() - 1]);
+        let metadata = fs::symlink_metadata(&path)
+            .map_err(|_| format!("A model file is missing: {}.", file.path))?;
+        if !metadata.file_type().is_file()
+            || metadata.file_type().is_symlink()
+            || file_is_reparse_point(&metadata)
+        {
+            return Err(format!(
+                "A model file is a link or not a regular file: {}.",
+                file.path
+            ));
+        }
+        if metadata.len() != file.size {
+            return Err(format!(
+                "A model file changed size after installation: {}.",
+                file.path
+            ));
+        }
+        let (actual, _) = hash_file(&path, false)
+            .map_err(|_| format!("Could not verify model file: {}.", file.path))?;
+        if actual != file.sha256 {
+            return Err(format!(
+                "Model file integrity check failed for {}. Remove and reinstall this revision.",
+                file.path
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn verify_real_directory(path: &Path) -> Result<(), String> {
+    let metadata = fs::symlink_metadata(path)
+        .map_err(|_| "A model installation directory is missing.".to_string())?;
+    if !metadata.is_dir()
+        || metadata.file_type().is_symlink()
+        || file_is_reparse_point(&metadata)
+    {
+        return Err("A model installation directory is a link or reparse point.".into());
+    }
+    Ok(())
+}
+
+#[cfg(windows)]
+fn file_is_reparse_point(metadata: &fs::Metadata) -> bool {
+    use std::os::windows::fs::MetadataExt;
+    metadata.file_attributes() & 0x400 != 0
+}
+
+#[cfg(not(windows))]
+fn file_is_reparse_point(_metadata: &fs::Metadata) -> bool {
+    false
+}
+
 /// Hash a whole file with SHA-256 (and git-blob SHA-1 when asked).
 fn hash_file(path: &Path, git_blob: bool) -> std::io::Result<(String, Option<String>)> {
     let mut file = File::open(path)?;
@@ -843,6 +930,108 @@ mod tests {
         assert_eq!(load_settings(&data).model_dir.unwrap(), chosen);
         assert_eq!(model_dir(&data, Path::new("C:\\unused")), chosen);
         fs::remove_dir_all(data).unwrap();
+    }
+
+    #[test]
+    fn reverified_model_rejects_same_size_tampering_before_worker_load() {
+        let models = scratch();
+        let revision = "a".repeat(40);
+        let repo = "owner/name";
+        let dir = install_dir(&models, repo, &revision);
+        fs::create_dir_all(dir.join("unet")).unwrap();
+        let relative = "unet/model.safetensors";
+        let content = b"known verified model data";
+        let path = dir.join(relative);
+        fs::write(&path, content).unwrap();
+        let digest = hex(&Sha256::digest(content));
+        let manifest = Manifest {
+            manifest_version: MANIFEST_VERSION,
+            repo: repo.into(),
+            revision,
+            adapter: "diffusers-sdxl-text-to-image".into(),
+            adapter_version: 1,
+            variant: None,
+            license: Some("apache-2.0".into()),
+            license_name: None,
+            base_models: None,
+            consent: Consent {
+                license_acknowledged: "apache-2.0".into(),
+                gated: "no".into(),
+                audience: "unverified".into(),
+                acknowledged_unix_ms: 1,
+            },
+            files: vec![InstalledFile {
+                path: relative.into(),
+                size: content.len() as u64,
+                sha256: digest,
+            }],
+            total_bytes: content.len() as u64,
+            installed_unix_ms: 1,
+        };
+        let model = InstalledModel {
+            manifest,
+            dir: dir.clone(),
+            files_present: true,
+        };
+        assert!(verify_installed_files(&model).is_ok());
+        let altered = b"wrong verified model data";
+        assert_eq!(altered.len(), content.len());
+        fs::write(&path, altered).unwrap();
+        assert_eq!(fs::metadata(&path).unwrap().len(), content.len() as u64);
+        assert!(verify_installed_files(&model)
+            .unwrap_err()
+            .contains("integrity check failed"));
+        fs::remove_dir_all(models).unwrap();
+    }
+
+    #[test]
+    fn reverified_model_rejects_invalid_manifest_digest_and_missing_file() {
+        let models = scratch();
+        let revision = "b".repeat(40);
+        let dir = install_dir(&models, "owner/other", &revision);
+        fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("model_index.json");
+        fs::write(&path, b"{}").unwrap();
+        let digest = hex(&Sha256::digest(b"{}"));
+        let mut manifest = Manifest {
+            manifest_version: MANIFEST_VERSION,
+            repo: "owner/other".into(),
+            revision,
+            adapter: "diffusers-sdxl-text-to-image".into(),
+            adapter_version: 1,
+            variant: None,
+            license: None,
+            license_name: None,
+            base_models: None,
+            consent: Consent {
+                license_acknowledged: "unknown".into(),
+                gated: "no".into(),
+                audience: "unverified".into(),
+                acknowledged_unix_ms: 1,
+            },
+            files: vec![InstalledFile {
+                path: "model_index.json".into(),
+                size: 2,
+                sha256: digest,
+            }],
+            total_bytes: 2,
+            installed_unix_ms: 1,
+        };
+        manifest.files[0].sha256 = "invalid".into();
+        let mut model = InstalledModel {
+            manifest,
+            dir,
+            files_present: true,
+        };
+        assert!(verify_installed_files(&model)
+            .unwrap_err()
+            .contains("invalid path or digest"));
+        model.manifest.files[0].sha256 = hex(&Sha256::digest(b"{}"));
+        fs::remove_file(path).unwrap();
+        assert!(verify_installed_files(&model)
+            .unwrap_err()
+            .contains("missing"));
+        fs::remove_dir_all(models).unwrap();
     }
 
     #[test]

@@ -441,6 +441,14 @@ fn run_job<R: tauri::Runtime>(
     if w.loaded.lock().unwrap().as_ref() != Some(&key) {
         let _ = app.emit(
             "generation",
+            json!({"event": "verifying-model", "job_id": req.job_id}),
+        );
+        model_store::verify_installed_files(model)?;
+        // Verification can read gigabytes. The GPU sharing snapshot taken before
+        // that disk I/O may now be stale, so re-check immediately before loading.
+        let budget_mb = gpu_budget(model, req)?;
+        let _ = app.emit(
+            "generation",
             json!({"event": "loading", "job_id": req.job_id}),
         );
         w.send(&json!({"op": "load", "model_dir": model.dir, "adapter": model.manifest.adapter, "variant": model.manifest.variant, "vram_budget_mb": budget_mb}))?;
