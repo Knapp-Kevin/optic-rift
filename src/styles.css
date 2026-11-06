@@ -154,3 +154,8 @@
 .studio-tabs~.workspace{min-height:calc(100vh - 120px)}
 /* At 1280x720 the stage can be ~200px tall; keep every consent action reachable instead of clipped. */
 .create-gpu-consent{max-height:calc(100% - 16px);overflow-y:auto}
+
+/* The first real offline Photo Studio export stays legible in a narrow inspector. */
+.editor-inspector .adjustments .primary.full{width:100%;min-height:42px;font-size:13px;margin:10px 0 6px}
+.editor-inspector .adjustments .photo-export-notice{color:#d8e6ff;font-size:12px;line-height:1.55;overflow-wrap:anywhere;border:1px solid #4d628d;border-radius:8px;background:#222f4c;padding:9px}
+.editor-inspector .adjustments>p:last-child{font-size:11px;line-height:1.6}
