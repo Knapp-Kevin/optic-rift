@@ -48,6 +48,7 @@ export default function GeneratePanel({ prompt, projectId, libraryVersion, onOpe
     if (!jobId) return;
     const stop = listen<WorkerEvent>("generation", (e) => {
       const p = e.payload;
+      if (p.event === "verifying-model" && p.job_id === jobId) setStatus("Checking installed model files before loading…");
       if (p.event === "loading" && p.job_id === jobId) setStatus("Loading the model onto the GPU…");
       if (p.event === "loaded") setStatus(`Model loaded${p.seconds ? ` in ${p.seconds}s` : ""}. Generating…`);
       if (p.event === "progress" && p.job_id === jobId) setStatus(`Generating · step ${p.step} of ${p.total}`);
