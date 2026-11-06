@@ -76,3 +76,15 @@ test("Switching adult discovery clears flagged results without stopping native d
   assert.match(browser, /<InstalledPanel library=\{library\}/);
   assert.doesNotMatch(app, /<ModelBrowser key=/);
 });
+
+test("Install progress and Cancel live in ModelBrowser, not the hideable detail view", () => {
+  const browser = source("src/ModelBrowser.tsx");
+  // Owned by the component that survives opt-out, so the detail can be hidden without losing the session.
+  assert.match(browser, /const \[installSession, setInstallSession\] = useState<InstallSession \| null>\(null\);/);
+  assert.match(browser, /listen<InstallEvent>\("model-install"/);
+  assert.doesNotMatch(browser.slice(browser.indexOf("function ModelDetailView")), /listen<InstallEvent>/);
+  // When the detail is hidden, a status card keeps progress and Cancel, without a flagged model's name.
+  assert.match(browser, /\{installSession && !sessionShownInDetail && <div className="model-progress" role="status"/);
+  assert.match(browser, /installSession\.flagged && !includeAdult \? "a model" : installSession\.repo/);
+  assert.match(browser, /model_install_cancel", \{ installId: session\.installId \}/);
+});

@@ -10,6 +10,11 @@ const errorText = (e: unknown) => (typeof e === "string" ? e : e instanceof Erro
 
 type Props = { includeAdult: boolean; onLibraryChanged: () => void };
 
+/** One native model download. Owned by ModelBrowser (which stays mounted) rather than by the
+ * detail view, so hiding or replacing the inspected model never loses progress or Cancel. */
+type InstallSession = { installId: string; repo: string; revision: string; flagged: boolean; progress: InstallEvent | null };
+type InstallError = { repo: string; revision: string; message: string };
+
 export default function ModelBrowser({ includeAdult, onLibraryChanged }: Props) {
   const [capabilities, setCapabilities] = useState<CapabilityInfo[]>([]);
   const [capability, setCapability] = useState<Capability>("text-to-image");
@@ -24,6 +29,19 @@ export default function ModelBrowser({ includeAdult, onLibraryChanged }: Props) 
   const searchVersion = useRef(0);
   const inspectVersion = useRef(0);
   const [inspectionFromLocalLibrary, setInspectionFromLocalLibrary] = useState(false);
+  const [installSession, setInstallSession] = useState<InstallSession | null>(null);
+  const [installError, setInstallError] = useState<InstallError | null>(null);
+  const installSessionId = installSession?.installId ?? null;
+
+  useEffect(() => {
+    if (!installSessionId) return;
+    const stop = listen<InstallEvent>("model-install", (e) => {
+      if (e.payload.install_id === installSessionId) {
+        setInstallSession((s) => (s && s.installId === installSessionId ? { ...s, progress: e.payload } : s));
+      }
+    });
+    return () => { void stop.then((f) => f()); };
+  }, [installSessionId]);
 
   // Scope consent to discovery. Disabling it must stop displaying an earlier
   // source-flagged result without unmounting live install/progress components.
@@ -83,17 +101,53 @@ export default function ModelBrowser({ includeAdult, onLibraryChanged }: Props) 
     }
   }
 
+  async function startInstall(inspected: Inspection, accept: boolean) {
+    const { detail } = inspected;
+    const plan = detail.plans[0];
+    if (!plan || installSession) return;
+    const id = crypto.randomUUID();
+    setInstallError(null);
+    setInstallSession({ installId: id, repo: detail.id, revision: detail.revision, flagged: detail.audience === "not-for-all-audiences", progress: null });
+    try {
+      await invoke("model_install", { request: { install_id: id, repo: detail.id, revision: detail.revision, adapter: plan.plan.adapter, license_acknowledged: licenseAcknowledgement(detail), accept } });
+      void refreshLibrary();
+      onLibraryChanged();
+      // Refresh the detail only if the user is still looking at this exact model.
+      if (inspectionRef.current?.detail.id === detail.id && inspectionRef.current.detail.revision === detail.revision) {
+        void inspect({ id: detail.id }, detail.revision, inspectionFromLocalRef.current);
+      }
+    } catch (e) {
+      setInstallError({ repo: detail.id, revision: detail.revision, message: errorText(e) });
+    } finally {
+      setInstallSession(null);
+    }
+  }
+
+  const inspectionRef = useRef<Inspection | null>(null);
+  inspectionRef.current = inspection;
+  const inspectionFromLocalRef = useRef(false);
+  inspectionFromLocalRef.current = inspectionFromLocalLibrary;
+
   const visibleModels = (result?.models ?? []).filter((model) => includeAdult || model.audience !== "not-for-all-audiences");
   // An explicit click on an already-owned local model is separate from discovery.
   const visibleInspection = inspection && (includeAdult || inspectionFromLocalLibrary
     || inspection.detail.audience !== "not-for-all-audiences") ? inspection : null;
 
   const adaptersFor = capabilities.find((c) => c.id === capability)?.adapters ?? [];
+  const sessionShownInDetail = Boolean(installSession && visibleInspection && !inspecting
+    && visibleInspection.detail.id === installSession.repo && visibleInspection.detail.revision === installSession.revision);
+  // A source-flagged model's name is not shown while adult discovery is off.
+  const sessionLabel = installSession && (installSession.flagged && !includeAdult ? "a model" : installSession.repo);
 
   return (
     <section className="model-browser" aria-label="Hugging Face model browser">
       <RuntimePanel library={library} onChanged={() => { void refreshLibrary(); onLibraryChanged(); }} />
       <InstalledPanel library={library} onChanged={() => { void refreshLibrary(); onLibraryChanged(); }} onInspect={(repo, revision) => void inspect({ id: repo }, revision, true)} />
+
+      {installSession && !sessionShownInDetail && <div className="model-progress" role="status" aria-label="Model download in progress">
+        <strong>Downloading {sessionLabel}</strong>
+        <InstallProgress session={installSession} />
+      </div>}
 
       <h2 className="model-section-title">Discover models on Hugging Face</h2>
       <form className="model-search" onSubmit={search}>
@@ -143,7 +197,10 @@ export default function ModelBrowser({ includeAdult, onLibraryChanged }: Props) 
         <div className="model-detail">
           {inspecting && <p className="model-hint">Inspecting {inspecting} at its current revision…</p>}
           {inspectError && <p className="project-error" role="alert">{inspectError}</p>}
-          {visibleInspection && !inspecting && <ModelDetailView inspection={visibleInspection} library={library} onInstalled={() => { void refreshLibrary(); onLibraryChanged(); void inspect({ id: visibleInspection.detail.id }, visibleInspection.detail.revision, inspectionFromLocalLibrary); }} />}
+          {visibleInspection && !inspecting && <ModelDetailView inspection={visibleInspection} library={library}
+            installSession={installSession} installError={installError}
+            onInstall={(accept) => void startInstall(visibleInspection, accept)}
+            onInstalled={() => { void refreshLibrary(); onLibraryChanged(); void inspect({ id: visibleInspection.detail.id }, visibleInspection.detail.revision, inspectionFromLocalLibrary); }} />}
           {!visibleInspection && !inspecting && !inspectError && <p className="model-hint">Select a model to see its license, files, hardware needs and whether Optic Rift can run it.</p>}
         </div>
       </div>
@@ -161,36 +218,29 @@ function StateRow({ inspection, loaded }: { inspection: Inspection; loaded: [str
   );
 }
 
-function ModelDetailView({ inspection, library, onInstalled }: { inspection: Inspection; library: ModelLibrary | null; onInstalled: () => void }) {
+function InstallProgress({ session }: { session: InstallSession }) {
+  const p = session.progress;
+  return <>
+    {p && <><progress max={p.bytes_total || 1} value={p.bytes_done} />
+      <span>{p.state} {p.file ? `· ${p.file} (${p.file_index + 1}/${p.file_count})` : ""} · {formatBytes(p.bytes_done)} of {formatBytes(p.bytes_total)}{p.message ? ` · ${p.message}` : ""}</span></>}
+    {!p && <span>Starting download…</span>}
+    <button className="secondary" onClick={() => void invoke("model_install_cancel", { installId: session.installId })}>Cancel download</button>
+  </>;
+}
+
+function ModelDetailView({ inspection, library, installSession, installError, onInstall, onInstalled }: {
+  inspection: Inspection; library: ModelLibrary | null; installSession: InstallSession | null; installError: InstallError | null;
+  onInstall: (accept: boolean) => void; onInstalled: () => void;
+}) {
   const { detail, installed, gpu, free_bytes, model_dir } = inspection;
   const plan = detail.plans[0] ?? null;
   const [licenseOk, setLicenseOk] = useState(false);
   const [downloadOk, setDownloadOk] = useState(false);
-  const [installId, setInstallId] = useState<string | null>(null);
-  const [progress, setProgress] = useState<InstallEvent | null>(null);
-  const [error, setError] = useState("");
+  const mine = (s: { repo: string; revision: string } | null) => Boolean(s && s.repo === detail.id && s.revision === detail.revision);
+  const session = mine(installSession) ? installSession : null;
+  const error = mine(installError) ? installError!.message : "";
 
-  useEffect(() => { setLicenseOk(false); setDownloadOk(false); setError(""); setProgress(null); }, [detail.id, detail.revision]);
-  useEffect(() => {
-    if (!installId) return;
-    const stop = listen<InstallEvent>("model-install", (e) => { if (e.payload.install_id === installId) setProgress(e.payload); });
-    return () => { void stop.then((f) => f()); };
-  }, [installId]);
-
-  async function install() {
-    if (!plan) return;
-    const id = crypto.randomUUID();
-    setInstallId(id);
-    setError("");
-    try {
-      await invoke("model_install", { request: { install_id: id, repo: detail.id, revision: detail.revision, adapter: plan.plan.adapter, license_acknowledged: licenseAcknowledgement(detail), accept: licenseOk && downloadOk } });
-      onInstalled();
-    } catch (e) {
-      setError(errorText(e));
-    } finally {
-      setInstallId(null);
-    }
-  }
+  useEffect(() => { setLicenseOk(false); setDownloadOk(false); }, [detail.id, detail.revision]);
 
   const weightsMb = plan ? plan.plan.total_bytes / 1024 ** 2 : null;
   return (
@@ -221,15 +271,14 @@ function ModelDetailView({ inspection, library, onInstalled }: { inspection: Ins
           <label><input type="checkbox" checked={licenseOk} onChange={(e) => setLicenseOk(e.target.checked)} /> I reviewed this model's license (<b>{licenseText(detail)}</b>) and will use its outputs accordingly. Optic Rift does not decide commercial rights.</label>
           <label><input type="checkbox" checked={downloadOk} onChange={(e) => setDownloadOk(e.target.checked)} /> Download {formatBytes(plan.plan.total_bytes)} from huggingface.co at revision {detail.revision.slice(0, 12)} into <code>{model_dir}</code>. Only safetensors weights and configuration files are downloaded; no repository code runs.</label>
           <div className="model-actions">
-            <button className="primary" disabled={!licenseOk || !downloadOk || installId !== null || detail.access === "gated-needs-terms"} onClick={() => void install()}>Download and install</button>
-            {installId && <button className="secondary" onClick={() => void invoke("model_install_cancel", { installId })}>Cancel</button>}
+            {/* One download at a time: another model's active session also disables this. */}
+            <button className="primary" disabled={!licenseOk || !downloadOk || installSession !== null || detail.access === "gated-needs-terms"} onClick={() => onInstall(licenseOk && downloadOk)}>Download and install</button>
           </div>
         </div>
       )}
-      {progress && installId && (
+      {session && (
         <div className="model-progress" role="status">
-          <progress max={progress.bytes_total || 1} value={progress.bytes_done} />
-          <span>{progress.state} {progress.file ? `· ${progress.file} (${progress.file_index + 1}/${progress.file_count})` : ""} · {formatBytes(progress.bytes_done)} of {formatBytes(progress.bytes_total)}{progress.message ? ` · ${progress.message}` : ""}</span>
+          <InstallProgress session={session} />
         </div>
       )}
       {error && <p className="project-error" role="alert">{error}</p>}
