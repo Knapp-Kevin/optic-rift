@@ -450,7 +450,7 @@ pub async fn inspect(
         }
     }
     let index_listed = names.iter().any(|n| n == "model_index.json");
-    let (plans, mut rejections) = if index_listed
+    let (plans, rejections) = if index_listed
         && model_index.is_none()
         && access == Access::GatedNeedsTerms
     {

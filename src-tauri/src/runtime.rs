@@ -198,6 +198,7 @@ pub fn install<R: tauri::Runtime>(
             "install",
             "--python",
             &py,
+            "--compile-bytecode",
             "--index-url",
             TORCH_INDEX,
             TORCH,
@@ -208,6 +209,7 @@ pub fn install<R: tauri::Runtime>(
         "install",
         "--python",
         &py,
+        "--compile-bytecode",
         "--index-url",
         "https://pypi.org/simple",
     ];

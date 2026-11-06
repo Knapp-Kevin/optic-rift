@@ -31,6 +31,7 @@ FORBIDDEN_SUFFIXES = (".py", ".pyc", ".bin", ".ckpt", ".pt", ".pth", ".pkl", ".p
 PIPELINES = {"diffusers-sdxl-text-to-image": "StableDiffusionXLPipeline"}
 LIMITS = {"width": (256, 1536), "height": (256, 1536), "steps": (1, 100), "guidance": (0.0, 20.0)}
 MAX_PROMPT_CHARS = 2000
+NEWLINE = bytes([10])
 
 
 def emit(event, **fields):
@@ -247,12 +248,52 @@ def save_png(image, path):
     return digest.hexdigest()
 
 
+def stdin_lines():
+    """Yield request lines without ever leaving a blocking read pending on Windows.
+
+    A synchronous ReadFile pending on the stdin pipe makes other threads' GetFileType calls on
+    that handle block, which deadlocked `import torch` in the main thread. On a pipe we poll
+    with PeekNamedPipe and only read bytes that are already available.
+    """
+    fd = sys.stdin.fileno()
+    if os.name == "nt":
+        import ctypes  # noqa: PLC0415
+        import msvcrt  # noqa: PLC0415
+        from ctypes import wintypes  # noqa: PLC0415
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.GetFileType.argtypes = [wintypes.HANDLE]
+        kernel32.PeekNamedPipe.argtypes = [wintypes.HANDLE, ctypes.c_void_p, wintypes.DWORD, ctypes.c_void_p,
+                                           ctypes.POINTER(wintypes.DWORD), ctypes.c_void_p]
+        handle = wintypes.HANDLE(msvcrt.get_osfhandle(fd))
+        if kernel32.GetFileType(handle) == 3:  # FILE_TYPE_PIPE
+            available = wintypes.DWORD()
+            buffer = b""
+            while True:
+                if not kernel32.PeekNamedPipe(handle, None, 0, None, ctypes.byref(available), None):
+                    break  # writer closed the pipe
+                if not available.value:
+                    time.sleep(0.02)
+                    continue
+                chunk = os.read(fd, available.value)
+                if not chunk:
+                    break
+                buffer += chunk
+                while NEWLINE in buffer:
+                    line, buffer = buffer.split(NEWLINE, 1)
+                    yield line.decode("utf-8", "replace")
+            if buffer:
+                yield buffer.decode("utf-8", "replace")
+            return
+    yield from sys.stdin
+
+
 def main():
     worker = Worker()
     requests = queue.Queue()
 
     def reader():
-        for line in sys.stdin:
+        for line in stdin_lines():
             line = line.strip()
             if not line:
                 continue

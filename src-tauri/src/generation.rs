@@ -50,7 +50,6 @@ fn worker_command(root: &Path) -> Result<Command, String> {
         .env("HF_HUB_DISABLE_TELEMETRY", "1")
         .env("DO_NOT_TRACK", "1")
         .env("PYTHONNOUSERSITE", "1")
-        .env("PYTHONDONTWRITEBYTECODE", "1")
         .env("HF_HOME", root.join("hf-home"))
         .env_remove("HF_TOKEN")
         .env_remove("HUGGING_FACE_HUB_TOKEN")
@@ -188,7 +187,7 @@ pub fn health_once(root: &Path) -> Result<Value, String> {
     let w = spawn::<tauri::Wry>(None, root)?;
     let result = w
         .send(&json!({"op": "health"}))
-        .and_then(|_| w.wait_for(|e| e["event"] == "health", Duration::from_secs(180)));
+        .and_then(|_| w.wait_for(|e| e["event"] == "health", Duration::from_secs(600)));
     let _ = w.send(&json!({"op": "shutdown"}));
     std::thread::sleep(Duration::from_millis(300));
     w.kill();

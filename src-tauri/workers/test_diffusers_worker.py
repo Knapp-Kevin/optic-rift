@@ -108,5 +108,31 @@ class ProtocolProcess(unittest.TestCase):
         self.assertIn("x.bin", events[1]["message"])
 
 
+class OpenStdinHealth(unittest.TestCase):
+    """Regression: with stdin held open (as the desktop host does), importing torch must not hang."""
+
+    def test_health_answers_while_stdin_stays_open(self):
+        try:
+            import torch  # noqa: F401, PLC0415
+        except ImportError:
+            self.skipTest("torch is not installed in this interpreter")
+        import threading  # noqa: PLC0415
+
+        proc = subprocess.Popen([sys.executable, "-I", os.path.join(HERE, "diffusers_worker.py")], stdin=subprocess.PIPE,
+                                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+        try:
+            self.assertEqual(json.loads(proc.stdout.readline())["event"], "ready")
+            proc.stdin.write(json.dumps({"op": "health"}) + chr(10))
+            proc.stdin.flush()
+            box = {}
+            reader = threading.Thread(target=lambda: box.update(line=proc.stdout.readline()), daemon=True)
+            reader.start()
+            reader.join(180)
+            self.assertIn("line", box, "worker hung while stdin was open")
+            self.assertEqual(json.loads(box["line"])["event"], "health")
+        finally:
+            proc.kill()
+
+
 if __name__ == "__main__":
     unittest.main()
