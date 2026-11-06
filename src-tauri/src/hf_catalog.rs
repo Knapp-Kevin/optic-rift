@@ -597,6 +597,38 @@ mod tests {
     }
 
     #[test]
+    fn all_video_discovery_queries_are_task_specific_and_anonymous() {
+        for (capability, tag) in [
+            (Capability::TextToVideo, "text-to-video"),
+            (Capability::ImageToVideo, "image-to-video"),
+            (Capability::VideoToVideo, "video-to-video"),
+        ] {
+            let url = search_url("", capability, 16).unwrap();
+            let pairs: Vec<(String, String)> = url
+                .query_pairs().map(|(a, b)| (a.into_owned(), b.into_owned())).collect();
+            assert!(pairs.iter().any(|(k, v)| k == "pipeline_tag" && v == tag));
+            assert!(!pairs.iter().any(|(k, _)| k.contains("token") || k.contains("authorization")));
+            assert!(!url.as_str().contains("@"));
+        }
+    }
+
+    #[test]
+    fn source_flagged_video_metadata_is_not_treated_as_safe_or_runnable() {
+        let raw: RawModel = serde_json::from_value(serde_json::json!({
+            "id": "fixture/video",
+            "sha": "b".repeat(40),
+            "pipeline_tag": "image-to-video",
+            "gated": false,
+            "tags": ["not-for-all-audiences", "license:other"],
+            "siblings": [{"rfilename": "model_index.json"}]
+        })).unwrap();
+        let model = summarize(raw, Capability::ImageToVideo);
+        assert_eq!(model.audience, "not-for-all-audiences");
+        assert_eq!(model.license.as_deref(), Some("other"));
+        assert!(matches!(model.compatibility, Compatibility::NoAdapter));
+    }
+
+    #[test]
     fn search_url_carries_capability_and_never_credentials() {
         let url = search_url(" lighthouse ", Capability::Upscaling, 30).unwrap();
         let s = url.as_str();
