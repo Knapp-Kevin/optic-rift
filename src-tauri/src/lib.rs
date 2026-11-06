@@ -1,8 +1,16 @@
 use serde::Serialize;
 use tauri::Manager;
 
+mod adapters;
+mod generation;
+mod gpu_guard;
 mod hf_access;
+mod hf_catalog;
+mod model_commands;
+mod model_store;
+mod process_tree;
 mod project_store;
+mod runtime;
 
 #[derive(Serialize)]
 struct RuntimeStatus {
@@ -65,13 +73,36 @@ pub fn with_commands<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Bu
         hf_access::hf_token_save,
         hf_access::hf_token_remove,
         hf_access::hf_token_test,
-        hf_access::hf_open_token_page
+        hf_access::hf_open_token_page,
+        model_commands::catalog_capabilities,
+        model_commands::catalog_search,
+        model_commands::catalog_inspect,
+        model_commands::open_model_page,
+        model_commands::models_library,
+        model_commands::models_set_dir,
+        model_commands::model_install,
+        model_commands::model_install_cancel,
+        model_commands::model_remove,
+        model_commands::image_runtime_install,
+        model_commands::generation_generate,
+        model_commands::generation_cancel,
+        model_commands::generation_unload,
+        model_commands::generation_outputs,
+        model_commands::generation_output_image,
+        model_commands::generation_save,
+        model_commands::gpu_check
     ])
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     with_commands(tauri::Builder::default().plugin(tauri_plugin_opener::init()))
-        .run(tauri::generate_context!())
-        .expect("error while starting Optic Rift");
+        .build(tauri::generate_context!())
+        .expect("error while starting Optic Rift")
+        .run(|_app, event| {
+            if let tauri::RunEvent::Exit = event {
+                // Stop the GPU worker so it never outlives the app.
+                generation::shutdown();
+            }
+        });
 }
