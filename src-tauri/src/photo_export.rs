@@ -168,7 +168,7 @@ pub fn export_to_pictures(
             "rotation_degrees_clockwise": request.rotation
         },
         "output": {
-            "sha256": receipt.sha256,
+            "sha256": &receipt.sha256,
             "width": receipt.width,
             "height": receipt.height,
             "bytes": receipt.bytes
