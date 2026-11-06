@@ -3,32 +3,11 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { hasQualifiedLocalImageModel } from "../src/models.ts";
 
-const VALID_REV = "60987f37e94cd59c36b1cba832b9f97b57395a10";
-const library = () => ({
-  runtime: { installed: { runtime: "diffusers-v1" } },
-  gpu: { vram_total_mb: 16384 },
-  installed: [{ files_present: true, manifest: {
-    repo: "segmind/SSD-1B", revision: VALID_REV, adapter: "diffusers-sdxl-text-to-image",
-  } }],
-});
-
-test("Create default requires qualified local model and executable runtime", () => {
-  assert.equal(hasQualifiedLocalImageModel(library()), true);
-  const unsupported = library();
-  unsupported.installed[0].manifest.repo = "other/video-only";
-  assert.equal(hasQualifiedLocalImageModel(unsupported), false);
-  const incomplete = library();
-  incomplete.installed[0].files_present = false;
-  assert.equal(hasQualifiedLocalImageModel(incomplete), false);
-  const unqualified = library();
-  unqualified.installed[0].manifest.revision = "f".repeat(40);
-  assert.equal(hasQualifiedLocalImageModel(unqualified), false);
-  const noGpu = library();
-  noGpu.gpu.vram_total_mb = null;
-  assert.equal(hasQualifiedLocalImageModel(noGpu), false);
-  const noRuntime = library();
-  noRuntime.runtime.installed = null;
-  assert.equal(hasQualifiedLocalImageModel(noRuntime), false);
+test("Create default follows native qualified-execution decision", () => {
+  assert.equal(hasQualifiedLocalImageModel({ qualified_image_ready: true }), true);
+  for (const value of [false, null, undefined, "true"]) {
+    assert.equal(hasQualifiedLocalImageModel({ qualified_image_ready: value }), false);
+  }
 });
 
 test("Create and Edit remain independently navigable with a bounded preview", () => {
