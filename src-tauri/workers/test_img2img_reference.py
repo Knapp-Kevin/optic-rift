@@ -71,6 +71,22 @@ class ReferenceTests(unittest.TestCase):
         with self.assertRaisesRegex(reference.ReferenceError, "linked"):
             reference.prepare_reference(self.payload, 512, 512)
 
+    @unittest.skipUnless(os.name == "nt", "directory junctions are a Windows feature")
+    def test_junctioned_outputs_folder_refused(self):
+        # Junctions need no special privilege on Windows, unlike symbolic links.
+        import subprocess
+
+        outputs = self.path.parent
+        elsewhere = Path(self.tmp.name) / "elsewhere"
+        outputs.rename(elsewhere)
+        created = subprocess.run(["cmd", "/C", "mklink", "/J", str(outputs), str(elsewhere)],
+                                 capture_output=True, text=True)
+        self.assertEqual(created.returncode, 0, created.stdout + created.stderr)
+        self.addCleanup(lambda: os.rmdir(outputs) if outputs.exists() else None)
+        self.assertTrue((outputs / self.path.name).exists(), "junction resolves to the real file")
+        with self.assertRaisesRegex(reference.ReferenceError, "linked|reparse"):
+            reference.prepare_reference(self.payload, 512, 512)
+
     def test_reference_size_bound(self):
         with self.path.open("ab") as handle:
             handle.truncate(reference.MAX_REFERENCE_BYTES + 1)
