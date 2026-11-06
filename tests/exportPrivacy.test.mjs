@@ -23,7 +23,7 @@ test("approval copies exactly once and propagates native failures", async () => 
     assert.equal(notice, PICTURES_EXPORT_WARNING);
     return true;
   }, async (id) => { calls.push(id); return "C:\\Users\\Example\\Pictures\\Optic Rift\\out.png"; });
-  assert.match(consented!, /out\.png$/);
+  assert.match(consented, /out\.png$/);
   assert.deepEqual(calls, ["job-id"]);
   await assert.rejects(
     saveWithPicturesConsent("job-id", () => true, async () => { throw new Error("disk full"); }),
