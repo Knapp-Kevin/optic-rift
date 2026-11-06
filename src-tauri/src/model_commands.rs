@@ -231,14 +231,6 @@ pub async fn gpu_check<R: tauri::Runtime>(
 ) -> Result<GpuCheck, String> {
     let (data, local) = model_store::dirs(&app)?;
     let mode = mode.unwrap_or_default();
-    generation::preflight_image_reference(
-        &local,
-        mode,
-        source_job_id.as_deref(),
-        strength,
-        width,
-        height,
-    )?;
     let model =
         model_store::find_installed(&model_store::model_dir(&data, &local), &repo, &revision)
             .ok_or("That model is not installed.")?;
@@ -248,14 +240,23 @@ pub async fn gpu_check<R: tauri::Runtime>(
         return Err("Image-to-image currently requires an installed SDXL model.".into());
     }
     tauri::async_runtime::spawn_blocking(move || {
+        // Hashing/reading the optional local reference must stay off the UI runtime.
+        generation::preflight_image_reference(
+            &local,
+            mode,
+            source_job_id.as_deref(),
+            strength,
+            width,
+            height,
+        )?;
         let (snapshot, decision, need_mb) =
             generation::gpu_decision(model.manifest.total_bytes, width, height, mode, &[]);
-        GpuCheck {
+        Ok(GpuCheck {
             snapshot,
             decision,
             need_mb,
             idle_unload_seconds: generation::IDLE_UNLOAD.as_secs(),
-        }
+        })
     })
     .await
     .map_err(|e| e.to_string())
