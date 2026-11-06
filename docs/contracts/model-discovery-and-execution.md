@@ -45,4 +45,16 @@ A model's task capabilities (text-to-video, inpainting, etc.) and intended audie
 - Show clear terms again at explicit download, model activation and when necessary for sharing/export.
 - **Never silently suppress lawful content from a user-owned local project** merely because adult discovery is disabled; the discovery preference controls browse listings, not the user's existing files.
 
-See [adult content and preview contract](adult-content-and-preview.md). Model discovery currently does not run in the pre-alpha shell; these are forward-compatibility requirements.
+See [adult content and preview contract](adult-content-and-preview.md).
+
+## Implementation status (observed, not accepted design)
+
+Branch `feature/local-image-generation-20261105-no-ci` implements a first slice of this contract. Its source is the authority for behaviour; this section only records what exists and how it was checked.
+
+- **Discovery** (`src-tauri/src/hf_catalog.rs`): anonymous Hugging Face search for all eight capabilities above, using the source's `pipeline_tag`/tag filters. License, gated status, revision SHA and file listing come from structured metadata. Model-card prose and preview images are never fetched. Listings tagged `not-for-all-audiences` by the source are withheld unless adult discovery is opted into, then badged 18+. Every other listing is "content classification unverified".
+- **Supported** (`src-tauri/src/adapters.rs`): decided per pinned revision from `model_index.json` and the actual file listing. The rules are an exact pipeline class, components loaded only from `diffusers`/`transformers`, safetensors weights only, published hashes required, and no code or pickles. One adapter exists: `diffusers-sdxl-text-to-image` (StableDiffusionXLPipeline). Gated repositories whose files cannot be read are reported as "compatibility can't be checked yet", not as unsupported.
+- **Verified**: the registry entry `VERIFIED` holds only receipts from executed runs on a named hardware class.
+- **Installed** (`src-tauri/src/model_store.rs`): explicit consent bound to the license string shown for that exact revision. A disk check runs first. Downloads are resumable and restricted to HTTPS `huggingface.co`/`*.hf.co`. LFS files are checked against SHA-256 and other files against their git-blob SHA-1. The manifest (repo, revision, adapter, files with SHA-256, license, consent timestamp) is written only after every file verifies.
+- **Ready**: the model is installed, the pinned runtime (`src-tauri/src/runtime.rs`) passed a CUDA health check, and an NVIDIA GPU is detected. A VRAM preflight runs before load.
+- **Execution** (`src-tauri/src/generation.rs`, `src-tauri/workers/diffusers_worker.py`): a separate Python process using `python -I`, offline (`HF_HUB_OFFLINE`, no tokens in its environment), loading with `use_safetensors=True, local_files_only=True`. It supports progress, cancel, OOM recovery and rejection of blank or NaN output. The host re-hashes the PNG and checks its header, then writes a provenance JSON per output: prompt, parameters, seed, repo, revision, adapter, weight hashes, runtime versions, output hash and metrics.
+- **Not yet:** project asset lineage (outputs live in Optic Rift's output folder; decision #5 is pending), hash-pinned Python wheels, a bundled runtime (it currently requires `uv`), non-NVIDIA GPUs, and adapters for any capability other than SDXL-architecture text-to-image.
