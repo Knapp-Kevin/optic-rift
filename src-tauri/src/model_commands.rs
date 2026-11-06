@@ -259,5 +259,5 @@ pub async fn gpu_check<R: tauri::Runtime>(
         })
     })
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| e.to_string())?
 }
