@@ -427,6 +427,22 @@ struct ImageReference {
     sha256: String,
 }
 
+/// SDXL img2img truncates steps * strength to an integer. Reject a zero-step
+/// combination before model loading or starting a GPU job. This is independent
+/// of source-file integrity validation and does not change text-to-image.
+pub(crate) fn validate_image_to_image_steps(
+    mode: GenerationMode,
+    steps: u32,
+    strength: Option<f32>,
+) -> Result<(), String> {
+    if mode == GenerationMode::ImageToImage
+        && strength.is_some_and(|value| value.is_finite() && (f64::from(value) * f64::from(steps)) < 1.0)
+    {
+        return Err("Increase Steps or image strength to run at least one denoising step.".into());
+    }
+    Ok(())
+}
+
 pub(crate) fn preflight_image_reference(
     app_local: &Path,
     mode: GenerationMode,
@@ -515,6 +531,7 @@ fn generate_blocking<R: tauri::Runtime>(
             return Err("Invalid project id.".into());
         }
     }
+    validate_image_to_image_steps(req.mode, req.steps, req.strength)?;
     let (data, local) = model_store::dirs(app)?;
     // Fail closed before loading the GPU worker on malformed or mismatched sources.
     verified_image_reference(
@@ -1119,6 +1136,15 @@ mod tests {
         assert!(verified_image_reference(
             &local, GenerationMode::ImageToImage, None, Some(0.5), 512, 512, "",
         ).is_err());
+    }
+
+    #[test]
+    fn img2img_needs_at_least_one_effective_denoising_step() {
+        assert!(validate_image_to_image_steps(GenerationMode::ImageToImage, 1, Some(0.65)).is_err());
+        assert!(validate_image_to_image_steps(GenerationMode::ImageToImage, 10, Some(0.05)).is_err());
+        assert!(validate_image_to_image_steps(GenerationMode::ImageToImage, 20, Some(0.05)).is_ok());
+        assert!(validate_image_to_image_steps(GenerationMode::ImageToImage, 25, Some(0.65)).is_ok());
+        assert!(validate_image_to_image_steps(GenerationMode::TextToImage, 1, None).is_ok());
     }
 
     #[test]
