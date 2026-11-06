@@ -14,6 +14,76 @@ export const MAX_PHOTO_PNG_BYTES = 32 * 1024 * 1024;
 export const MAX_PHOTO_PIXELS = 20_000_000;
 export const MAX_PHOTO_EDGE = 8192;
 
+/** Validate source pixel dimensions BEFORE asking the browser image decoder to allocate.
+ * We intentionally reject unfamiliar, truncated or unusually padded headers.
+ * Only these three supported formats can pass the offline photo-export path.
+ */
+export function probePhotoDimensions(bytes: Uint8Array, mime: string): { width: number; height: number } {
+  const u16be = (i: number) => ((bytes[i] ?? 0) << 8) | (bytes[i + 1] ?? 0);
+  const u16le = (i: number) => (bytes[i] ?? 0) | ((bytes[i + 1] ?? 0) << 8);
+  const u24le = (i: number) =>
+    (bytes[i] ?? 0) | ((bytes[i + 1] ?? 0) << 8) | ((bytes[i + 2] ?? 0) << 16);
+  const u32be = (i: number) => (((bytes[i] ?? 0) * 0x1000000)
+    + ((bytes[i + 1] ?? 0) << 16) + ((bytes[i + 2] ?? 0) << 8) + (bytes[i + 3] ?? 0)) >>> 0;
+  let width = 0;
+  let height = 0;
+
+  if (mime === "image/png") {
+    const sig = [137, 80, 78, 71, 13, 10, 26, 10];
+    if (bytes.length < 24 || sig.some((v, i) => bytes[i] !== v) ||
+        u32be(8) !== 13 || String.fromCharCode(...bytes.slice(12, 16)) !== "IHDR") {
+      throw new Error("Unrecognized PNG header.");
+    }
+    width = u32be(16);
+    height = u32be(20);
+  } else if (mime === "image/jpeg") {
+    if (bytes.length < 12 || bytes[0] !== 255 || bytes[1] !== 216) {
+      throw new Error("Unrecognized JPEG header.");
+    }
+    let p = 2;
+    const limit = Math.min(bytes.length, 64 * 1024);
+    while (p + 8 <= limit) {
+      if (bytes[p++] !== 255) break;
+      while (bytes[p] === 255) p++;
+      const marker = bytes[p++];
+      if (marker === 218 || marker === 217 || marker === undefined) break;
+      if (marker === 1 || (marker >= 208 && marker <= 215)) continue;
+      if (p + 2 > limit) break;
+      const length = u16be(p);
+      if (length < 2 || p + length > limit) break;
+      if ([192, 193, 194, 195, 197, 198, 199, 201, 202, 203, 205, 206, 207].includes(marker)) {
+        if (length < 7) break;
+        height = u16be(p + 3);
+        width = u16be(p + 5);
+        break;
+      }
+      p += length;
+    }
+  } else if (mime === "image/webp") {
+    if (bytes.length < 25 || String.fromCharCode(...bytes.slice(0, 4)) !== "RIFF" ||
+        String.fromCharCode(...bytes.slice(8, 12)) !== "WEBP") {
+      throw new Error("Unrecognized WebP header.");
+    }
+    const kind = String.fromCharCode(...bytes.slice(12, 16));
+    if (kind === "VP8X" && bytes.length >= 30) {
+      width = 1 + u24le(24);
+      height = 1 + u24le(27);
+    } else if (kind === "VP8 " && bytes.length >= 30 && bytes[23] === 157 &&
+               bytes[24] === 1 && bytes[25] === 42) {
+      width = u16le(26) & 0x3fff;
+      height = u16le(28) & 0x3fff;
+    } else if (kind === "VP8L" && bytes.length >= 25 && bytes[20] === 47) {
+      width = 1 + (bytes[21] | ((bytes[22] & 63) << 8));
+      height = 1 + ((bytes[22] >> 6) | (bytes[23] << 2) | ((bytes[24] & 15) << 10));
+    }
+  } else {
+    throw new Error("This source image type is not supported for PNG export.");
+  }
+  // Bounds are checked before createImageBitmap, not afterwards.
+  photoExportDimensions(width, height, 0);
+  return { width, height };
+}
+
 export function validatePhotoAdjustments(value: PhotoAdjustments): PhotoAdjustments {
   const { brightness, contrast, rotation } = value;
   if (!Number.isInteger(brightness) || brightness < 25 || brightness > 175 ||
@@ -71,9 +141,13 @@ export async function renderAdjustedPhoto(
   // Source hash is a browser-observed lineage hint, not a native-authenticated
   // signature. Never claim this export is a project-owned revision.
   const bytes = await source.arrayBuffer();
+  const expected = probePhotoDimensions(new Uint8Array(bytes), source.type);
   const source_sha256 = hex(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)));
   const bitmap = await createImageBitmap(source);
   try {
+    if (bitmap.width * bitmap.height !== expected.width * expected.height) {
+      throw new Error("Image dimensions changed between header inspection and browser decoding.");
+    }
     const dims = photoExportDimensions(bitmap.width, bitmap.height, settings.rotation);
     const canvas = document.createElement("canvas");
     canvas.width = dims.width;
