@@ -33,3 +33,12 @@ test("Native image thumbnails never skip output/provenance validation or persist
   assert.match(registry, /model_commands::generation_output_thumbnail/);
   assert.doesNotMatch(native.slice(native.indexOf("fn thumbnail_png("), native.indexOf("/// Export a validated image")), /fs::write|fs::File::create|OpenOptions/);
 });
+
+test("History does not render sensitive thumbnails or select source by default", () => {
+  const history = readFileSync(new URL("../src/GenerationFilmstrip.tsx", import.meta.url), "utf8");
+  const engine = readFileSync(new URL("../src/GeneratePanel.tsx", import.meta.url), "utf8");
+  assert.match(history, /previewsRevealed\s*\?\s*<GenerationThumbnail/);
+  assert.match(history, /useState\(false\)/);
+  assert.match(history, /Show previews/);
+  assert.match(engine, /layout === "create" \? "" : valid\[0\]/);
+});
