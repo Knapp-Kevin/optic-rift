@@ -4,6 +4,7 @@ import ProjectChooser from "./ProjectChooser";
 import HuggingFaceAccess from "./HuggingFaceAccess";
 import ModelBrowser from "./ModelBrowser";
 import GeneratePanel from "./GeneratePanel";
+import GenerationHistory from "./GenerationHistory";
 import type { ProjectRecord } from "./projects";
 import { formatSize, IMAGE_PREVIEW_FAILED, VIDEO_PREVIEW_FAILED } from "./mediaFormat";
 
@@ -27,6 +28,7 @@ export default function App() {
   const [prompt, setPrompt] = useState("");
   const [capability, setCapability] = useState("Text to image");
   const [libraryVersion, setLibraryVersion] = useState(0);
+  const [historyVersion, setHistoryVersion] = useState(0);
   const [message, setMessage] = useState("");
   const [includeAdultModels, setIncludeAdultModels] = useState(false);
   const [brightness, setBrightness] = useState(100);
@@ -193,9 +195,10 @@ export default function App() {
             <label className="field-label" htmlFor="prompt">Describe your idea</label>
             <textarea id="prompt" value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="A quiet mountain lake at sunrise, soft golden light and a gentle breeze..." rows={6} />
             {capability === "Text to image"
-              ? <GeneratePanel prompt={prompt} projectId={project?.id ?? null} libraryVersion={libraryVersion} onOpenModels={() => setView("models")} onResult={addGenerated} />
+              ? <GeneratePanel prompt={prompt} projectId={project?.id ?? null} libraryVersion={libraryVersion} onOpenModels={() => setView("models")} onResult={addGenerated} onGenerated={() => setHistoryVersion(v => v + 1)} />
               : <><div className="model-info"><strong>No adapter for {capability.toLowerCase()} yet</strong><p>You can discover these models on the Models page, but Optic Rift can only run text-to-image models today.</p></div>
                 <button className="secondary full" onClick={() => setView("models")}>Browse models</button></>}
+            <GenerationHistory refreshVersion={historyVersion} onResult={addGenerated} />
             {selected?.kind === "image" && !previewFailed && <div className="adjustments">
               <h3>Image preview adjustments</h3>
               <label>Brightness <output>{brightness}%</output><input type="range" min="25" max="175" value={brightness} onChange={(event) => setBrightness(Number(event.target.value))} /></label>

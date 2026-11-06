@@ -12,11 +12,12 @@ type Props = {
   libraryVersion: number;
   onOpenModels: () => void;
   onResult: (result: { name: string; url: string; size: number }) => void;
+  onGenerated: () => void;
 };
 
 type WorkerEvent = { event: string; job_id?: string; step?: number; total?: number; seconds?: number };
 
-export default function GeneratePanel({ prompt, projectId, libraryVersion, onOpenModels, onResult }: Props) {
+export default function GeneratePanel({ prompt, projectId, libraryVersion, onOpenModels, onResult, onGenerated }: Props) {
   const [library, setLibrary] = useState<ModelLibrary | null>(null);
   const [model, setModel] = useState("");
   const [negative, setNegative] = useState("");
@@ -93,6 +94,7 @@ export default function GeneratePanel({ prompt, projectId, libraryVersion, onOpe
       } });
       const url = await invoke<string>("generation_output_image", { jobId: id });
       setResult({ provenance, url });
+      onGenerated();
       setStatus(`Done in ${((performance.now() - started) / 1000).toFixed(1)}s · seed ${provenance.parameters.seed}`);
       void refresh();
     } catch (e) {

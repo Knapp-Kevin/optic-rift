@@ -39,6 +39,13 @@ Model workers execute in separate, minimally privileged Python processes or envi
 - Warm generations reuse the already loaded worker without re-hashing gigabytes on each image; after an idle unload, the next load verifies again. The GPU-sharing availability snapshot is repeated after disk verification because other apps can become active during the hash pass.
 - This detects changes present when verification runs, **not** replacements by a separate local process after the hash check, and it does not authenticate who authored or signed the model weights in Hugging Face. Real Windows verification and performance timing at the new exact commit remain required.
 
+## Reopening local generation history
+
+- The app-owned `outputs/` folder already keeps PNGs and their associated provenance JSON across restarts. The Studio's **Recent generations** list now reads these records using `generation_outputs` and opens a selected image on demand using `generation_output_image`.
+- Listing is metadata-only until the user requests an image. **Save copy** uses the same Pictures/OneDrive consent as new generations; **Open** places a browser object URL into the current Studio session.
+- This is **local output recovery**, not durable project asset registration. Project lineage, moving projects between machines, source references and permanent asset ownership remain unresolved in Wayfinder issue #5.
+- The UI keeps its list bounded to 20 records, provides refresh and errors for missing outputs, and does not trigger model downloads or GPU inference when reopening existing images.
+
 ## Generated-output export privacy
 
 - In-app outputs remain under the app-owned local directory until the user explicitly chooses an export destination.
