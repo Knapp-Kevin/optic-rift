@@ -854,6 +854,95 @@ pub fn output_png(app_local: &Path, job_id: &str) -> Result<Vec<u8>, String> {
     verified_output(app_local, job_id).map(|(png, _)| png)
 }
 
+/// Return a bounded, freshly decoded thumbnail of a verified local generation.
+///
+/// No derivative is written to disk: this avoids creating an unprotected cache
+/// as future private-output modes are added. A caller can cache only the data URI
+/// in its current WebView session. Every request revalidates the original pair.
+pub fn output_thumbnail_png(app_local: &Path, job_id: &str) -> Result<Vec<u8>, String> {
+    let original = output_png(app_local, job_id)?;
+    thumbnail_png(&original)
+}
+
+/// Pure, CPU-only PNG decoder and downsampler. The source must be an app-verified
+/// output before this is called in production. No untrusted arbitrary paths.
+fn thumbnail_png(source: &[u8]) -> Result<Vec<u8>, String> {
+    const EDGE: u32 = 256;
+    const MAX_DIM: u32 = 1536;
+    const MAX_DECODED_BYTES: usize = MAX_DIM as usize * MAX_DIM as usize * 4;
+    let mut decoder = png::Decoder::new(std::io::Cursor::new(source));
+    decoder.set_transformations(png::Transformations::EXPAND | png::Transformations::STRIP_16);
+    decoder.set_ignore_text_chunk(true);
+    decoder.set_ignore_iccp_chunk(true);
+    let mut reader = decoder.read_info()
+        .map_err(|_| "Could not decode this verified PNG for preview.".to_string())?;
+    let (width, height) = (reader.info().width, reader.info().height);
+    if width == 0 || height == 0 || width > MAX_DIM || height > MAX_DIM {
+        return Err("Image dimensions exceed the preview limit.".into());
+    }
+    let allocation = reader.output_buffer_size()
+        .ok_or("Preview dimensions would overflow memory.")?;
+    if allocation > MAX_DECODED_BYTES {
+        return Err("Image preview exceeds its memory limit.".into());
+    }
+    let mut decoded = vec![0u8; allocation];
+    let frame = reader.next_frame(&mut decoded)
+        .map_err(|_| "The PNG pixel data could not be decoded.".to_string())?;
+    if frame.width != width || frame.height != height || frame.bit_depth != png::BitDepth::Eight {
+        return Err("Unsupported PNG frame layout for thumbnail.".into());
+    }
+    let channels = match frame.color_type {
+        png::ColorType::Rgb => 3,
+        png::ColorType::Rgba => 4,
+        png::ColorType::Grayscale => 1,
+        png::ColorType::GrayscaleAlpha => 2,
+        _ => return Err("Unsupported PNG color layout for thumbnail.".into()),
+    };
+    let line = frame.line_size;
+    if line < width as usize * channels || frame.buffer_size() > decoded.len() {
+        return Err("Invalid PNG row size for thumbnail.".into());
+    }
+    let scale = width.max(height) as u64;
+    let thumb_w = ((width as u64 * EDGE as u64 + scale / 2) / scale).max(1) as u32;
+    let thumb_h = ((height as u64 * EDGE as u64 + scale / 2) / scale).max(1) as u32;
+    let mut pixels = vec![0u8; thumb_w as usize * thumb_h as usize * 3];
+    for y in 0..thumb_h {
+        let from_y = (y as u64 * height as u64 / thumb_h as u64) as usize;
+        for x in 0..thumb_w {
+            let from_x = (x as u64 * width as u64 / thumb_w as u64) as usize;
+            let from = from_y * line + from_x * channels;
+            if from + channels > frame.buffer_size() {
+                return Err("Invalid PNG pixel offset.".into());
+            }
+            let (r, g, b, alpha) = match channels {
+                1 => (decoded[from], decoded[from], decoded[from], 255u16),
+                2 => (decoded[from], decoded[from], decoded[from], decoded[from + 1] as u16),
+                3 => (decoded[from], decoded[from + 1], decoded[from + 2], 255u16),
+                _ => (decoded[from], decoded[from + 1], decoded[from + 2], decoded[from + 3] as u16),
+            };
+            let dest = (y as usize * thumb_w as usize + x as usize) * 3;
+            for (i, v) in [r, g, b].into_iter().enumerate() {
+                // Composite alpha against the Stage's dark canvas.
+                pixels[dest + i] = ((v as u16 * alpha + [17u16, 22, 36][i] * (255 - alpha)) / 255) as u8;
+            }
+        }
+    }
+    let mut result = Vec::new();
+    {
+        let mut encoder = png::Encoder::new(&mut result, thumb_w, thumb_h);
+        encoder.set_color(png::ColorType::Rgb);
+        encoder.set_depth(png::BitDepth::Eight);
+        let mut writer = encoder.write_header()
+            .map_err(|_| "Could not start thumbnail encoding.".to_string())?;
+        writer.write_image_data(&pixels)
+            .map_err(|_| "Could not encode thumbnail pixels.".to_string())?;
+    }
+    if result.len() > 512 * 1024 {
+        return Err("Encoded thumbnail exceeded its size limit.".into());
+    }
+    Ok(result)
+}
+
 /// Export a validated image and its matching provenance to Pictures\Optic Rift.
 /// Destination filenames use the full UUID, not just an eight-character prefix.
 /// Create-new prevents races from silently overwriting another application's file.
