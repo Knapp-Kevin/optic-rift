@@ -84,6 +84,23 @@ class CheckGenerate(unittest.TestCase):
             w.check_generate(self.base(output_path=path))
 
 
+class Budget(unittest.TestCase):
+    def test_fraction_is_bounded_and_validated(self):
+        self.assertAlmostEqual(w.budget_fraction(8000, 16000), 0.5)
+        self.assertEqual(w.budget_fraction(20000, 16000), 1.0)
+        for bad in (0, -5, None, True, 1.5):
+            with self.subTest(bad=bad), self.assertRaises(w.RequestError):
+                w.budget_fraction(bad, 16000)
+
+    def test_generate_and_load_require_a_budget_from_the_host(self):
+        worker = w.Worker()
+        worker.pipe = object()
+        req = {"job_id": "j", "prompt": "x", "width": 512, "height": 512, "steps": 2, "guidance": 1.0, "seed": 1,
+               "output_path": os.path.join(tempfile.mkdtemp(), "o.png")}
+        with self.assertRaises(w.RequestError):
+            worker.apply_budget(req)
+
+
 class ProtocolProcess(unittest.TestCase):
     """Run the real worker process and talk to it over stdin/stdout without torch work."""
 

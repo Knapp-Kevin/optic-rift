@@ -4,6 +4,7 @@
 //! A generation produces a PNG plus a provenance record in Optic Rift's output folder; the image
 //! is re-hashed and its PNG header checked here before success is reported.
 
+use crate::gpu_guard;
 use crate::model_store::{self, InstalledModel};
 use crate::runtime;
 use serde::{Deserialize, Serialize};
@@ -26,7 +27,12 @@ struct Worker {
     alive: Arc<AtomicBool>,
     loaded: Mutex<Option<(String, String)>>,
     busy: AtomicBool,
+    last_used: Mutex<Instant>,
 }
+
+/// Unload the model from the GPU after this long without use, so games and other apps get the
+/// memory back without the user having to remember.
+pub const IDLE_UNLOAD: Duration = Duration::from_secs(5 * 60);
 
 fn slot() -> &'static Mutex<Option<Arc<Worker>>> {
     static SLOT: OnceLock<Mutex<Option<Arc<Worker>>>> = OnceLock::new();
@@ -119,6 +125,7 @@ fn spawn<R: tauri::Runtime>(
         alive,
         loaded: Mutex::new(None),
         busy: AtomicBool::new(false),
+        last_used: Mutex::new(Instant::now()),
     };
     let ready = worker.wait_for(|e| e["event"] == "ready", Duration::from_secs(60))?;
     if ready["protocol"] != 1 {
@@ -179,7 +186,31 @@ fn worker<R: tauri::Runtime>(
     }
     let w = spawn(Some(app.clone()), root)?;
     *guard = Some(w.clone());
+    start_idle_watcher(app.clone());
     Ok(w)
+}
+
+fn start_idle_watcher<R: tauri::Runtime>(app: tauri::AppHandle<R>) {
+    static STARTED: AtomicBool = AtomicBool::new(false);
+    if STARTED.swap(true, Ordering::SeqCst) {
+        return;
+    }
+    std::thread::spawn(move || loop {
+        std::thread::sleep(Duration::from_secs(30));
+        let current = slot().lock().unwrap().clone();
+        let Some(w) = current else { continue };
+        let idle = w.last_used.lock().unwrap().elapsed();
+        if idle >= IDLE_UNLOAD
+            && !w.busy.load(Ordering::SeqCst)
+            && w.loaded.lock().unwrap().is_some()
+            && unload().is_ok()
+        {
+            let _ = app.emit(
+                "generation",
+                json!({"event": "auto-unloaded", "idle_seconds": idle.as_secs()}),
+            );
+        }
+    });
 }
 
 /// One-shot health probe used by the runtime installer.
@@ -243,16 +274,39 @@ pub fn gpu_info() -> GpuInfo {
     }
 }
 
-/// Refuse to load when free VRAM is clearly below what the weights alone need.
-pub fn vram_preflight(weights_bytes: u64, free_mb: Option<u64>) -> Result<(), String> {
-    let need_mb = weights_bytes / (1024 * 1024) + 1536;
-    match free_mb {
-        Some(free) if free < need_mb => Err(format!(
-            "This model needs about {:.1} GB of free graphics memory to load; {:.1} GB is free. Close GPU-heavy apps and try again.",
-            need_mb as f64 / 1024.0,
-            free as f64 / 1024.0
-        )),
-        _ => Ok(()),
+/// Estimated total VRAM for a job: model weights plus working memory that grows with image area.
+/// Conservative until a measured receipt exists for the model.
+pub fn job_need_mb(weights_bytes: u64, width: u32, height: u32) -> u64 {
+    let pixels = (width as u64 * height as u64).max(1);
+    let workspace = (2048 * pixels / (1024 * 1024)).max(1024);
+    weights_bytes / (1024 * 1024) + workspace
+}
+
+/// Check the GPU is free enough to use right now, considering every other process.
+pub fn gpu_decision(
+    weights_bytes: u64,
+    width: u32,
+    height: u32,
+    acknowledged: &[u32],
+) -> (gpu_guard::GpuSnapshot, gpu_guard::Decision, u64) {
+    let snapshot = gpu_guard::snapshot();
+    let need = job_need_mb(weights_bytes, width, height);
+    let decision = gpu_guard::evaluate(&snapshot, need, acknowledged);
+    (snapshot, decision, need)
+}
+
+fn gpu_budget(model: &InstalledModel, req: &GenerateRequest) -> Result<u64, String> {
+    match gpu_decision(
+        model.manifest.total_bytes,
+        req.width,
+        req.height,
+        &req.gpu_acknowledged,
+    )
+    .1
+    {
+        gpu_guard::Decision::Proceed { budget_mb } => Ok(budget_mb),
+        gpu_guard::Decision::Confirm { message, .. } => Err(format!("GPU_BUSY: {message}")),
+        gpu_guard::Decision::Block { message } => Err(message),
     }
 }
 
@@ -270,6 +324,9 @@ pub struct GenerateRequest {
     pub guidance: f32,
     pub seed: Option<u64>,
     pub project_id: Option<String>,
+    /// PIDs of other GPU apps the user explicitly agreed to share the GPU with for this job.
+    #[serde(default)]
+    pub gpu_acknowledged: Vec<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -356,13 +413,15 @@ fn run_job<R: tauri::Runtime>(
 ) -> Result<Provenance, String> {
     let key = (model.manifest.repo.clone(), model.manifest.revision.clone());
     let mut load_seconds = Value::Null;
+    *w.last_used.lock().unwrap() = Instant::now();
+    // Re-checked for every job: a game may have started since the model was loaded.
+    let budget_mb = gpu_budget(model, req)?;
     if w.loaded.lock().unwrap().as_ref() != Some(&key) {
         let _ = app.emit(
             "generation",
             json!({"event": "loading", "job_id": req.job_id}),
         );
-        vram_preflight(model.manifest.total_bytes, gpu_info().vram_free_mb)?;
-        w.send(&json!({"op": "load", "model_dir": model.dir, "adapter": model.manifest.adapter, "variant": model.manifest.variant}))?;
+        w.send(&json!({"op": "load", "model_dir": model.dir, "adapter": model.manifest.adapter, "variant": model.manifest.variant, "vram_budget_mb": budget_mb}))?;
         let loaded = w.wait_for(
             |e| e["event"] == "loaded" || (e["event"] == "error" && e["op"] == "load"),
             Duration::from_secs(600),
@@ -383,7 +442,7 @@ fn run_job<R: tauri::Runtime>(
     w.send(&json!({
         "op": "generate", "job_id": req.job_id, "prompt": req.prompt, "negative_prompt": req.negative_prompt,
         "width": req.width, "height": req.height, "steps": req.steps, "guidance": req.guidance,
-        "seed": req.seed, "output_path": png,
+        "seed": req.seed, "output_path": png, "vram_budget_mb": budget_mb,
     }))?;
     let job = req.job_id.clone();
     let end = w.wait_for(
@@ -537,15 +596,15 @@ mod tests {
     use super::*;
 
     #[test]
-    fn vram_preflight_blocks_only_when_clearly_insufficient() {
+    fn job_need_grows_with_image_area() {
         let weights = 4_468_829_801;
-        assert!(vram_preflight(weights, Some(16_000)).is_ok());
-        assert!(
-            vram_preflight(weights, None).is_ok(),
-            "unknown VRAM is not a guess"
+        assert_eq!(job_need_mb(weights, 1024, 1024), 4261 + 2048);
+        assert_eq!(
+            job_need_mb(weights, 512, 512),
+            4261 + 1024,
+            "floor for small images"
         );
-        let err = vram_preflight(weights, Some(3_000)).unwrap_err();
-        assert!(err.contains("graphics memory"), "{err}");
+        assert!(job_need_mb(weights, 1536, 1536) > job_need_mb(weights, 1024, 1024));
     }
 
     #[test]

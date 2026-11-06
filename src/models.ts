@@ -130,3 +130,11 @@ export function settingsError(prompt: string, s: GenerationSettings): string | n
   if (s.seed !== null && (!Number.isInteger(s.seed) || s.seed < 0 || s.seed >= 2 ** 32)) return "Seed must be a whole number from 0 to 4294967295.";
   return null;
 }
+
+export type GpuProcess = { pid: number; name: string; dedicated_mb: number; engine_3d_percent: number; own: boolean };
+export type GpuSnapshot = { device: string | null; total_mb: number | null; used_mb: number | null; free_mb: number | null; processes: GpuProcess[]; per_process: boolean };
+export type GpuDecision =
+  | { kind: "proceed"; budget_mb: number }
+  | { kind: "confirm"; budget_mb: number; apps: GpuProcess[]; message: string }
+  | { kind: "block"; message: string };
+export type GpuCheck = { snapshot: GpuSnapshot; decision: GpuDecision; need_mb: number; idle_unload_seconds: number };

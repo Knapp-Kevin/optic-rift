@@ -141,6 +141,7 @@ class Worker:
         torch = self.torch()
         if not torch.cuda.is_available():
             raise RequestError("No CUDA GPU is available to this runtime")
+        self.apply_budget(req)
         import diffusers  # noqa: PLC0415
 
         started = time.perf_counter()
@@ -152,6 +153,15 @@ class Worker:
         pipe.to("cuda")
         self.pipe, self.loaded = pipe, (model_dir, adapter)
         emit("loaded", cached=False, seconds=round(time.perf_counter() - started, 2), **self.memory())
+
+    def apply_budget(self, req):
+        """Cap this process's GPU memory so it fails inside Optic Rift instead of squeezing other apps."""
+        budget = req.get("vram_budget_mb")
+        if budget is None:
+            raise RequestError("vram_budget_mb is required; the host must check GPU sharing first")
+        torch = self.torch()
+        _free, total = torch.cuda.mem_get_info()
+        torch.cuda.set_per_process_memory_fraction(budget_fraction(budget, total // 2**20), 0)
 
     def memory(self):
         torch = self.torch()
@@ -166,6 +176,7 @@ class Worker:
         if not isinstance(job_id, str) or not job_id:
             raise RequestError("job_id required")
         params = check_generate(req)
+        self.apply_budget(req)
         torch = self.torch()
         self.cancel.clear()
         self.current_job = job_id
@@ -221,6 +232,15 @@ class Worker:
         if not quiet:
             info = self.memory() if self.torch().cuda.is_available() else {}
             emit("unloaded", had_model=had, **info)
+
+
+def budget_fraction(budget_mb, total_mb):
+    """Fraction of device memory this process may use; rejects nonsense budgets."""
+    if not isinstance(budget_mb, int) or isinstance(budget_mb, bool) or budget_mb <= 0:
+        raise RequestError("vram_budget_mb must be a positive integer")
+    if not isinstance(total_mb, int) or total_mb <= 0:
+        raise RequestError("device memory size unknown")
+    return min(1.0, budget_mb / total_mb)
 
 
 def image_problem(image, width, height):

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { SIZE_PRESETS, settingsError, type ModelLibrary, type Provenance } from "./models";
+import { SIZE_PRESETS, settingsError, type GpuCheck, type GpuDecision, type ModelLibrary, type Provenance } from "./models";
 
 const errorText = (e: unknown) => (typeof e === "string" ? e : e instanceof Error ? e.message : "The desktop bridge is unavailable.");
 
@@ -28,6 +28,8 @@ export default function GeneratePanel({ prompt, projectId, libraryVersion, onOpe
   const [error, setError] = useState("");
   const [result, setResult] = useState<{ provenance: Provenance; url: string } | null>(null);
   const [saved, setSaved] = useState("");
+  const [confirm, setConfirm] = useState<Extract<GpuDecision, { kind: "confirm" }> | null>(null);
+  const [checking, setChecking] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -49,6 +51,7 @@ export default function GeneratePanel({ prompt, projectId, libraryVersion, onOpe
       if (p.event === "loaded") setStatus(`Model loaded${p.seconds ? ` in ${p.seconds}s` : ""}. Generating…`);
       if (p.event === "progress" && p.job_id === jobId) setStatus(`Generating · step ${p.step} of ${p.total}`);
       if (p.event === "worker-exited") setStatus("The image worker stopped.");
+      if (p.event === "auto-unloaded") { setStatus("Model unloaded after 5 idle minutes to free graphics memory for other apps."); void refresh(); }
     });
     return () => { void stop.then((f) => f()); };
   }, [jobId]);
@@ -59,22 +62,42 @@ export default function GeneratePanel({ prompt, projectId, libraryVersion, onOpe
   const problem = settingsError(prompt, { width: size.width, height: size.height, steps, guidance, seed });
   const runtimeReady = Boolean(library?.runtime.installed);
 
-  async function generate() {
+  /** Check who else is using the GPU first; ask before sharing it with another app. */
+  async function requestGenerate() {
+    const [repo, revision] = model.split("@");
+    setError(""); setConfirm(null); setChecking(true);
+    try {
+      const check = await invoke<GpuCheck>("gpu_check", { repo, revision, width: size.width, height: size.height });
+      if (check.decision.kind === "block") setError(check.decision.message);
+      else if (check.decision.kind === "confirm") setConfirm(check.decision);
+      else await generate([]);
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  async function generate(acknowledged: number[]) {
     const [repo, revision] = model.split("@");
     const id = crypto.randomUUID();
+    setConfirm(null);
     setJobId(id); setError(""); setSaved(""); setStatus("Starting…");
     const started = performance.now();
     try {
       const provenance = await invoke<Provenance>("generation_generate", { request: {
         job_id: id, repo, revision, prompt, negative_prompt: negative, width: size.width, height: size.height,
-        steps, guidance, seed, project_id: projectId,
+        steps, guidance, seed, project_id: projectId, gpu_acknowledged: acknowledged,
       } });
       const url = await invoke<string>("generation_output_image", { jobId: id });
       setResult({ provenance, url });
       setStatus(`Done in ${((performance.now() - started) / 1000).toFixed(1)}s · seed ${provenance.parameters.seed}`);
       void refresh();
     } catch (e) {
-      setError(errorText(e));
+      const text = errorText(e);
+      // Another app started using the GPU between the check and the job: ask again.
+      if (text.startsWith("GPU_BUSY:")) void requestGenerate();
+      else setError(text);
       setStatus("");
     } finally {
       setJobId(null);
@@ -116,7 +139,18 @@ export default function GeneratePanel({ prompt, projectId, libraryVersion, onOpe
         <label>Seed <input value={seedText} onChange={(e) => setSeedText(e.target.value.replace(/[^0-9]/g, ""))} placeholder="random" /></label>
       </div>
       {problem && prompt.trim() && <p className="project-error">{problem}</p>}
-      <button className="primary full" disabled={jobId !== null || Boolean(problem) || !model} onClick={() => void generate()}>{jobId ? "Generating…" : "Generate locally"}</button>
+      <button className="primary full" disabled={jobId !== null || checking || confirm !== null || Boolean(problem) || !model} onClick={() => void requestGenerate()}>{jobId ? "Generating…" : checking ? "Checking GPU…" : "Generate locally"}</button>
+      {confirm && (
+        <div className="gpu-confirm" role="alertdialog" aria-label="Another app is using the GPU">
+          <strong>Your GPU is in use</strong>
+          <p>{confirm.message}</p>
+          {confirm.apps.length > 0 && <ul>{confirm.apps.map((a) => <li key={a.pid}>{a.name} · {(a.dedicated_mb / 1024).toFixed(1)} GB · {a.engine_3d_percent.toFixed(0)}% 3D</li>)}</ul>}
+          <div className="model-actions">
+            <button className="secondary" onClick={() => setConfirm(null)}>Not now</button>
+            <button className="primary" onClick={() => void generate(confirm.apps.map((a) => a.pid))}>Generate anyway</button>
+          </div>
+        </div>
+      )}
       {jobId && <button className="secondary full" onClick={() => void invoke("generation_cancel", { jobId })}>Cancel</button>}
       {status && <p className="model-hint" role="status">{status}</p>}
       {error && <p className="project-error" role="alert">{error}</p>}

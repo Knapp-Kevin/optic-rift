@@ -207,3 +207,38 @@ pub async fn generation_save<R: tauri::Runtime>(
     let (_, local) = model_store::dirs(&app)?;
     generation::save_copy(&local, &generation::pictures_dir(&app)?, &job_id)
 }
+
+#[derive(Serialize)]
+pub struct GpuCheck {
+    snapshot: crate::gpu_guard::GpuSnapshot,
+    decision: crate::gpu_guard::Decision,
+    need_mb: u64,
+    idle_unload_seconds: u64,
+}
+
+/// Read-only check of who else is using the GPU, before the user starts a generation.
+#[tauri::command]
+pub async fn gpu_check<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
+    repo: String,
+    revision: String,
+    width: u32,
+    height: u32,
+) -> Result<GpuCheck, String> {
+    let (data, local) = model_store::dirs(&app)?;
+    let model =
+        model_store::find_installed(&model_store::model_dir(&data, &local), &repo, &revision)
+            .ok_or("That model is not installed.")?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let (snapshot, decision, need_mb) =
+            generation::gpu_decision(model.manifest.total_bytes, width, height, &[]);
+        GpuCheck {
+            snapshot,
+            decision,
+            need_mb,
+            idle_unload_seconds: generation::IDLE_UNLOAD.as_secs(),
+        }
+    })
+    .await
+    .map_err(|e| e.to_string())
+}
