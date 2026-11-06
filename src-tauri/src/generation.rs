@@ -595,8 +595,9 @@ pub fn list_outputs(app_local: &Path) -> Vec<Provenance> {
         .filter_map(|e| {
             let bytes = read_output_file(&e.path(), MAX_OUTPUT_RECORD_BYTES).ok()?;
             let record = serde_json::from_slice::<Provenance>(&bytes).ok()?;
+            let expected_name = format!("{}.json", record.job_id);
             (valid_job_id(&record.job_id)
-                && e.file_name().to_string_lossy() == format!("{}.json", record.job_id))
+                && e.file_name().to_string_lossy().as_ref() == expected_name.as_str())
             .then_some(record)
         })
         .collect();
