@@ -46,6 +46,14 @@ Model workers execute in separate, minimally privileged Python processes or envi
 - This is **local output recovery**, not durable project asset registration. Project lineage, moving projects between machines, source references and permanent asset ownership remain unresolved in Wayfinder issue #5.
 - The UI keeps its list bounded to 20 records, provides refresh and errors for missing outputs, and does not trigger model downloads or GPU inference when reopening existing images.
 
+## Experimental SDXL image-to-image worker (draft, not yet available in Studio)
+
+The isolated worker now has a candidate `image-to-image` generation mode using Hugging Face diffusers `AutoPipelineForImage2Image.from_pipe` to share weights with an already loaded SDXL text-to-image pipeline. **This is a worker foundation only, not an advertised/qualified second model adapter.** The native generation request, capability registry, Studio reference picker, provenance wiring, and GPU-need preflight have **not** been connected. Do not label image-to-image as Supported, Ready or Verified until the complete adapter is implemented and tested.
+
+The proposed first reference path is an existing **app-owned generated PNG**, identified by a canonical output job UUID. The native host must read and validate the matching PNG+provenance pair (source digest, size, dimensions and bounded regular-file checks) before constructing the worker message. Worker-side `img2img_reference.py` independently rechecks that source path, SHA-256, PNG header/dimensions, link/reparse status, size (at most 32 MiB) and Pillow decode. The result must keep the original untouched and save under a new job ID, with the source job identity and digest recorded as *local generation history*, **not** as a project asset edge before Wayfinder #5 is resolved. For this first mode the input and output dimensions must match; the strength range is 0.05–0.95.
+
+**Existing GPU constraints remain mandatory.** The real GPU need for this new execution path is unmeasured, and the existing text-to-image memory estimate is not a qualification receipt. The worker-mode branch does not alter the user-facing text-to-image invocation. No model download, wheel install, GPU execution, or Windows build is claimed by adding code or passing CPU-only input tests. Owner consent for real GPU qualification and distinct authorized code/security review remain prerequisites.
+
 ## Generated-output export privacy
 
 - In-app outputs remain under the app-owned local directory until the user explicitly chooses an export destination.
