@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { localImageSourceChoices } from "../src/imageToImage.ts";
+import { imageToImageStepError, localImageSourceChoices } from "../src/imageToImage.ts";
 
 const id = "b4f80767-4d71-44a7-a1cf-3bd189ee06d1";
 const valid = (overrides = {}) => ({
@@ -39,4 +39,12 @@ test("source choices are bounded to 20 without mutating history", () => {
   assert.equal(choices.length, 20);
   assert.equal(records.length, 50);
   assert.equal(choices[0].id, records[0].job_id);
+});
+
+test("SDXL image-to-image needs at least one actual denoising step", () => {
+  assert.match(imageToImageStepError("image-to-image", 1, 0.65), /denoising step/);
+  assert.match(imageToImageStepError("image-to-image", 10, 0.05), /denoising step/);
+  assert.equal(imageToImageStepError("image-to-image", 20, 0.05), null);
+  assert.equal(imageToImageStepError("image-to-image", 25, 0.65), null);
+  assert.equal(imageToImageStepError("text-to-image", 1, 0.05), null);
 });
