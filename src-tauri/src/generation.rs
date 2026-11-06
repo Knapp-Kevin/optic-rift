@@ -590,21 +590,78 @@ pub fn output_png(app_local: &Path, job_id: &str) -> Result<Vec<u8>, String> {
         .map_err(|_| "That output no longer exists.".to_string())
 }
 
-/// Copy an output and its provenance record to the user's Pictures\Optic Rift folder.
+/// Export a validated image and its matching provenance to Pictures\Optic Rift.
+/// Destination filenames use the full UUID, not just an eight-character prefix.
+/// Create-new prevents races from silently overwriting another application's file.
+/// Copying two files cannot be atomic across cloud-sync software; failures are reported
+/// and best-effort local cleanup is performed. The caller must obtain explicit
+/// permission after explaining Windows Pictures/OneDrive synchronization.
 pub fn save_copy(app_local: &Path, pictures: &Path, job_id: &str) -> Result<PathBuf, String> {
+    if !valid_job_id(job_id) {
+        return Err("Invalid output id.".into());
+    }
     let png = output_png(app_local, job_id)?;
+    let source_record = outputs_dir(app_local).join(format!("{job_id}.json"));
+    let record = fs::read(source_record)
+        .map_err(|_| "The image's provenance record is missing; export was not started.".to_string())?;
+    let provenance: Provenance = serde_json::from_slice(&record)
+        .map_err(|_| "The image's provenance record is invalid; export was not started.".to_string())?;
+    let actual_digest = Sha256::digest(&png)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect::<String>();
+    let dimensions = png_size(&png);
+    if provenance.record_version != 1
+        || provenance.job_id != job_id
+        || provenance.output["sha256"].as_str() != Some(actual_digest.as_str())
+        || dimensions.is_none()
+        || provenance.output["width"].as_u64() != dimensions.map(|d| d.0 as u64)
+        || provenance.output["height"].as_u64() != dimensions.map(|d| d.1 as u64)
+    {
+        return Err("The image does not match its provenance record; export was not started.".into());
+    }
+
     let dest_dir = pictures.join("Optic Rift");
     fs::create_dir_all(&dest_dir)
         .map_err(|e| format!("Cannot create {}: {e}", dest_dir.display()))?;
-    let stem = format!("optic-rift-{}", &job_id[..8]);
+    let stem = format!("optic-rift-{job_id}");
     let dest = dest_dir.join(format!("{stem}.png"));
-    if dest.exists() {
-        return Err(format!("{} already exists.", dest.display()));
+    let metadata_dest = dest_dir.join(format!("{stem}.provenance.json"));
+    // Reject pre-existing file *or symlink* for both members of the pair.
+    // create_new is still mandatory: this pre-check by itself is not race-safe.
+    if fs::symlink_metadata(&dest).is_ok() || fs::symlink_metadata(&metadata_dest).is_ok() {
+        return Err("An export with this job ID already exists; no files were overwritten.".into());
     }
-    fs::write(&dest, png).map_err(|e| e.to_string())?;
-    let record = outputs_dir(app_local).join(format!("{job_id}.json"));
-    if let Ok(bytes) = fs::read(record) {
-        let _ = fs::write(dest_dir.join(format!("{stem}.provenance.json")), bytes);
+    use std::io::Write;
+    let mut output = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&dest)
+        .map_err(|e| format!("Cannot create the image without overwriting an existing file: {e}"))?;
+    let result = output.write_all(&png).and_then(|_| output.sync_all());
+    drop(output);
+    if let Err(e) = result {
+        let _ = fs::remove_file(&dest);
+        return Err(format!("Failed to save the image: {e}"));
+    }
+
+    let mut sidecar = match fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&metadata_dest)
+    {
+        Ok(file) => file,
+        Err(e) => {
+            let _ = fs::remove_file(&dest);
+            return Err(format!("Cannot create the provenance record without overwriting an existing file: {e}"));
+        }
+    };
+    let result = sidecar.write_all(&record).and_then(|_| sidecar.sync_all());
+    drop(sidecar);
+    if let Err(e) = result {
+        let _ = fs::remove_file(&metadata_dest);
+        let _ = fs::remove_file(&dest);
+        return Err(format!("Failed to save the provenance record: {e}"));
     }
     Ok(dest)
 }
@@ -642,17 +699,101 @@ mod tests {
         assert_eq!(png_size(b"GIF89a.................."), None);
     }
 
+    /// A small PNG-header fixture is enough for the native save path's validation.
+    /// The independent image-generation path validates actual worker output separately.
+    fn write_output_pair(local: &Path, id: &str) -> Vec<u8> {
+        let mut png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR".to_vec();
+        png.extend_from_slice(&1u32.to_be_bytes());
+        png.extend_from_slice(&1u32.to_be_bytes());
+        let sha = Sha256::digest(&png)
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect::<String>();
+        fs::create_dir_all(outputs_dir(local)).unwrap();
+        fs::write(outputs_dir(local).join(format!("{id}.png")), &png).unwrap();
+        let record = json!({
+            "record_version": 1, "job_id": id, "created_unix_ms": 0,
+            "prompt": "test", "negative_prompt": "", "parameters": {},
+            "model": {}, "runtime": {}, "metrics": {},
+            "output": {"sha256": sha, "width": 1, "height": 1},
+            "project_id": null, "lineage_note": "test"
+        });
+        fs::write(
+            outputs_dir(local).join(format!("{id}.json")),
+            serde_json::to_vec(&record).unwrap(),
+        ).unwrap();
+        png
+    }
+
     #[test]
     fn output_ids_are_strict_and_save_never_overwrites() {
         let local = std::env::temp_dir().join(format!("optic-rift-gen-{}", uuid::Uuid::new_v4()));
         let pictures = local.join("Pictures");
         assert!(output_png(&local, "../../secret").is_err());
+        assert!(save_copy(&local, &pictures, "../../secret").is_err());
         let id = uuid::Uuid::new_v4().to_string();
-        fs::create_dir_all(outputs_dir(&local)).unwrap();
-        fs::write(outputs_dir(&local).join(format!("{id}.png")), b"png").unwrap();
+        let png = write_output_pair(&local, &id);
         let saved = save_copy(&local, &pictures, &id).unwrap();
-        assert_eq!(fs::read(&saved).unwrap(), b"png");
+        assert_eq!(fs::read(&saved).unwrap(), png);
+        assert!(saved.to_string_lossy().contains(&id), "full UUID is retained");
+        let provenance = saved.with_file_name(format!("optic-rift-{id}.provenance.json"));
+        let saved_meta: Provenance = serde_json::from_slice(&fs::read(provenance).unwrap()).unwrap();
+        assert_eq!(saved_meta.job_id, id);
         assert!(save_copy(&local, &pictures, &id).is_err());
+        assert_eq!(fs::read(&saved).unwrap(), png);
         fs::remove_dir_all(local).unwrap();
     }
+
+    #[test]
+    fn refuses_missing_or_mismatched_provenance_before_creating_export() {
+        let local = std::env::temp_dir().join(format!("optic-rift-gen-{}", uuid::Uuid::new_v4()));
+        let pictures = local.join("Pictures");
+        let id = uuid::Uuid::new_v4().to_string();
+        write_output_pair(&local, &id);
+        let record = outputs_dir(&local).join(format!("{id}.json"));
+        let bytes = fs::read(&record).unwrap();
+        fs::remove_file(&record).unwrap();
+        assert!(save_copy(&local, &pictures, &id).is_err());
+        assert!(!pictures.join("Optic Rift").exists());
+        let mut bad: Value = serde_json::from_slice(&bytes).unwrap();
+        bad["output"]["sha256"] = json!("wronghash");
+        fs::write(&record, serde_json::to_vec(&bad).unwrap()).unwrap();
+        assert!(save_copy(&local, &pictures, &id).is_err());
+        assert!(!pictures.join("Optic Rift").exists());
+        fs::remove_dir_all(local).unwrap();
+    }
+
+    #[test]
+    fn provenance_collision_is_not_overwritten_or_partially_exported() {
+        let local = std::env::temp_dir().join(format!("optic-rift-gen-{}", uuid::Uuid::new_v4()));
+        let pictures = local.join("Pictures");
+        let id = uuid::Uuid::new_v4().to_string();
+        write_output_pair(&local, &id);
+        let dest_dir = pictures.join("Optic Rift");
+        fs::create_dir_all(&dest_dir).unwrap();
+        let sidecar = dest_dir.join(format!("optic-rift-{id}.provenance.json"));
+        fs::write(&sidecar, b"existing").unwrap();
+        assert!(save_copy(&local, &pictures, &id).is_err());
+        assert_eq!(fs::read(&sidecar).unwrap(), b"existing");
+        assert!(!dest_dir.join(format!("optic-rift-{id}.png")).exists());
+        fs::remove_dir_all(local).unwrap();
+    }
+
+    #[test]
+    fn concurrent_saves_never_overwrite_the_winner() {
+        let local = std::env::temp_dir().join(format!("optic-rift-gen-{}", uuid::Uuid::new_v4()));
+        let pictures = local.join("Pictures");
+        let id = uuid::Uuid::new_v4().to_string();
+        let png = write_output_pair(&local, &id);
+        let (a, b) = std::thread::scope(|scope| {
+            let a = scope.spawn(|| save_copy(&local, &pictures, &id));
+            let b = scope.spawn(|| save_copy(&local, &pictures, &id));
+            (a.join().unwrap(), b.join().unwrap())
+        });
+        assert_eq!(usize::from(a.is_ok()) + usize::from(b.is_ok()), 1);
+        let dest = pictures.join("Optic Rift").join(format!("optic-rift-{id}.png"));
+        assert_eq!(fs::read(dest).unwrap(), png);
+        fs::remove_dir_all(local).unwrap();
+    }
+
 }
