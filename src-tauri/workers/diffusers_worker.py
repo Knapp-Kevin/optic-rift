@@ -11,6 +11,7 @@ never repository code, and speaks newline-delimited JSON:
 
 import gc
 import hashlib
+import importlib.util
 import json
 import math
 import os
@@ -20,6 +21,15 @@ import sys
 import threading
 import time
 import traceback
+
+# python -I excludes adjacent modules from sys.path. Load only the exact
+# app-owned helper staged by the native host, never a model-supplied module.
+_REFERENCE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "img2img_reference.py")
+_REFERENCE_SPEC = importlib.util.spec_from_file_location("img2img_reference", _REFERENCE_PATH)
+if _REFERENCE_SPEC is None or _REFERENCE_SPEC.loader is None:
+    raise RuntimeError("Image reference verifier not installed")
+img2img_reference = importlib.util.module_from_spec(_REFERENCE_SPEC)
+_REFERENCE_SPEC.loader.exec_module(img2img_reference)
 
 PROTOCOL = 1
 # Library output must never corrupt the protocol stream.
@@ -106,6 +116,7 @@ def check_generate(req):
 class Worker:
     def __init__(self):
         self.pipe = None
+        self.image_pipe = None
         self.loaded = None
         self.cancel = threading.Event()
         self.current_job = None
@@ -180,15 +191,29 @@ class Worker:
         if not isinstance(job_id, str) or not job_id:
             raise RequestError("job_id required")
         params = check_generate(req)
+        mode = req.get("mode", "text-to-image")
+        if mode not in ("text-to-image", "image-to-image"):
+            raise RequestError("Unsupported image generation mode")
+        reference_image, strength = None, None
+        if mode == "image-to-image":
+            if self.loaded is None or self.loaded[1] != "diffusers-sdxl-text-to-image":
+                raise RequestError("Image-to-image requires a locally installed SDXL text-to-image model")
+            try:
+                strength = img2img_reference.check_strength(req.get("strength"))
+                reference_image = img2img_reference.prepare_reference(
+                    req.get("reference"), params["width"], params["height"])
+            except img2img_reference.ReferenceError as exc:
+                raise RequestError(str(exc)) from exc
         self.apply_budget(req)
         torch = self.torch()
         self.cancel.clear()
         self.current_job = job_id
         steps = params["steps"]
+        progress_total = max(1, int(steps * strength)) if strength is not None else steps
         torch.cuda.reset_peak_memory_stats()
 
         def on_step_end(pipe, step, _timestep, kwargs):
-            emit("progress", job_id=job_id, step=step + 1, total=steps)
+            emit("progress", job_id=job_id, step=step + 1, total=progress_total)
             if self.cancel.is_set():
                 pipe._interrupt = True  # documented diffusers interruption flag
             return kwargs
@@ -197,10 +222,22 @@ class Worker:
         try:
             generator = torch.Generator(device="cuda").manual_seed(params["seed"])
             with torch.inference_mode():
-                result = self.pipe(prompt=params["prompt"], negative_prompt=params["negative_prompt"] or None,
-                                   width=params["width"], height=params["height"], num_inference_steps=steps,
-                                   guidance_scale=params["guidance"], generator=generator,
-                                   callback_on_step_end=on_step_end)
+                if mode == "image-to-image":
+                    if self.image_pipe is None:
+                        from diffusers import AutoPipelineForImage2Image  # noqa: PLC0415
+                        # Shares underlying SDXL weights; does not load a second checkpoint.
+                        self.image_pipe = AutoPipelineForImage2Image.from_pipe(self.pipe)
+                        self.image_pipe.set_progress_bar_config(disable=True)
+                    result = self.image_pipe(
+                        prompt=params["prompt"], negative_prompt=params["negative_prompt"] or None,
+                        image=reference_image, strength=strength, num_inference_steps=steps,
+                        guidance_scale=params["guidance"], generator=generator,
+                        callback_on_step_end=on_step_end)
+                else:
+                    result = self.pipe(prompt=params["prompt"], negative_prompt=params["negative_prompt"] or None,
+                                       width=params["width"], height=params["height"], num_inference_steps=steps,
+                                       guidance_scale=params["guidance"], generator=generator,
+                                       callback_on_step_end=on_step_end)
         except torch.cuda.OutOfMemoryError:
             self.recover()
             emit("error", job_id=job_id, category="out_of_memory",
@@ -236,7 +273,7 @@ class Worker:
 
     def unload(self, _req, quiet=False):
         had = self.pipe is not None
-        self.pipe, self.loaded = None, None
+        self.pipe, self.image_pipe, self.loaded = None, None, None
         self.recover()
         if not quiet:
             info = self.memory() if self.torch().cuda.is_available() else {}
