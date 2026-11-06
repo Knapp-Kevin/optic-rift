@@ -27,7 +27,6 @@ export default function App() {
   const [items, setItems] = useState<MediaItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [prompt, setPrompt] = useState("");
-  const [capability, setCapability] = useState("Text to image");
   const [studioMode, setStudioMode] = useState<"create" | "edit">("edit");
   const [studioModeChosen, setStudioModeChosen] = useState(false);
   const [creationMode, setCreationMode] = useState<"text-to-image" | "image-to-image">("text-to-image");
