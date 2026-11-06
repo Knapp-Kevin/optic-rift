@@ -250,7 +250,10 @@ class ImageToImageProtocol(unittest.TestCase):
         from unittest import mock
         import hashlib
         import uuid
-        from PIL import Image
+        try:
+            from PIL import Image
+        except ImportError as exc:
+            raise unittest.SkipTest("Pillow not installed in this interpreter") from exc
 
         worker = self.loaded_worker()
         with tempfile.TemporaryDirectory() as folder:

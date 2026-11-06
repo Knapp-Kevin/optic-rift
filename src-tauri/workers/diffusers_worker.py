@@ -270,8 +270,10 @@ class Worker:
 
     def recover(self):
         gc.collect()
-        torch = self.torch()
-        if torch.cuda.is_available():
+        # Only free GPU memory if torch was ever imported: shutting down a worker that never
+        # loaded a model must not import torch (slow, and fails where torch is unavailable).
+        torch = sys.modules.get("torch")
+        if torch is not None and torch.cuda.is_available():
             torch.cuda.empty_cache()
 
     def unload(self, _req, quiet=False):
@@ -279,7 +281,8 @@ class Worker:
         self.pipe, self.image_pipe, self.loaded = None, None, None
         self.recover()
         if not quiet:
-            info = self.memory() if self.torch().cuda.is_available() else {}
+            torch = sys.modules.get("torch")
+            info = self.memory() if torch is not None and torch.cuda.is_available() else {}
             emit("unloaded", had_model=had, **info)
 
 
