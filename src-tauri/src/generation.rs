@@ -304,15 +304,32 @@ pub fn job_need_mb(weights_bytes: u64, width: u32, height: u32) -> u64 {
     weights_bytes / (1024 * 1024) + workspace
 }
 
+/// Until an exact-machine GPU measurement exists for img2img, conservatively
+/// reserve 2 GiB beyond the measured text-to-image estimate. This is a
+/// preflight estimate, never a hard system-wide VRAM cap or qualification.
+pub fn job_need_for_mode(
+    weights_bytes: u64,
+    width: u32,
+    height: u32,
+    mode: GenerationMode,
+) -> u64 {
+    let base = job_need_mb(weights_bytes, width, height);
+    match mode {
+        GenerationMode::TextToImage => base,
+        GenerationMode::ImageToImage => base.saturating_add(2048),
+    }
+}
+
 /// Check the GPU is free enough to use right now, considering every other process.
 pub fn gpu_decision(
     weights_bytes: u64,
     width: u32,
     height: u32,
+    mode: GenerationMode,
     acknowledged: &[u32],
 ) -> (gpu_guard::GpuSnapshot, gpu_guard::Decision, u64) {
     let snapshot = gpu_guard::snapshot();
-    let need = job_need_mb(weights_bytes, width, height);
+    let need = job_need_for_mode(weights_bytes, width, height, mode);
     let decision = gpu_guard::evaluate(&snapshot, need, acknowledged);
     (snapshot, decision, need)
 }
@@ -322,6 +339,7 @@ fn gpu_budget(model: &InstalledModel, req: &GenerateRequest) -> Result<u64, Stri
         model.manifest.total_bytes,
         req.width,
         req.height,
+        req.mode,
         &req.gpu_acknowledged,
     )
     .1
@@ -329,6 +347,23 @@ fn gpu_budget(model: &InstalledModel, req: &GenerateRequest) -> Result<u64, Stri
         gpu_guard::Decision::Proceed { budget_mb } => Ok(budget_mb),
         gpu_guard::Decision::Confirm { message, .. } => Err(format!("GPU_BUSY: {message}")),
         gpu_guard::Decision::Block { message } => Err(message),
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum GenerationMode {
+    #[default]
+    TextToImage,
+    ImageToImage,
+}
+
+impl GenerationMode {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::TextToImage => "text-to-image",
+            Self::ImageToImage => "image-to-image",
+        }
     }
 }
 
@@ -345,6 +380,12 @@ pub struct GenerateRequest {
     pub steps: u32,
     pub guidance: f32,
     pub seed: Option<u64>,
+    #[serde(default)]
+    pub mode: GenerationMode,
+    #[serde(default)]
+    pub source_job_id: Option<String>,
+    #[serde(default)]
+    pub strength: Option<f32>,
     pub project_id: Option<String>,
     /// PIDs of other GPU apps the user explicitly agreed to share the GPU with for this job.
     #[serde(default)]
@@ -364,6 +405,8 @@ pub struct Provenance {
     pub output: Value,
     pub metrics: Value,
     pub project_id: Option<String>,
+    #[serde(default)]
+    pub source: Option<Value>,
     pub lineage_note: String,
 }
 
@@ -373,6 +416,58 @@ fn valid_job_id(id: &str) -> bool {
 
 pub fn outputs_dir(app_local: &Path) -> PathBuf {
     app_local.join("outputs")
+}
+
+/// Path and digest constructed only from verified app-owned output history.
+/// The browser never supplies a reference path or reference SHA to the worker.
+#[derive(Debug, Clone, Serialize)]
+struct ImageReference {
+    job_id: String,
+    path: PathBuf,
+    sha256: String,
+}
+
+fn verified_image_reference(
+    app_local: &Path,
+    mode: GenerationMode,
+    source_job_id: Option<&str>,
+    strength: Option<f32>,
+    width: u32,
+    height: u32,
+    output_job_id: &str,
+) -> Result<Option<ImageReference>, String> {
+    match mode {
+        GenerationMode::TextToImage => {
+            if source_job_id.is_some() || strength.is_some() {
+                return Err("Text-to-image requests must not include a source or image strength.".into());
+            }
+            Ok(None)
+        }
+        GenerationMode::ImageToImage => {
+            let id = source_job_id.ok_or("Choose a previous local generation first.")?;
+            if !valid_job_id(id) || id == output_job_id {
+                return Err("Choose a valid, different source generation.".into());
+            }
+            if !strength.is_some_and(|s| s.is_finite() && (0.05..=0.95).contains(&s)) {
+                return Err("Image strength must be between 0.05 and 0.95.".into());
+            }
+            let (png, record) = verified_output(app_local, id)?;
+            if png.len() > 32 * 1024 * 1024 || png_size(&png) != Some((width, height)) {
+                return Err("The local source must be at most 32 MB and match the generation dimensions.".into());
+            }
+            let provenance: Provenance = serde_json::from_slice(&record)
+                .map_err(|_| "The source provenance is invalid.".to_string())?;
+            let sha256 = provenance.output["sha256"]
+                .as_str()
+                .ok_or("The source record has no image digest.")?
+                .to_string();
+            Ok(Some(ImageReference {
+                job_id: id.into(),
+                path: outputs_dir(app_local).join(format!("{id}.png")),
+                sha256,
+            }))
+        }
+    }
 }
 
 /// Parse width/height from a PNG IHDR chunk.
@@ -408,6 +503,16 @@ fn generate_blocking<R: tauri::Runtime>(
         }
     }
     let (data, local) = model_store::dirs(app)?;
+    // Fail closed before loading the GPU worker on malformed or mismatched sources.
+    verified_image_reference(
+        &local,
+        req.mode,
+        req.source_job_id.as_deref(),
+        req.strength,
+        req.width,
+        req.height,
+        &req.job_id,
+    )?;
     let models = model_store::model_dir(&data, &local);
     let installed: InstalledModel = model_store::find_installed(&models, &req.repo, &req.revision)
         .ok_or("That model is not installed.")?;
@@ -466,6 +571,17 @@ fn run_job<R: tauri::Runtime>(
         load_seconds = loaded["seconds"].clone();
         *w.loaded.lock().unwrap() = Some(key);
     }
+    // A hash check before model load may be old by now; revalidate the source
+    // immediately before sending the job. The worker independently hashes again.
+    let reference = verified_image_reference(
+        local,
+        req.mode,
+        req.source_job_id.as_deref(),
+        req.strength,
+        req.width,
+        req.height,
+        &req.job_id,
+    )?;
     let out_dir = outputs_dir(local);
     fs::create_dir_all(&out_dir).map_err(|e| e.to_string())?;
     let png = out_dir.join(format!("{}.png", req.job_id));
@@ -473,6 +589,7 @@ fn run_job<R: tauri::Runtime>(
         "op": "generate", "job_id": req.job_id, "prompt": req.prompt, "negative_prompt": req.negative_prompt,
         "width": req.width, "height": req.height, "steps": req.steps, "guidance": req.guidance,
         "seed": req.seed, "output_path": png, "vram_budget_mb": budget_mb,
+        "mode": req.mode.as_str(), "reference": reference, "strength": req.strength,
     }))?;
     let job = req.job_id.clone();
     let end = w.wait_for(
@@ -521,7 +638,7 @@ fn run_job<R: tauri::Runtime>(
         created_unix_ms: SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0),
         prompt: req.prompt.trim().into(),
         negative_prompt: req.negative_prompt.trim().into(),
-        parameters: json!({"width": req.width, "height": req.height, "steps": req.steps, "guidance": req.guidance, "seed": end["seed"]}),
+        parameters: json!({"width": req.width, "height": req.height, "steps": req.steps, "guidance": req.guidance, "seed": end["seed"], "mode": req.mode.as_str(), "strength": req.strength}),
         model: json!({
             "repo": model.manifest.repo, "revision": model.manifest.revision, "adapter": model.manifest.adapter,
             "adapter_version": model.manifest.adapter_version, "variant": model.manifest.variant,
@@ -532,6 +649,10 @@ fn run_job<R: tauri::Runtime>(
         output: json!({"file": png.file_name().map(|n| n.to_string_lossy().to_string()), "sha256": sha256, "width": req.width, "height": req.height, "format": "png", "bytes": bytes.len()}),
         metrics: json!({"generation_seconds": end["seconds"], "load_seconds": load_seconds, "peak_vram_allocated_mb": end["peak_vram_mb"]}),
         project_id: req.project_id.clone(),
+        source: reference.map(|r| json!({
+            "role": "initial-image", "job_id": r.job_id, "sha256": r.sha256,
+            "width": req.width, "height": req.height,
+        })),
         lineage_note: "Stored in Optic Rift's local output folder. Not yet linked into project asset lineage (decision #5 pending).".into(),
     };
     let record = out_dir.join(format!("{}.json", req.job_id));
