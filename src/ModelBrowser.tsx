@@ -75,7 +75,7 @@ export default function ModelBrowser({ includeAdult, onLibraryChanged }: Props) 
       <p className="model-hint">
         {adaptersFor.length
           ? <>Optic Rift can run: {adaptersFor.join("; ")}. Other results are listed but won't install.</>
-          : <>No Optic Rift adapter runs this capability yet. You can browse and inspect, but not install.</>}
+          : <>No Optic Rift adapter runs this capability yet. You can browse and inspect; public video models may allow caching a small configuration sample (not weights).</>}
         {" "}Search is anonymous; model cards and preview images are not loaded.
       </p>
       {searchError && <p className="project-error" role="alert">{searchError}</p>}
@@ -172,6 +172,7 @@ function ModelDetailView({ inspection, library, onInstalled }: { inspection: Ins
           {weightsMb !== null && gpu.vram_total_mb !== null && weightsMb + 1536 > gpu.vram_total_mb ? " This GPU is too small for these weights." : ""}
         </dd></>}
       </dl>
+      <VideoMetadataCache inspection={inspection} onCached={onInstalled} />
       {detail.rejections.length > 0 && <div className="model-rejections"><strong>Why Optic Rift can't run this</strong><ul>{detail.rejections.map((r, i) => <li key={i}>{r.reason}</li>)}</ul></div>}
       {plan && !installed && (
         <div className="model-consent">
@@ -194,6 +195,73 @@ function ModelDetailView({ inspection, library, onInstalled }: { inspection: Ins
       {installed && <p className="model-hint">Installed {new Date(installed.manifest.installed_unix_ms).toLocaleString()} · {installed.manifest.files.length} verified files · license acknowledged: {installed.manifest.consent.license_acknowledged}</p>}
     </article>
   );
+}
+
+function VideoMetadataCache({ inspection, onCached }: { inspection: Inspection; onCached: () => void }) {
+  const { detail, cached_metadata: cached } = inspection;
+  const isVideo = ["text-to-video", "image-to-video", "video-to-video"].includes(detail.capability);
+  const [licenseChecked, setLicenseChecked] = useState(false);
+  const [transferChecked, setTransferChecked] = useState(false);
+  const [adultChecked, setAdultChecked] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    setLicenseChecked(false);
+    setTransferChecked(false);
+    setAdultChecked(false);
+    setMessage("");
+  }, [detail.id, detail.revision, detail.capability]);
+
+  if (!isVideo) return null;
+
+  const file = detail.cache_metadata_file;
+  const flagged = detail.audience === "not-for-all-audiences";
+  const ungated = detail.gated === "no";
+  const canCache = Boolean(file && ungated && !cached);
+  const ready = canCache && licenseChecked && transferChecked && (!flagged || adultChecked);
+
+  async function cache() {
+    if (!ready) return;
+    setBusy(true);
+    setMessage("");
+    try {
+      await invoke("video_cache_metadata", { request: {
+        repo: detail.id,
+        revision: detail.revision,
+        capability: detail.capability,
+        license_acknowledged: detail.license ?? "unknown",
+        adult_acknowledged: flagged && adultChecked,
+        accept: true,
+      } });
+      setMessage("Configuration metadata was verified and cached. No weights were downloaded.");
+      onCached();
+    } catch (e) {
+      setMessage(errorText(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return <section className="model-consent" aria-label="Video configuration metadata cache">
+    <strong>Video model metadata</strong>
+    {cached ? <p className="model-hint">Configuration metadata cached and verified on this computer. The model is not installed and cannot generate video yet.</p>
+      : !ungated ? <p className="model-hint">This model requires gated access. Optic Rift will not fetch its configuration through the public metadata-only cache.</p>
+      : !file ? <p className="model-hint">No small configuration file with a verifiable source hash was found. This model remains discoverable but cannot be cached by this feature.</p>
+      : <>
+        <p className="model-hint">Optional: cache <code>{file.path}</code> ({formatBytes(file.size)}) from this exact revision. This transfers only JSON configuration metadata, not model weights or code. Video generation remains unsupported.</p>
+        <label><input type="checkbox" checked={licenseChecked} onChange={(e) => setLicenseChecked(e.target.checked)} />
+          I have reviewed the model license ({licenseText(detail)}), which may restrict use.</label>
+        {flagged && <label><input type="checkbox" checked={adultChecked} onChange={(e) => setAdultChecked(e.target.checked)} />
+          I am 18 or older and deliberately want to cache metadata for this source-flagged adult-focused model. This is not legal age verification.</label>}
+        <label><input type="checkbox" checked={transferChecked} onChange={(e) => setTransferChecked(e.target.checked)} />
+          I approve downloading this public configuration file from Hugging Face into Optic Rift's local metadata cache.</label>
+        <button type="button" className="secondary" disabled={!ready || busy} onClick={() => void cache()}>
+          {busy ? "Checking and caching…" : "Cache configuration metadata only"}
+        </button>
+      </>}
+    {message && <p className="model-hint" role="status">{message}</p>}
+  </section>;
 }
 
 function RuntimePanel({ library, onChanged }: { library: ModelLibrary | null; onChanged: () => void }) {
