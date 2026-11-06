@@ -422,7 +422,10 @@ pub fn video_cache_candidate(capability: Capability, files: &[RepoFile]) -> Opti
 }
 
 pub fn valid_hash(hash: &str, len: usize) -> bool {
-    hash.len() == len && hash.bytes().all(|ch| ch.is_ascii_hexdigit() && !ch.is_ascii_uppercase())
+    hash.len() == len
+        && hash
+            .bytes()
+            .all(|ch| ch.is_ascii_hexdigit() && !ch.is_ascii_uppercase())
 }
 
 /// Inspect one repository at `revision` ("main" or a commit SHA) and evaluate every adapter.
@@ -499,7 +502,10 @@ async fn inspect_with_token_policy(
                 };
             }
             // Never buffer an unbounded upstream config before checking its size.
-            if resp.content_length().is_none_or(|n| n <= MAX_INDEX_BYTES as u64) {
+            if resp
+                .content_length()
+                .is_none_or(|n| n <= MAX_INDEX_BYTES as u64)
+            {
                 let mut bytes = Vec::new();
                 while let Some(chunk) = resp.chunk().await.map_err(net_error)? {
                     if bytes.len().saturating_add(chunk.len()) > MAX_INDEX_BYTES {
@@ -580,7 +586,10 @@ mod tests {
     #[test]
     fn cache_preview_is_only_small_hash_identified_video_config() {
         let f = |path: &str, size: u64, hash: Option<&str>| RepoFile {
-            path: path.into(), size, lfs_sha256: None, blob_id: hash.map(str::to_owned),
+            path: path.into(),
+            size,
+            lfs_sha256: None,
+            blob_id: hash.map(str::to_owned),
         };
         let sha = "a".repeat(40);
         let list = vec![
@@ -589,19 +598,45 @@ mod tests {
             f("transformer/model.safetensors", 2000, Some(&sha)),
         ];
         for task in [
-            Capability::TextToVideo, Capability::ImageToVideo, Capability::VideoToVideo,
+            Capability::TextToVideo,
+            Capability::ImageToVideo,
+            Capability::VideoToVideo,
         ] {
             let selected = video_cache_candidate(task, &list).unwrap();
             assert_eq!(selected.path, "model_index.json");
             assert_eq!(selected.size, 1133);
         }
         assert!(video_cache_candidate(Capability::TextToImage, &list).is_none());
-        assert!(video_cache_candidate(Capability::TextToVideo, &[f("model_index.json", 0, Some(&sha))]).is_none());
-        assert!(video_cache_candidate(Capability::TextToVideo, &[f("model_index.json", 262_145, Some(&sha))]).is_none());
-        assert!(video_cache_candidate(Capability::VideoToVideo, &[f("../config.json", 200, Some(&sha))]).is_none());
-        assert!(video_cache_candidate(Capability::VideoToVideo, &[f("model_index.json", 200, None)]).is_none());
-        assert!(video_cache_candidate(Capability::VideoToVideo, &[f("model_index.json", 200, Some("invalid"))]).is_none());
-        assert!(video_cache_candidate(Capability::VideoToVideo, &[f("model_index.json", 200, Some(&"A".repeat(40)))]).is_none());
+        assert!(video_cache_candidate(
+            Capability::TextToVideo,
+            &[f("model_index.json", 0, Some(&sha))]
+        )
+        .is_none());
+        assert!(video_cache_candidate(
+            Capability::TextToVideo,
+            &[f("model_index.json", 262_145, Some(&sha))]
+        )
+        .is_none());
+        assert!(video_cache_candidate(
+            Capability::VideoToVideo,
+            &[f("../config.json", 200, Some(&sha))]
+        )
+        .is_none());
+        assert!(video_cache_candidate(
+            Capability::VideoToVideo,
+            &[f("model_index.json", 200, None)]
+        )
+        .is_none());
+        assert!(video_cache_candidate(
+            Capability::VideoToVideo,
+            &[f("model_index.json", 200, Some("invalid"))]
+        )
+        .is_none());
+        assert!(video_cache_candidate(
+            Capability::VideoToVideo,
+            &[f("model_index.json", 200, Some(&"A".repeat(40)))]
+        )
+        .is_none());
     }
 
     #[test]
@@ -651,9 +686,13 @@ mod tests {
         ] {
             let url = search_url("", capability, 16).unwrap();
             let pairs: Vec<(String, String)> = url
-                .query_pairs().map(|(a, b)| (a.into_owned(), b.into_owned())).collect();
+                .query_pairs()
+                .map(|(a, b)| (a.into_owned(), b.into_owned()))
+                .collect();
             assert!(pairs.iter().any(|(k, v)| k == "pipeline_tag" && v == tag));
-            assert!(!pairs.iter().any(|(k, _)| k.contains("token") || k.contains("authorization")));
+            assert!(!pairs
+                .iter()
+                .any(|(k, _)| k.contains("token") || k.contains("authorization")));
             assert!(!url.as_str().contains("@"));
         }
     }
@@ -667,7 +706,8 @@ mod tests {
             "gated": false,
             "tags": ["not-for-all-audiences", "license:other"],
             "siblings": [{"rfilename": "model_index.json"}]
-        })).unwrap();
+        }))
+        .unwrap();
         let model = summarize(raw, Capability::ImageToVideo);
         assert_eq!(model.audience, "not-for-all-audiences");
         assert_eq!(model.license.as_deref(), Some("other"));

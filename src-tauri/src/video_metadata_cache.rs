@@ -69,7 +69,10 @@ pub fn admit(request: &CacheRequest, detail: &ModelDetail) -> Result<RepoFile, S
     // Gated metadata is a different authorization path. No token is ever
     // placed in this download-only request or forwarded across redirects.
     if detail.gated != "no" {
-        return Err("Gated video configuration needs separate authorized support; no download was started.".into());
+        return Err(
+            "Gated video configuration needs separate authorized support; no download was started."
+                .into(),
+        );
     }
     // A user's selected capability is not evidence that a repository actually
     // advertises that task. Do not silently reclassify a model across video modes.
@@ -90,13 +93,20 @@ pub fn admit(request: &CacheRequest, detail: &ModelDetail) -> Result<RepoFile, S
         return Err("This source-flagged 18+ model needs explicit acknowledgment.".into());
     }
     let candidate = detail.cache_metadata_file.clone().ok_or(
-        "No small, integrity-identifiable configuration file is available for this model.".to_string()
+        "No small, integrity-identifiable configuration file is available for this model."
+            .to_string(),
     )?;
     if !matches!(candidate.path.as_str(), "model_index.json" | "config.json")
         || candidate.size == 0
         || candidate.size > MAX_JSON_BYTES as u64
-        || !(candidate.blob_id.as_ref().is_some_and(|v| hf_catalog::valid_hash(v, 40))
-            || candidate.lfs_sha256.as_ref().is_some_and(|v| hf_catalog::valid_hash(v, 64)))
+        || !(candidate
+            .blob_id
+            .as_ref()
+            .is_some_and(|v| hf_catalog::valid_hash(v, 40))
+            || candidate
+                .lfs_sha256
+                .as_ref()
+                .is_some_and(|v| hf_catalog::valid_hash(v, 64)))
     {
         return Err("Model configuration does not meet the safe metadata cache policy.".into());
     }
@@ -136,7 +146,11 @@ fn verify_download(bytes: &[u8], file: &RepoFile) -> Result<(), String> {
 
 /// Anonymous HTTPS only, with redirects refused. The exact path is chosen by
 /// the native allowlist and never comes from an arbitrary user-provided URL.
-async fn read_public_config(repo: &str, revision: &str, file: &RepoFile) -> Result<Vec<u8>, String> {
+async fn read_public_config(
+    repo: &str,
+    revision: &str,
+    file: &RepoFile,
+) -> Result<Vec<u8>, String> {
     let client = reqwest::Client::builder()
         .https_only(true)
         .redirect(reqwest::redirect::Policy::none())
@@ -145,9 +159,15 @@ async fn read_public_config(repo: &str, revision: &str, file: &RepoFile) -> Resu
         .user_agent(concat!("OpticRift/", env!("CARGO_PKG_VERSION")))
         .build()
         .map_err(|_| "Could not establish a public metadata connection.".to_string())?;
-    let url = format!("{}/{repo}/resolve/{revision}/{}", hf_catalog::HUB, file.path);
-    let mut response = client.get(&url)
-        .send().await
+    let url = format!(
+        "{}/{repo}/resolve/{revision}/{}",
+        hf_catalog::HUB,
+        file.path
+    );
+    let mut response = client
+        .get(&url)
+        .send()
+        .await
         .map_err(|_| "Could not reach the public metadata file.".to_string())?;
     if !response.status().is_success() {
         return Err(format!(
@@ -155,12 +175,18 @@ async fn read_public_config(repo: &str, revision: &str, file: &RepoFile) -> Resu
             response.status().as_u16()
         ));
     }
-    if response.content_length().is_some_and(|len| len > MAX_JSON_BYTES as u64 || len != file.size) {
+    if response
+        .content_length()
+        .is_some_and(|len| len > MAX_JSON_BYTES as u64 || len != file.size)
+    {
         return Err("Public metadata response exceeded the expected size.".into());
     }
     let mut data = Vec::with_capacity((file.size as usize).min(MAX_JSON_BYTES));
-    while let Some(chunk) = response.chunk().await
-        .map_err(|_| "Public metadata transfer stopped.".to_string())? {
+    while let Some(chunk) = response
+        .chunk()
+        .await
+        .map_err(|_| "Public metadata transfer stopped.".to_string())?
+    {
         if data.len().saturating_add(chunk.len()) > MAX_JSON_BYTES {
             return Err("Public metadata transfer exceeded the safe byte limit.".into());
         }
@@ -176,7 +202,9 @@ fn is_reparse(metadata: &fs::Metadata) -> bool {
     metadata.file_attributes() & 0x400 != 0
 }
 #[cfg(not(windows))]
-fn is_reparse(_metadata: &fs::Metadata) -> bool { false }
+fn is_reparse(_metadata: &fs::Metadata) -> bool {
+    false
+}
 
 fn checked_dir(path: &Path) -> Result<(), String> {
     match fs::create_dir(path) {
@@ -216,7 +244,12 @@ fn existing_cache_folder(app_local: &Path, repo: &str, revision: &str) -> Option
     let folder = model_dir.join(revision);
     // Inspection is read-only. Never create directories just to display cache
     // status, and never follow a reparse point in a cache path component.
-    for path in [app_local, root.as_path(), model_dir.as_path(), folder.as_path()] {
+    for path in [
+        app_local,
+        root.as_path(),
+        model_dir.as_path(),
+        folder.as_path(),
+    ] {
         let meta = fs::symlink_metadata(path).ok()?;
         if !meta.is_dir() || meta.file_type().is_symlink() || is_reparse(&meta) {
             return None;
@@ -226,8 +259,8 @@ fn existing_cache_folder(app_local: &Path, repo: &str, revision: &str) -> Option
 }
 
 fn safe_read_file(path: &Path, bound: u64) -> Result<Vec<u8>, String> {
-    let m = fs::symlink_metadata(path)
-        .map_err(|_| "Metadata cache file is missing.".to_string())?;
+    let m =
+        fs::symlink_metadata(path).map_err(|_| "Metadata cache file is missing.".to_string())?;
     if !m.is_file() || m.file_type().is_symlink() || is_reparse(&m) || m.len() > bound {
         return Err("Metadata cache file is redirected or too large.".into());
     }
@@ -250,14 +283,20 @@ fn publish_new_file(dir: &Path, name: &str, bytes: &[u8]) -> Result<(), String> 
         return Err("Metadata cache destination exists; no file was overwritten.".into());
     }
     let temp = dir.join(format!(".{}.partial-{}", name, uuid::Uuid::new_v4()));
-    let mut output = OpenOptions::new().write(true).create_new(true).open(&temp)
+    let mut output = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&temp)
         .map_err(|_| "Cannot create the metadata staging file.".to_string())?;
     let result = (|| -> Result<(), String> {
-        output.write_all(bytes).and_then(|_| output.sync_all())
+        output
+            .write_all(bytes)
+            .and_then(|_| output.sync_all())
             .map_err(|_| "Could not finish the metadata staging write.".to_string())?;
         drop(output);
-        fs::hard_link(&temp, &destination)
-            .map_err(|_| "Metadata destination already exists or cannot be published safely.".to_string())?;
+        fs::hard_link(&temp, &destination).map_err(|_| {
+            "Metadata destination already exists or cannot be published safely.".to_string()
+        })?;
         Ok(())
     })();
     let _ = fs::remove_file(&temp);
@@ -266,9 +305,7 @@ fn publish_new_file(dir: &Path, name: &str, bytes: &[u8]) -> Result<(), String> 
 
 /// A cache receipt is shown only when both files are regular, size-bounded and
 /// the payload matches both the receipt SHA-256 and the inspected upstream hash.
-pub fn cached_receipt(
-    app_local: &Path, detail: &ModelDetail,
-) -> Option<CacheReceipt> {
+pub fn cached_receipt(app_local: &Path, detail: &ModelDetail) -> Option<CacheReceipt> {
     let file = detail.cache_metadata_file.as_ref()?;
     let dir = existing_cache_folder(app_local, &detail.id, &detail.revision)?;
     let bytes = safe_read_file(&dir.join(&file.path), MAX_JSON_BYTES as u64).ok()?;
@@ -288,7 +325,8 @@ pub fn cached_receipt(
 /// Safe, read-only metadata fetch then verified local publication.
 /// This does not install weights, make a model runnable or consume GPU.
 pub async fn cache_public_metadata(
-    app_local: PathBuf, request: CacheRequest,
+    app_local: PathBuf,
+    request: CacheRequest,
 ) -> Result<CacheReceipt, String> {
     if !hf_catalog::valid_repo_id(&request.repo)
         || !hf_catalog::valid_revision_sha(&request.revision)
@@ -299,11 +337,14 @@ pub async fn cache_public_metadata(
     }
     // Re-read public source metadata at the pinned commit. A UI-provided
     // inspection, hash, path or license is never sufficient authorization.
-    let detail = hf_catalog::inspect_public(&request.repo, &request.revision, request.capability).await?;
+    let detail =
+        hf_catalog::inspect_public(&request.repo, &request.revision, request.capability).await?;
     let file = admit(&request, &detail)?;
     let bytes = read_public_config(&request.repo, &request.revision, &file).await?;
-    let now = SystemTime::now().duration_since(UNIX_EPOCH)
-        .map(|v| v.as_millis() as u64).unwrap_or(0);
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|v| v.as_millis() as u64)
+        .unwrap_or(0);
     let receipt = CacheReceipt {
         repo: detail.id.clone(),
         revision: detail.revision.clone(),
@@ -334,7 +375,12 @@ pub async fn cache_public_metadata(
 /// Remove only our two cache files after checking exact identity and layout.
 /// No recursive deletion: unexpected files or links stop cleanup, protecting
 /// user-owned data even if the cache directory was redirected or modified.
-pub fn remove_metadata(app_local: &Path, repo: &str, revision: &str, accept: bool) -> Result<(), String> {
+pub fn remove_metadata(
+    app_local: &Path,
+    repo: &str,
+    revision: &str,
+    accept: bool,
+) -> Result<(), String> {
     if !accept {
         return Err("Clearing cached configuration requires approval.".into());
     }
@@ -342,12 +388,16 @@ pub fn remove_metadata(app_local: &Path, repo: &str, revision: &str, accept: boo
         .ok_or("No ordinary metadata cache folder exists for this model.")?;
     let receipt_path = dir.join(RECEIPT_NAME);
     let bytes = safe_read_file(&receipt_path, 16 * 1024)?;
-    let receipt: CacheReceipt = serde_json::from_slice(&bytes)
-        .map_err(|_| "Cached configuration receipt is invalid; manual inspection required.".to_string())?;
+    let receipt: CacheReceipt = serde_json::from_slice(&bytes).map_err(|_| {
+        "Cached configuration receipt is invalid; manual inspection required.".to_string()
+    })?;
     if receipt.repo != repo
         || receipt.revision != revision
         || receipt.status != "metadata-only"
-        || !matches!(receipt.filename.as_str(), "model_index.json" | "config.json")
+        || !matches!(
+            receipt.filename.as_str(),
+            "model_index.json" | "config.json"
+        )
     {
         return Err("Cache receipt is inconsistent; refusing to delete unknown files.".into());
     }
@@ -370,8 +420,10 @@ pub fn remove_metadata(app_local: &Path, repo: &str, revision: &str, accept: boo
     {
         return Err("Cache folder contains other files; nothing was removed.".into());
     }
-    fs::remove_file(&receipt_path).map_err(|_| "Could not clear the metadata receipt.".to_string())?;
-    fs::remove_file(&config_path).map_err(|_| "Could not clear the configuration metadata.".to_string())?;
+    fs::remove_file(&receipt_path)
+        .map_err(|_| "Could not clear the metadata receipt.".to_string())?;
+    fs::remove_file(&config_path)
+        .map_err(|_| "Could not clear the configuration metadata.".to_string())?;
     // Removing a directory is non-recursive and only succeeds when empty.
     let _ = fs::remove_dir(&dir);
     Ok(())
@@ -395,15 +447,22 @@ mod tests {
             base_models: None,
             gated: gated.into(),
             access: Access::Public,
-            audience: if flagged { "not-for-all-audiences" } else { "unverified" },
+            audience: if flagged {
+                "not-for-all-audiences"
+            } else {
+                "unverified"
+            },
             format: Format::Diffusers,
             repo_files: 1,
             repo_bytes: content.len() as u64,
             cache_metadata_file: Some(RepoFile {
-                path: "model_index.json".into(), size: content.len() as u64,
-                blob_id: Some(git_blob_id(content)), lfs_sha256: None,
+                path: "model_index.json".into(),
+                size: content.len() as u64,
+                blob_id: Some(git_blob_id(content)),
+                lfs_sha256: None,
             }),
-            plans: vec![], rejections: vec![],
+            plans: vec![],
+            rejections: vec![],
             page_url: "https://huggingface.co/example/video-model".into(),
         }
     }
@@ -424,16 +483,24 @@ mod tests {
         assert!(admit(&req(), &detail(false, "no", None)).is_ok());
         let mut wrong_task = detail(false, "no", None);
         wrong_task.pipeline_tag = Some("image-to-video".into());
-        assert!(admit(&req(), &wrong_task).unwrap_err().contains("declared task"));
+        assert!(admit(&req(), &wrong_task)
+            .unwrap_err()
+            .contains("declared task"));
         let mut r = req();
         r.accept = false;
         assert!(admit(&r, &detail(false, "no", None)).is_err());
-        assert!(admit(&req(), &detail(true, "no", None)).unwrap_err().contains("18+"));
+        assert!(admit(&req(), &detail(true, "no", None))
+            .unwrap_err()
+            .contains("18+"));
         let mut r = req();
         r.adult_acknowledged = true;
         assert!(admit(&r, &detail(true, "no", None)).is_ok());
-        assert!(admit(&req(), &detail(false, "auto", None)).unwrap_err().contains("Gated"));
-        assert!(admit(&req(), &detail(false, "no", Some("other"))).unwrap_err().contains("license"));
+        assert!(admit(&req(), &detail(false, "auto", None))
+            .unwrap_err()
+            .contains("Gated"));
+        assert!(admit(&req(), &detail(false, "no", Some("other")))
+            .unwrap_err()
+            .contains("license"));
         let mut r = req();
         r.revision = "b".repeat(40);
         assert!(admit(&r, &detail(false, "no", None)).is_err());
@@ -464,24 +531,39 @@ mod tests {
 
     #[test]
     fn metadata_clear_is_explicit_and_never_recursive() {
-        let root = std::env::temp_dir().join(format!("optic-video-clear-test-{}", uuid::Uuid::new_v4()));
+        let root =
+            std::env::temp_dir().join(format!("optic-video-clear-test-{}", uuid::Uuid::new_v4()));
         fs::create_dir(&root).unwrap();
         let repo = "example/video-model";
         let revision = "a".repeat(40);
         let folder = cache_folder(&root, repo, &revision).unwrap();
         let data = br#"{"pipeline":"demo"}"#;
         let receipt = CacheReceipt {
-            repo: repo.into(), revision: revision.clone(), capability: Capability::TextToVideo,
-            source_license: "unknown".into(), source_audience: "unverified".into(),
-            filename: "model_index.json".into(), sha256: digest_sha256(data),
-            bytes: data.len() as u64, cached_unix_ms: 1, status: "metadata-only".into(),
+            repo: repo.into(),
+            revision: revision.clone(),
+            capability: Capability::TextToVideo,
+            source_license: "unknown".into(),
+            source_audience: "unverified".into(),
+            filename: "model_index.json".into(),
+            sha256: digest_sha256(data),
+            bytes: data.len() as u64,
+            cached_unix_ms: 1,
+            status: "metadata-only".into(),
         };
         publish_new_file(&folder, "model_index.json", data).unwrap();
-        publish_new_file(&folder, RECEIPT_NAME, &serde_json::to_vec(&receipt).unwrap()).unwrap();
+        publish_new_file(
+            &folder,
+            RECEIPT_NAME,
+            &serde_json::to_vec(&receipt).unwrap(),
+        )
+        .unwrap();
         assert!(remove_metadata(&root, repo, &revision, false).is_err());
         fs::write(folder.join("other-user-file.txt"), b"keep").unwrap();
         assert!(remove_metadata(&root, repo, &revision, true).is_err());
-        assert_eq!(fs::read(folder.join("other-user-file.txt")).unwrap(), b"keep");
+        assert_eq!(
+            fs::read(folder.join("other-user-file.txt")).unwrap(),
+            b"keep"
+        );
         fs::remove_file(folder.join("other-user-file.txt")).unwrap();
         remove_metadata(&root, repo, &revision, true).unwrap();
         assert!(!folder.join("model_index.json").exists());
@@ -491,14 +573,18 @@ mod tests {
 
     #[test]
     fn cache_paths_have_no_repository_path_segments_and_do_not_overwrite() {
-        let root = std::env::temp_dir().join(format!("optic-video-cache-test-{}", uuid::Uuid::new_v4()));
+        let root =
+            std::env::temp_dir().join(format!("optic-video-cache-test-{}", uuid::Uuid::new_v4()));
         fs::create_dir(&root).unwrap();
         let folder = cache_folder(&root, "example/video-model", &"a".repeat(40)).unwrap();
         assert!(folder.starts_with(&root));
         assert!(!folder.to_string_lossy().contains("example/video-model"));
         publish_new_file(&folder, "model_index.json", br#"{"a":1}"#).unwrap();
         assert!(publish_new_file(&folder, "model_index.json", br#"{"a":2}"#).is_err());
-        assert_eq!(fs::read(folder.join("model_index.json")).unwrap(), br#"{"a":1}"#);
+        assert_eq!(
+            fs::read(folder.join("model_index.json")).unwrap(),
+            br#"{"a":1}"#
+        );
         assert!(publish_new_file(&folder, "../../outside.json", b"{}").is_err());
         fs::remove_dir_all(root).unwrap();
     }
