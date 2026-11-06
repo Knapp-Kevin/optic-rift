@@ -914,9 +914,13 @@ mod tests {
     /// A small PNG-header fixture is enough for the native save path's validation.
     /// The independent image-generation path validates actual worker output separately.
     fn write_output_pair(local: &Path, id: &str) -> Vec<u8> {
+        write_output_pair_for_size(local, id, 1, 1)
+    }
+
+    fn write_output_pair_for_size(local: &Path, id: &str, width: u32, height: u32) -> Vec<u8> {
         let mut png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR".to_vec();
-        png.extend_from_slice(&1u32.to_be_bytes());
-        png.extend_from_slice(&1u32.to_be_bytes());
+        png.extend_from_slice(&width.to_be_bytes());
+        png.extend_from_slice(&height.to_be_bytes());
         let sha = Sha256::digest(&png)
             .iter()
             .map(|b| format!("{b:02x}"))
@@ -927,7 +931,7 @@ mod tests {
             "record_version": 1, "job_id": id, "created_unix_ms": 0,
             "prompt": "test", "negative_prompt": "", "parameters": {},
             "model": {}, "runtime": {}, "metrics": {},
-            "output": {"sha256": sha, "width": 1, "height": 1, "bytes": png.len()},
+            "output": {"sha256": sha, "width": width, "height": height, "bytes": png.len()},
             "project_id": null, "lineage_note": "test"
         });
         fs::write(
@@ -1052,4 +1056,78 @@ mod tests {
         assert_eq!(fs::read(dest).unwrap(), png);
         fs::remove_dir_all(local).unwrap();
     }
+    #[test]
+    fn image_modes_default_to_text_and_unknown_modes_fail_closed() {
+        let base = json!({
+            "job_id": uuid::Uuid::new_v4().to_string(),
+            "repo": "segmind/SSD-1B", "revision": "0".repeat(40),
+            "prompt": "a garden", "width": 512, "height": 512,
+            "steps": 20, "guidance": 7.0, "seed": null, "project_id": null
+        });
+        let request: GenerateRequest = serde_json::from_value(base.clone()).unwrap();
+        assert_eq!(request.mode, GenerationMode::TextToImage);
+        let mut bad = base;
+        bad["mode"] = json!("arbitrary-mode");
+        assert!(serde_json::from_value::<GenerateRequest>(bad).is_err());
+    }
+
+    #[test]
+    fn image_to_image_reference_must_match_verified_local_history() {
+        let local = std::env::temp_dir().join(format!("optic-rift-img2img-{}", uuid::Uuid::new_v4()));
+        let id = uuid::Uuid::new_v4().to_string();
+        let dest = uuid::Uuid::new_v4().to_string();
+        let original = write_output_pair_for_size(&local, &id, 512, 512);
+        let reference = verified_image_reference(
+            &local, GenerationMode::ImageToImage, Some(&id), Some(0.65), 512, 512, &dest,
+        )
+        .unwrap()
+        .unwrap();
+        assert_eq!(reference.job_id, id);
+        assert_eq!(reference.path, outputs_dir(&local).join(format!("{id}.png")));
+        assert_eq!(reference.sha256, format!("{:x}", Sha256::digest(&original)));
+        assert!(verified_image_reference(
+            &local, GenerationMode::ImageToImage, Some(&id), Some(0.65), 1024, 1024, &dest,
+        ).is_err());
+        assert!(verified_image_reference(
+            &local, GenerationMode::ImageToImage, Some(&id), Some(0.65), 512, 512, &id,
+        ).is_err());
+        fs::write(&reference.path, b"tampered same-origin local output").unwrap();
+        assert!(verified_image_reference(
+            &local, GenerationMode::ImageToImage, Some(&id), Some(0.65), 512, 512, &dest,
+        ).is_err());
+        fs::remove_dir_all(local).unwrap();
+    }
+
+    #[test]
+    fn image_to_image_rejects_invalid_input_and_preserves_t2i_contract() {
+        let local = std::env::temp_dir().join(format!("optic-rift-img2img-{}", uuid::Uuid::new_v4()));
+        let dest = uuid::Uuid::new_v4().to_string();
+        assert!(preflight_image_reference(
+            &local, GenerationMode::TextToImage, None, None, 512, 512,
+        ).is_ok());
+        assert!(preflight_image_reference(
+            &local, GenerationMode::TextToImage, Some("bogus"), None, 512, 512,
+        ).is_err());
+        for strength in [None, Some(f32::NAN), Some(0.0), Some(1.0)] {
+            assert!(verified_image_reference(
+                &local, GenerationMode::ImageToImage, Some(&dest), strength, 512, 512, "",
+            ).is_err());
+        }
+        assert!(verified_image_reference(
+            &local, GenerationMode::ImageToImage, Some("../not-a-job"), Some(0.5), 512, 512, "",
+        ).is_err());
+        assert!(verified_image_reference(
+            &local, GenerationMode::ImageToImage, None, Some(0.5), 512, 512, "",
+        ).is_err());
+    }
+
+    #[test]
+    fn img2img_gpu_preflight_uses_additional_unqualified_margin() {
+        let weights = 4_468_829_801;
+        let text = job_need_for_mode(weights, 1024, 1024, GenerationMode::TextToImage);
+        let reference = job_need_for_mode(weights, 1024, 1024, GenerationMode::ImageToImage);
+        assert_eq!(text, job_need_mb(weights, 1024, 1024));
+        assert_eq!(reference, text + 2048);
+    }
+
 }
