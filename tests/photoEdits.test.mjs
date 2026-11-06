@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
-  MAX_PHOTO_EDGE, MAX_PHOTO_PIXELS, photoExportDimensions, validatePhotoAdjustments,
+  MAX_PHOTO_EDGE, MAX_PHOTO_PIXELS, photoExportDimensions, probePhotoDimensions, validatePhotoAdjustments,
 } from "../src/photoEdits.ts";
 
 const here = (file) => readFileSync(new URL(file, import.meta.url), "utf8");
@@ -25,6 +25,37 @@ test("Photo export enforces bounded memory, integer dimensions and quarter-turns
   }
   assert.ok(4000 * 4000 <= MAX_PHOTO_PIXELS);
   assert.ok(photoExportDimensions(4000, 4000, 90).width === 4000);
+});
+
+test("PNG JPEG and WebP header preflight rejects decompression bombs and animation", () => {
+  const png = new Uint8Array(24);
+  png.set([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82]);
+  const set32 = (bytes, at, n) => {
+    bytes[at] = (n >>> 24) & 255; bytes[at + 1] = (n >>> 16) & 255;
+    bytes[at + 2] = (n >>> 8) & 255; bytes[at + 3] = n & 255;
+  };
+  set32(png, 16, 4000); set32(png, 20, 3000);
+  assert.deepEqual(probePhotoDimensions(png, "image/png"), { width: 4000, height: 3000 });
+  set32(png, 16, 5000); set32(png, 20, 5000);
+  assert.throws(() => probePhotoDimensions(png, "image/png"));
+  assert.throws(() => probePhotoDimensions(png.subarray(0, 18), "image/png"));
+
+  const jpeg = Uint8Array.from([
+    255, 216, 255, 192, 0, 17, 8, 1, 44, 2, 88, 3,
+    1, 17, 0, 2, 17, 0, 3, 17, 0,
+  ]);
+  assert.deepEqual(probePhotoDimensions(jpeg, "image/jpeg"), { width: 600, height: 300 });
+  assert.throws(() => probePhotoDimensions(new Uint8Array([255, 216, 255, 218]), "image/jpeg"));
+
+  const webp = new Uint8Array(30);
+  webp.set([82, 73, 70, 70], 0); webp.set([87, 69, 66, 80, 86, 80, 56, 88], 8);
+  webp[16] = 10;
+  webp[24] = 231; webp[25] = 3; // 1000 px after adding 1
+  webp[27] = 243; webp[28] = 1; // 500 px after adding 1
+  assert.deepEqual(probePhotoDimensions(webp, "image/webp"), { width: 1000, height: 500 });
+  webp[20] = 2;
+  assert.throws(() => probePhotoDimensions(webp, "image/webp"));
+  assert.throws(() => probePhotoDimensions(png, "image/svg+xml"));
 });
 
 test("Photo edit values match the displayed inspector range", () => {
