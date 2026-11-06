@@ -8,6 +8,7 @@ import GenerationHistory from "./GenerationHistory";
 import type { ProjectRecord } from "./projects";
 import { hasQualifiedLocalImageModel, type ModelLibrary } from "./models";
 import { formatSize, IMAGE_PREVIEW_FAILED, VIDEO_PREVIEW_FAILED } from "./mediaFormat";
+import { renderAdjustedPhoto } from "./photoEdits";
 
 type View = "projects" | "studio" | "models" | "settings";
 type MediaKind = "image" | "video";
@@ -38,6 +39,8 @@ export default function App() {
   const [brightness, setBrightness] = useState(100);
   const [contrast, setContrast] = useState(100);
   const [rotation, setRotation] = useState(0);
+  const [photoExportBusy, setPhotoExportBusy] = useState(false);
+  const [photoExportNotice, setPhotoExportNotice] = useState("");
   const [duration, setDuration] = useState(0);
   const [playhead, setPlayhead] = useState(0);
   const [trimIn, setTrimIn] = useState(0);
@@ -85,6 +88,7 @@ export default function App() {
     setBrightness(100);
     setContrast(100);
     setRotation(0);
+    setPhotoExportNotice("");
     setMessage("");
   }
 
@@ -114,6 +118,33 @@ export default function App() {
     setItems((previous) => [...previous, item]);
     selectItem(item.id);
     setMessage("Generated image opened in this session. Its file and provenance stay in Optic Rift's output folder; use Save to Pictures to keep a copy elsewhere.");
+  }
+
+  async function exportAdjustedPhoto() {
+    if (!selected || selected.kind !== "image" || previewFailed || photoExportBusy) return;
+    // Pictures can be redirected to OneDrive. Deliberately ask before even
+    // preparing the copy; no silent export or photo upload from this workflow.
+    const allowed = window.confirm(
+      "Export an adjusted PNG copy to Pictures / Optic Rift? Windows may sync Pictures with OneDrive. This does not save a project asset, and the original image stays unchanged."
+    );
+    if (!allowed) return;
+    setPhotoExportBusy(true);
+    setPhotoExportNotice("Rendering and validating your edited photo…");
+    try {
+      const png = await renderAdjustedPhoto(selected.url, { brightness, contrast, rotation });
+      const receipt = await invoke<{ path: string; sha256: string; width: number; height: number }>("photo_export_copy", {
+        request: {
+          ...png, brightness, contrast, rotation,
+          accept_pictures_export: true,
+        },
+      });
+      setPhotoExportNotice(`Saved adjusted PNG copy: ${receipt.path}. Your original was not changed.`);
+    } catch (e) {
+      const reason = e instanceof Error ? e.message : String(e);
+      setPhotoExportNotice(`Export not completed: ${reason}`);
+    } finally {
+      setPhotoExportBusy(false);
+    }
   }
 
   function seek(to: number) {
@@ -203,7 +234,12 @@ export default function App() {
             <div className="canvas-header"><div><strong>Preview</strong><span>{selected ? selected.name : "No media selected"}</span></div><span className="preview-label">{selected?.kind ?? "READY"}</span></div>
             <div className="canvas">
               {selected && previewFailed && <div className="empty-canvas preview-failed" role="alert"><div className="empty-icon">⚠</div><h1>Can't preview {selected.name}</h1><p>{selected.kind === "image" ? IMAGE_PREVIEW_FAILED : VIDEO_PREVIEW_FAILED}</p></div>}
-              {selected?.kind === "image" && !previewFailed && <img key={selected.id} onError={() => markFailed(selected.id, IMAGE_PREVIEW_FAILED)} src={selected.url} alt={selected.name} style={{ filter: "brightness(" + brightness + "%) contrast(" + contrast + "%)", transform: "rotate(" + rotation + "deg)" }} />}
+              {selected?.kind === "image" && !previewFailed && <img key={selected.id} onError={() => markFailed(selected.id, IMAGE_PREVIEW_FAILED)} src={selected.url} alt={selected.name}
+                className={rotation % 180 === 90 ? "quarter-turn" : undefined}
+                style={{ filter: "brightness(" + brightness + "%) contrast(" + contrast + "%)",
+                  // Quarter turns: the box takes the frame's swapped size, then rotates about its centre,
+                  // so the preview shows the whole image exactly as the exported PNG does.
+                  transform: (rotation % 180 === 90 ? "translate(-50%, -50%) " : "") + "rotate(" + rotation + "deg)" }} />}
               {selected?.kind === "video" && !previewFailed && <video key={selected.id} ref={videoRef} src={selected.url} controls preload="metadata" playsInline onLoadedMetadata={(event) => { const length = event.currentTarget.duration; setDuration(Number.isFinite(length) ? length : 0); setPlayhead(0); }} onTimeUpdate={(event) => setPlayhead(event.currentTarget.currentTime)} onError={() => markFailed(selected.id, VIDEO_PREVIEW_FAILED)} />}
               {!selected && <div className="empty-canvas"><div className="empty-icon">◉</div><h1>Make something extraordinary.</h1><p>Start with a photo or video, or choose Create to generate an image locally.</p><button className="primary" onClick={() => inputRef.current?.click()}>Import your first clip</button></div>}
             </div>
@@ -228,7 +264,12 @@ export default function App() {
               <label>Brightness <output>{brightness}%</output><input type="range" min="25" max="175" value={brightness} onChange={(event) => setBrightness(Number(event.target.value))} /></label>
               <label>Contrast <output>{contrast}%</output><input type="range" min="25" max="175" value={contrast} onChange={(event) => setContrast(Number(event.target.value))} /></label>
               <button className="secondary full" onClick={() => setRotation((value) => (value + 90) % 360)}>Rotate preview 90°</button>
-              <p>Preview only. Exporting adjusted images is not implemented yet.</p>
+              <button className="primary full" type="button" disabled={photoExportBusy}
+                onClick={() => void exportAdjustedPhoto()}>
+                {photoExportBusy ? "Saving adjusted PNG…" : "Save adjusted PNG copy"}
+              </button>
+              {photoExportNotice && <p role="status" className="photo-export-notice">{photoExportNotice}</p>}
+              <p>Export to Pictures may sync with OneDrive. The original stays unchanged. Supports PNG, JPEG and WebP sources up to 32 MB and 20 megapixels. PNG export does not preserve source EXIF or ICC metadata, and it does not save an asset into this project.</p>
             </div> : <p className="model-hint">Select an image to adjust its preview, or choose Create to generate a new image.</p>}
             <button className="secondary full" onClick={() => { setStudioMode("create"); setStudioModeChosen(true); }}>Create an image</button>
             <GenerationHistory refreshVersion={historyVersion} onResult={addGenerated} />

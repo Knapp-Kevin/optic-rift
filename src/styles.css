@@ -154,3 +154,18 @@
 .studio-tabs~.workspace{min-height:calc(100vh - 120px)}
 /* At 1280x720 the stage can be ~200px tall; keep every consent action reachable instead of clipped. */
 .create-gpu-consent{max-height:calc(100% - 16px);overflow-y:auto}
+
+/* The first real offline Photo Studio export stays legible in a narrow inspector. */
+.editor-inspector .adjustments .primary.full{width:100%;min-height:42px;font-size:13px;margin:10px 0 6px}
+.editor-inspector .adjustments .photo-export-notice{color:#d8e6ff;font-size:12px;line-height:1.55;overflow-wrap:anywhere;border:1px solid #4d628d;border-radius:8px;background:#222f4c;padding:9px}
+.editor-inspector .adjustments>p:last-child{font-size:11px;line-height:1.6}
+/* Photo preview rotation (PR #30): a 90/270-degree turn must fit the frame like the exported PNG.
+   The frame is a size container; the image box swaps its width/height before rotating. */
+.canvas{container-type:size}
+.canvas img.quarter-turn{position:absolute;left:50%;top:50%;width:100cqh;height:100cqw;max-width:none;max-height:none}
+/* Edit media: with an image selected the inspector (adjustments, export, history) grew the whole page
+   to ~1300px at every size. Keep the editor within the viewport and let each column scroll on its own. */
+@media(min-width:1201px){
+  .studio-tabs~.workspace{flex:none;height:calc(100vh - 120px);min-height:0}
+  .studio-tabs~.workspace>.media-panel,.studio-tabs~.workspace>.studio-center,.studio-tabs~.workspace>.editor-inspector{min-height:0;overflow-y:auto;overscroll-behavior:contain}
+}

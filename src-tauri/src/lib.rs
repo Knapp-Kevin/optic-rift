@@ -8,6 +8,7 @@ mod hf_access;
 mod hf_catalog;
 mod model_commands;
 mod model_store;
+mod photo_export;
 mod process_tree;
 mod project_store;
 mod runtime;
@@ -61,6 +62,21 @@ async fn project_open<R: tauri::Runtime>(
     project_store::open(&store_root(&app)?, &id)
 }
 
+/// Explicit, CPU-only image export. No model/GPU, arbitrary output path, or
+/// implicit cloud-sync permission. A native check repeats the client's consent.
+#[tauri::command]
+async fn photo_export_copy<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
+    request: photo_export::PhotoExportRequest,
+) -> Result<photo_export::PhotoExportReceipt, String> {
+    let pictures = generation::pictures_dir(&app)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        photo_export::export_to_pictures(&pictures, request)
+    })
+    .await
+    .map_err(|_| "Photo export task ended unexpectedly.".to_string())?
+}
+
 /// Register the application's IPC commands. Shared by `run` and the IPC integration tests so
 /// tests exercise exactly the production command set.
 pub fn with_commands<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> {
@@ -91,6 +107,7 @@ pub fn with_commands<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Bu
         model_commands::generation_output_image,
         model_commands::generation_output_thumbnail,
         model_commands::generation_save,
+        photo_export_copy,
         model_commands::gpu_check
     ])
 }
