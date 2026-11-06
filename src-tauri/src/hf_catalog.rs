@@ -358,6 +358,10 @@ pub struct ModelDetail {
     pub page_url: String,
 }
 
+fn token_retry_allowed(allow_token: bool, status: u16) -> bool {
+    allow_token && matches!(status, 401 | 403)
+}
+
 async fn get_with_token_policy(
     url: &str,
     timeout: Duration,
@@ -365,7 +369,7 @@ async fn get_with_token_policy(
 ) -> Result<(reqwest::Response, bool), String> {
     let http = client(timeout)?;
     let anonymous = http.get(url).send().await.map_err(net_error)?;
-    if !allow_token || !matches!(anonymous.status().as_u16(), 401 | 403) {
+    if !token_retry_allowed(allow_token, anonymous.status().as_u16()) {
         return Ok((anonymous, false));
     }
     match USER_SLOT.token()? {
@@ -588,6 +592,17 @@ mod tests {
         assert!(video_cache_candidate(Capability::VideoToVideo, &[f("model_index.json", 200, None)]).is_none());
         assert!(video_cache_candidate(Capability::VideoToVideo, &[f("model_index.json", 200, Some("invalid"))]).is_none());
         assert!(video_cache_candidate(Capability::VideoToVideo, &[f("model_index.json", 200, Some(&"A".repeat(40)))]).is_none());
+    }
+
+    #[test]
+    fn public_cache_token_policy_cannot_retry_with_credentials() {
+        for status in [200, 302, 401, 403, 404, 500] {
+            assert!(!token_retry_allowed(false, status));
+        }
+        assert!(token_retry_allowed(true, 401));
+        assert!(token_retry_allowed(true, 403));
+        assert!(!token_retry_allowed(true, 302));
+        assert!(!token_retry_allowed(true, 500));
     }
 
     #[test]
