@@ -34,6 +34,7 @@ export default function GeneratePanel({ prompt, mode, layout = "inspector", onPr
   const [seedText, setSeedText] = useState("");
   const [jobId, setJobId] = useState<string | null>(null);
   const [status, setStatus] = useState("");
+  const [progress, setProgress] = useState<{ step: number; total: number } | null>(null);
   const [error, setError] = useState("");
   const [result, setResult] = useState<{ provenance: Provenance; url: string } | null>(null);
   const [saved, setSaved] = useState("");
@@ -81,12 +82,21 @@ export default function GeneratePanel({ prompt, mode, layout = "inspector", onPr
       if (p.event === "verifying-model" && p.job_id === jobId) setStatus("Checking installed model files before loading…");
       if (p.event === "loading" && p.job_id === jobId) setStatus("Loading the model onto the GPU…");
       if (p.event === "loaded") setStatus(`Model loaded${p.seconds ? ` in ${p.seconds}s` : ""}. Generating…`);
-      if (p.event === "progress" && p.job_id === jobId) setStatus(`Generating · step ${p.step} of ${p.total}`);
+      if (p.event === "progress" && p.job_id === jobId) {
+        setProgress({ step: p.step ?? 0, total: p.total ?? 1 });
+        setStatus(`Generating · step ${p.step} of ${p.total}`);
+      }
       if (p.event === "worker-exited") setStatus("The image worker stopped.");
       if (p.event === "auto-unloaded") { setStatus("Model unloaded after 5 idle minutes to free graphics memory for other apps."); void refresh(); }
     });
     return () => { void stop.then((f) => f()); };
   }, [jobId]);
+
+  useEffect(() => {
+    setStatus("");
+    setError("");
+    setPreview(null);
+  }, [mode]);
 
   useEffect(() => {
     if (layout !== "create" || mode !== "image-to-image" || !sourceId) {
@@ -142,7 +152,7 @@ export default function GeneratePanel({ prompt, mode, layout = "inspector", onPr
     const [repo, revision] = model.split("@");
     const id = crypto.randomUUID();
     setConfirm(null);
-    setJobId(id); setError(""); setSaved(""); setStatus("Starting…");
+    setJobId(id); setError(""); setSaved(""); setStatus("Starting…"); setProgress(null);
     const started = performance.now();
     try {
       const provenance = await invoke<Provenance>("generation_generate", { request: {
@@ -166,6 +176,7 @@ export default function GeneratePanel({ prompt, mode, layout = "inspector", onPr
       setStatus("");
     } finally {
       setJobId(null);
+      setProgress(null);
     }
   }
 
@@ -238,6 +249,10 @@ export default function GeneratePanel({ prompt, mode, layout = "inspector", onPr
             <p>{hasModel ? "Enter a prompt below and generate locally." : "Open Models to install a compatible model and its local runtime."}</p>
             {!hasModel && <button className="secondary" onClick={onOpenModels}>Open Models</button>}
           </div>}
+        </div>}
+        {jobId && <div className="create-progress" role="status" aria-live="polite">
+          <strong>{status || "Generating locally…"}</strong>
+          <progress value={progress?.step ?? 0} max={progress?.total || 1} />
         </div>}
         <div className="create-stage-footer">
           <span role="status">{status || (active ? `Seed ${active.record.parameters.seed} · ${active.record.output.width}×${active.record.output.height}` : "Local generation. No cloud inference.")}</span>
