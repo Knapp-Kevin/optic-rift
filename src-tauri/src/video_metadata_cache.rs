@@ -71,6 +71,17 @@ pub fn admit(request: &CacheRequest, detail: &ModelDetail) -> Result<RepoFile, S
     if detail.gated != "no" {
         return Err("Gated video configuration needs separate authorized support; no download was started.".into());
     }
+    // A user's selected capability is not evidence that a repository actually
+    // advertises that task. Do not silently reclassify a model across video modes.
+    let tag = match request.capability {
+        Capability::TextToVideo => "text-to-video",
+        Capability::ImageToVideo => "image-to-video",
+        Capability::VideoToVideo => "video-to-video",
+        _ => unreachable!(),
+    };
+    if detail.pipeline_tag.as_deref() != Some(tag) {
+        return Err("The source's declared task does not match this video capability.".into());
+    }
     let license = detail.license.as_deref().unwrap_or("unknown");
     if request.license_acknowledged != license {
         return Err("Review the model's current license and acknowledge it again.".into());
@@ -196,6 +207,24 @@ fn cache_folder(app_local: &Path, repo: &str, revision: &str) -> Result<PathBuf,
     Ok(rev_dir)
 }
 
+fn existing_cache_folder(app_local: &Path, repo: &str, revision: &str) -> Option<PathBuf> {
+    if !hf_catalog::valid_repo_id(repo) || !hf_catalog::valid_revision_sha(revision) {
+        return None;
+    }
+    let root = app_local.join(CACHE_DIR);
+    let model_dir = root.join(digest_sha256(repo.as_bytes()));
+    let folder = model_dir.join(revision);
+    // Inspection is read-only. Never create directories just to display cache
+    // status, and never follow a reparse point in a cache path component.
+    for path in [app_local, root.as_path(), model_dir.as_path(), folder.as_path()] {
+        let meta = fs::symlink_metadata(path).ok()?;
+        if !meta.is_dir() || meta.file_type().is_symlink() || is_reparse(&meta) {
+            return None;
+        }
+    }
+    Some(folder)
+}
+
 fn safe_read_file(path: &Path, bound: u64) -> Result<Vec<u8>, String> {
     let m = fs::symlink_metadata(path)
         .map_err(|_| "Metadata cache file is missing.".to_string())?;
@@ -241,7 +270,7 @@ pub fn cached_receipt(
     app_local: &Path, detail: &ModelDetail,
 ) -> Option<CacheReceipt> {
     let file = detail.cache_metadata_file.as_ref()?;
-    let dir = cache_folder(app_local, &detail.id, &detail.revision).ok()?;
+    let dir = existing_cache_folder(app_local, &detail.id, &detail.revision)?;
     let bytes = safe_read_file(&dir.join(&file.path), MAX_JSON_BYTES as u64).ok()?;
     verify_download(&bytes, file).ok()?;
     let receipt_bytes = safe_read_file(&dir.join(RECEIPT_NAME), 16 * 1024).ok()?;
@@ -347,6 +376,9 @@ mod tests {
     #[test]
     fn admission_checks_consent_license_access_and_task_independently() {
         assert!(admit(&req(), &detail(false, "no", None)).is_ok());
+        let mut wrong_task = detail(false, "no", None);
+        wrong_task.pipeline_tag = Some("image-to-video".into());
+        assert!(admit(&req(), &wrong_task).unwrap_err().contains("declared task"));
         let mut r = req();
         r.accept = false;
         assert!(admit(&r, &detail(false, "no", None)).is_err());
