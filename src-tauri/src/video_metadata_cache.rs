@@ -362,7 +362,7 @@ pub fn remove_metadata(app_local: &Path, repo: &str, revision: &str, accept: boo
     let mut names = Vec::new();
     for item in entries {
         let entry = item.map_err(|_| "Could not inspect the metadata cache folder.".to_string())?;
-        names.push(entry.file_name());
+        names.push(entry.file_name().to_string_lossy().to_string());
     }
     if names.len() != 2
         || !names.iter().any(|v| v == RECEIPT_NAME)
