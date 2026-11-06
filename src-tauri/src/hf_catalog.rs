@@ -358,13 +358,14 @@ pub struct ModelDetail {
     pub page_url: String,
 }
 
-async fn get_with_optional_token(
+async fn get_with_token_policy(
     url: &str,
     timeout: Duration,
+    allow_token: bool,
 ) -> Result<(reqwest::Response, bool), String> {
     let http = client(timeout)?;
     let anonymous = http.get(url).send().await.map_err(net_error)?;
-    if !matches!(anonymous.status().as_u16(), 401 | 403) {
+    if !allow_token || !matches!(anonymous.status().as_u16(), 401 | 403) {
         return Ok((anonymous, false));
     }
     match USER_SLOT.token()? {
@@ -426,6 +427,25 @@ pub async fn inspect(
     revision: &str,
     capability: Capability,
 ) -> Result<ModelDetail, String> {
+    inspect_with_token_policy(id, revision, capability, true).await
+}
+
+/// Anonymous-only metadata inspection for the public video metadata cache.
+/// It must never read or send a stored Hugging Face credential, even for 401s.
+pub async fn inspect_public(
+    id: &str,
+    revision: &str,
+    capability: Capability,
+) -> Result<ModelDetail, String> {
+    inspect_with_token_policy(id, revision, capability, false).await
+}
+
+async fn inspect_with_token_policy(
+    id: &str,
+    revision: &str,
+    capability: Capability,
+    allow_token: bool,
+) -> Result<ModelDetail, String> {
     if !valid_repo_id(id) {
         return Err("Invalid model identifier.".into());
     }
@@ -433,7 +453,7 @@ pub async fn inspect(
         return Err("Invalid revision.".into());
     }
     let url = format!("{HUB}/api/models/{id}/revision/{revision}?blobs=true");
-    let (response, _) = get_with_optional_token(&url, Duration::from_secs(20)).await?;
+    let (response, _) = get_with_token_policy(&url, Duration::from_secs(20), allow_token).await?;
     match response.status().as_u16() {
         200 => {}
         401 | 403 | 404 => {
@@ -460,9 +480,10 @@ pub async fn inspect(
     };
     let mut model_index = None;
     if names.iter().any(|n| n == "model_index.json") {
-        let (resp, used_token) = get_with_optional_token(
+        let (resp, used_token) = get_with_token_policy(
             &format!("{HUB}/{id}/resolve/{sha}/model_index.json"),
             Duration::from_secs(20),
+            allow_token,
         )
         .await?;
         if resp.status().is_success() {
