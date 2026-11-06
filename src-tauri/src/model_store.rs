@@ -8,7 +8,6 @@ use crate::hf_catalog::{self, Access, HUB};
 use serde::{Deserialize, Serialize};
 use sha1::Sha1;
 use sha2::{Digest, Sha256};
-use std::collections::HashMap;
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -366,17 +365,108 @@ pub struct InstallEvent {
     pub message: Option<String>,
 }
 
-fn cancellations() -> &'static Mutex<HashMap<String, Arc<AtomicBool>>> {
-    static MAP: OnceLock<Mutex<HashMap<String, Arc<AtomicBool>>>> = OnceLock::new();
-    MAP.get_or_init(Default::default)
+/// The one native model download allowed at a time. It is claimed before the pre-download
+/// inspection, so a Cancel during that window is honoured. Previously the cancel flag was
+/// registered only after inspection, and an early Cancel returned `false` and was lost. It is
+/// released on every exit path by [`ActiveGuard`]. Kept in memory only: no download history
+/// is persisted.
+struct Active {
+    install_id: String,
+    repo: String,
+    revision: String,
+    /// `None` until the pinned source inspection completes: unknown, so the UI must conceal.
+    source_flagged: Option<bool>,
+    cancel: Arc<AtomicBool>,
+    last: Option<InstallEvent>,
 }
 
+fn active() -> &'static Mutex<Option<Active>> {
+    static SLOT: OnceLock<Mutex<Option<Active>>> = OnceLock::new();
+    SLOT.get_or_init(Default::default)
+}
+
+/// Read-only view of the active download, so a remounted or reloaded UI can show
+/// progress and a working Cancel for the exact native `install_id`.
+#[derive(Debug, Clone, Serialize)]
+pub struct InstallStatus {
+    pub install_id: String,
+    pub repo: String,
+    pub revision: String,
+    /// Source "not-for-all-audiences" flag: `null` until the pinned inspection completes.
+    pub source_flagged: Option<bool>,
+    pub cancel_requested: bool,
+    pub last: Option<InstallEvent>,
+}
+
+pub fn status() -> Option<InstallStatus> {
+    active().lock().unwrap().as_ref().map(|a| InstallStatus {
+        install_id: a.install_id.clone(),
+        repo: a.repo.clone(),
+        revision: a.revision.clone(),
+        source_flagged: a.source_flagged,
+        cancel_requested: a.cancel.load(Ordering::SeqCst),
+        last: a.last.clone(),
+    })
+}
+
+/// Releases the slot only if it still belongs to this install.
+#[derive(Debug)]
+struct ActiveGuard {
+    install_id: String,
+}
+
+impl Drop for ActiveGuard {
+    fn drop(&mut self) {
+        let mut slot = active().lock().unwrap_or_else(|e| e.into_inner());
+        if slot
+            .as_ref()
+            .is_some_and(|a| a.install_id == self.install_id)
+        {
+            *slot = None;
+        }
+    }
+}
+
+fn claim(req: &InstallRequest) -> Result<(ActiveGuard, Arc<AtomicBool>), String> {
+    let mut slot = active().lock().unwrap();
+    if slot.is_some() {
+        return Err(
+            "Another model download is already in progress. Wait for it or cancel it first.".into(),
+        );
+    }
+    let flag = Arc::new(AtomicBool::new(false));
+    *slot = Some(Active {
+        install_id: req.install_id.clone(),
+        repo: req.repo.clone(),
+        revision: req.revision.clone(),
+        source_flagged: None,
+        cancel: flag.clone(),
+        last: None,
+    });
+    Ok((
+        ActiveGuard {
+            install_id: req.install_id.clone(),
+        },
+        flag,
+    ))
+}
+
+fn update_active(install_id: &str, change: impl FnOnce(&mut Active)) {
+    if let Some(a) = active().lock().unwrap().as_mut() {
+        if a.install_id == install_id {
+            change(a);
+        }
+    }
+}
+
+/// Cancels only the exact active install. A stale or unknown id is refused (`false`).
 pub fn cancel(install_id: &str) -> bool {
-    cancellations()
+    active()
         .lock()
         .unwrap()
-        .get(install_id)
-        .map(|f| f.store(true, Ordering::SeqCst))
+        .as_ref()
+        .filter(|a| a.install_id == install_id)
+        .map(|a| a.cancel.store(true, Ordering::SeqCst))
         .is_some()
 }
 
@@ -414,20 +504,19 @@ impl<R: tauri::Runtime> Ctx<'_, R> {
             return;
         }
         self.last_emit = Instant::now();
-        let _ = self.app.emit(
-            "model-install",
-            InstallEvent {
-                install_id: self.req.install_id.clone(),
-                repo: self.req.repo.clone(),
-                state,
-                file: file.map(|f| f.path.clone()),
-                file_index: index,
-                file_count: self.file_count,
-                bytes_done: done,
-                bytes_total: self.bytes_total,
-                message,
-            },
-        );
+        let event = InstallEvent {
+            install_id: self.req.install_id.clone(),
+            repo: self.req.repo.clone(),
+            state,
+            file: file.map(|f| f.path.clone()),
+            file_index: index,
+            file_count: self.file_count,
+            bytes_done: done,
+            bytes_total: self.bytes_total,
+            message,
+        };
+        update_active(&self.req.install_id, |a| a.last = Some(event.clone()));
+        let _ = self.app.emit("model-install", event);
     }
 }
 
@@ -470,8 +559,18 @@ pub async fn install<R: tauri::Runtime>(
         return Err("Install requests need a model id and an exact 40-character revision.".into());
     }
     let adapter = adapters::adapter(&req.adapter).ok_or("Unknown adapter.")?;
+    // One download at a time, claimed before any network work so Cancel is honoured from now on.
+    let (_guard, flag) = claim(&req)?;
+    let cancelled_early =
+        || "Installation cancelled before any model file was downloaded.".to_string();
     // Re-inspect at the pinned revision; never trust a plan supplied by the UI.
     let detail = hf_catalog::inspect(&req.repo, &req.revision, adapter.capability).await?;
+    update_active(&req.install_id, |a| {
+        a.source_flagged = Some(detail.audience == "not-for-all-audiences")
+    });
+    if flag.load(Ordering::SeqCst) {
+        return Err(cancelled_early());
+    }
     if detail.revision != req.revision {
         return Err("The repository revision changed; inspect it again.".into());
     }
@@ -521,11 +620,9 @@ pub async fn install<R: tauri::Runtime>(
     } else {
         None
     };
-    let flag = Arc::new(AtomicBool::new(false));
-    cancellations()
-        .lock()
-        .unwrap()
-        .insert(req.install_id.clone(), flag.clone());
+    if flag.load(Ordering::SeqCst) {
+        return Err(cancelled_early());
+    }
     let mut ctx = Ctx {
         app,
         req: &req,
@@ -535,7 +632,6 @@ pub async fn install<R: tauri::Runtime>(
         last_emit: Instant::now() - Duration::from_secs(1),
     };
     let result = download_all(&mut ctx, &plan, &dir, &partial, token.as_deref()).await;
-    cancellations().lock().unwrap().remove(&req.install_id);
     let files = match result {
         Ok(files) => files,
         Err(e) => {
@@ -809,6 +905,70 @@ pub fn dirs<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> Result<(PathBuf, Pa
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The active-download slot is process-global; serialise the tests that use it.
+    fn slot_lock() -> std::sync::MutexGuard<'static, ()> {
+        static L: OnceLock<Mutex<()>> = OnceLock::new();
+        L.get_or_init(Default::default)
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+    }
+
+    fn install_req(id: &str) -> InstallRequest {
+        InstallRequest {
+            install_id: id.into(),
+            repo: "example/model".into(),
+            revision: "a".repeat(40),
+            adapter: "diffusers-sdxl-text-to-image".into(),
+            license_acknowledged: "unknown".into(),
+            accept: true,
+        }
+    }
+
+    #[test]
+    fn one_download_at_a_time_and_cancel_targets_the_exact_active_id() {
+        let _l = slot_lock();
+        assert!(status().is_none());
+        assert!(!cancel("nothing-running"));
+        let (guard, flag) = claim(&install_req("first")).unwrap();
+        // A second install (e.g. from a reloaded UI) is refused rather than racing the same files.
+        assert!(claim(&install_req("second"))
+            .unwrap_err()
+            .contains("already in progress"));
+        let s = status().unwrap();
+        assert_eq!(
+            (s.install_id.as_str(), s.repo.as_str(), s.cancel_requested),
+            ("first", "example/model", false)
+        );
+        // A stale id never cancels the active download.
+        assert!(!cancel("second"));
+        assert!(!flag.load(Ordering::SeqCst));
+        // Cancel before any network work is recorded (previously lost before registration).
+        assert!(cancel("first"));
+        assert!(flag.load(Ordering::SeqCst));
+        assert!(status().unwrap().cancel_requested);
+        // Unknown until the pinned inspection completes, never a premature "not flagged".
+        assert_eq!(status().unwrap().source_flagged, None);
+        update_active("first", |a| a.source_flagged = Some(true));
+        update_active("other", |a| a.source_flagged = Some(false));
+        assert_eq!(status().unwrap().source_flagged, Some(true));
+        drop(guard);
+        assert!(status().is_none(), "released on every exit path");
+        assert!(!cancel("first"), "a finished id is stale");
+        let (_g, _) = claim(&install_req("third")).unwrap();
+        assert_eq!(status().unwrap().install_id, "third");
+    }
+
+    #[test]
+    fn a_stale_guard_never_releases_a_newer_download() {
+        let _l = slot_lock();
+        let stale = ActiveGuard {
+            install_id: "old".into(),
+        };
+        let (_g, _) = claim(&install_req("new")).unwrap();
+        drop(stale);
+        assert_eq!(status().unwrap().install_id, "new");
+    }
 
     fn scratch() -> PathBuf {
         let p = std::env::temp_dir().join(format!("optic-rift-models-{}", uuid::Uuid::new_v4()));

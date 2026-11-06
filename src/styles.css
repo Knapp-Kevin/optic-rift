@@ -59,3 +59,9 @@
 .history-summary{min-width:0;display:flex;flex-direction:column;gap:5px}
 .history-summary strong{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .history-summary small{font-size:10px;line-height:1.4;color:#93a3c2;overflow-wrap:anywhere}
+/* App-lifetime model download status (issue #27): compact card in the navigation rail. */
+.download-status.compact{margin:10px 12px;padding:10px;display:flex;flex-direction:column;gap:6px;font-size:11px;border:1px solid #3c4a67;border-radius:8px;background:#151d30;color:#dce6fc}
+.download-status.compact strong{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.download-status.compact progress{width:100%;height:8px;accent-color:#91a7ff}
+.download-status.compact span{overflow-wrap:anywhere}
+.download-status.compact button{padding:6px 8px;font-size:11px}
