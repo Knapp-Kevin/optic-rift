@@ -1,0 +1,16 @@
+node_modules/
+dist/
+target/
+src-tauri/target/
+.venv/
+*.pyc
+__pycache__/
+.env
+.env.*
+!.env.example
+.DS_Store
+*.log
+local-projects/
+model-cache/
+generated/
+src-tauri/gen/schemas/

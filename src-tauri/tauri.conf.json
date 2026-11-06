@@ -1,0 +1,35 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Optic Rift",
+  "version": "0.1.0",
+  "identifier": "studio.mythologiq.opticrift",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Optic Rift",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1024,
+        "minHeight": 680,
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,msLoadOneAuthInBackground,msOneAuthWAM,msImplicitSignin,msEnableProfileAADAccountSSO,msM365LinksImplicitSignin,msSSOBrowserHint,msSSOBrowserHintPhase2,msSendSSODiagnostics,msForceOneAuthWAM --enable-features=msLazyLoadOneAuthInWebView --disable-background-networking --disable-component-update --no-pings"
+      }
+    ],
+    "security": {
+      "capabilities": [
+        "default"
+      ]
+    }
+  },
+  "bundle": {
+    "active": false,
+    "icon": [
+      "icons/icon.ico"
+    ]
+  }
+}
