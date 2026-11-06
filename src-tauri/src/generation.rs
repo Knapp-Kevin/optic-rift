@@ -590,12 +590,82 @@ pub fn list_outputs(app_local: &Path) -> Vec<Provenance> {
     out
 }
 
-pub fn output_png(app_local: &Path, job_id: &str) -> Result<Vec<u8>, String> {
+const MAX_OUTPUT_PNG_BYTES: u64 = 128 * 1024 * 1024;
+const MAX_OUTPUT_RECORD_BYTES: u64 = 512 * 1024;
+
+/// Read a local output without following direct file links or Windows reparse
+/// points. Restrict read sizes even if a file grows after metadata inspection.
+fn read_output_file(path: &Path, max_bytes: u64) -> Result<Vec<u8>, String> {
+    let metadata = fs::symlink_metadata(path)
+        .map_err(|_| "A generated output file is missing.".to_string())?;
+    if !metadata.file_type().is_file()
+        || metadata.file_type().is_symlink()
+        || output_is_reparse_point(&metadata)
+    {
+        return Err("Generated output is a link or is not a regular file.".into());
+    }
+    if metadata.len() > max_bytes {
+        return Err("Generated output exceeds the safe local read limit.".into());
+    }
+    use std::io::Read;
+    let mut bytes = Vec::new();
+    fs::File::open(path)
+        .and_then(|file| file.take(max_bytes + 1).read_to_end(&mut bytes))
+        .map_err(|_| "Could not read generated output.".to_string())?;
+    if bytes.len() as u64 > max_bytes {
+        return Err("Generated output exceeds the safe local read limit.".into());
+    }
+    Ok(bytes)
+}
+
+#[cfg(windows)]
+fn output_is_reparse_point(metadata: &fs::Metadata) -> bool {
+    use std::os::windows::fs::MetadataExt;
+    metadata.file_attributes() & 0x400 != 0
+}
+
+#[cfg(not(windows))]
+fn output_is_reparse_point(_metadata: &fs::Metadata) -> bool {
+    false
+}
+
+/// Reopening and exporting share one integrity boundary. The manifest itself
+/// lives alongside the image, so this detects accidental/stale modification,
+/// not coordinated edits to both files by a local attacker.
+fn verified_output(app_local: &Path, job_id: &str) -> Result<(Vec<u8>, Vec<u8>), String> {
     if !valid_job_id(job_id) {
         return Err("Invalid output id.".into());
     }
-    fs::read(outputs_dir(app_local).join(format!("{job_id}.png")))
-        .map_err(|_| "That output no longer exists.".to_string())
+    let root = outputs_dir(app_local);
+    let meta = fs::symlink_metadata(&root)
+        .map_err(|_| "The local output folder does not exist.".to_string())?;
+    if !meta.is_dir() || meta.file_type().is_symlink() || output_is_reparse_point(&meta) {
+        return Err("The local output folder is redirected or invalid.".into());
+    }
+    let png = read_output_file(&root.join(format!("{job_id}.png")), MAX_OUTPUT_PNG_BYTES)?;
+    let record = read_output_file(&root.join(format!("{job_id}.json")), MAX_OUTPUT_RECORD_BYTES)?;
+    let provenance: Provenance = serde_json::from_slice(&record)
+        .map_err(|_| "The output's provenance record is invalid.".to_string())?;
+    let actual_digest: String = Sha256::digest(&png)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect();
+    let dimensions = png_size(&png);
+    if provenance.record_version != 1
+        || provenance.job_id != job_id
+        || provenance.output["sha256"].as_str() != Some(actual_digest.as_str())
+        || dimensions.is_none()
+        || provenance.output["width"].as_u64() != dimensions.map(|d| d.0 as u64)
+        || provenance.output["height"].as_u64() != dimensions.map(|d| d.1 as u64)
+        || provenance.output["bytes"].as_u64() != Some(png.len() as u64)
+    {
+        return Err("The image does not match its local provenance record.".into());
+    }
+    Ok((png, record))
+}
+
+pub fn output_png(app_local: &Path, job_id: &str) -> Result<Vec<u8>, String> {
+    verified_output(app_local, job_id).map(|(png, _)| png)
 }
 
 /// Export a validated image and its matching provenance to Pictures\Optic Rift.
@@ -605,29 +675,7 @@ pub fn output_png(app_local: &Path, job_id: &str) -> Result<Vec<u8>, String> {
 /// and best-effort local cleanup is performed. The caller must obtain explicit
 /// permission after explaining Windows Pictures/OneDrive synchronization.
 pub fn save_copy(app_local: &Path, pictures: &Path, job_id: &str) -> Result<PathBuf, String> {
-    if !valid_job_id(job_id) {
-        return Err("Invalid output id.".into());
-    }
-    let png = output_png(app_local, job_id)?;
-    let source_record = outputs_dir(app_local).join(format!("{job_id}.json"));
-    let record = fs::read(source_record)
-        .map_err(|_| "The image's provenance record is missing; export was not started.".to_string())?;
-    let provenance: Provenance = serde_json::from_slice(&record)
-        .map_err(|_| "The image's provenance record is invalid; export was not started.".to_string())?;
-    let actual_digest = Sha256::digest(&png)
-        .iter()
-        .map(|b| format!("{b:02x}"))
-        .collect::<String>();
-    let dimensions = png_size(&png);
-    if provenance.record_version != 1
-        || provenance.job_id != job_id
-        || provenance.output["sha256"].as_str() != Some(actual_digest.as_str())
-        || dimensions.is_none()
-        || provenance.output["width"].as_u64() != dimensions.map(|d| d.0 as u64)
-        || provenance.output["height"].as_u64() != dimensions.map(|d| d.1 as u64)
-    {
-        return Err("The image does not match its provenance record; export was not started.".into());
-    }
+    let (png, record) = verified_output(app_local, job_id)?;
 
     let dest_dir = pictures.join("Optic Rift");
     fs::create_dir_all(&dest_dir)
@@ -722,7 +770,7 @@ mod tests {
             "record_version": 1, "job_id": id, "created_unix_ms": 0,
             "prompt": "test", "negative_prompt": "", "parameters": {},
             "model": {}, "runtime": {}, "metrics": {},
-            "output": {"sha256": sha, "width": 1, "height": 1},
+            "output": {"sha256": sha, "width": 1, "height": 1, "bytes": png.len()},
             "project_id": null, "lineage_note": "test"
         });
         fs::write(
@@ -767,6 +815,36 @@ mod tests {
         fs::write(&record, serde_json::to_vec(&bad).unwrap()).unwrap();
         assert!(save_copy(&local, &pictures, &id).is_err());
         assert!(!pictures.join("Optic Rift").exists());
+        fs::remove_dir_all(local).unwrap();
+    }
+
+    #[test]
+    fn reopened_output_is_hash_checked_before_preview() {
+        let local = std::env::temp_dir().join(format!("optic-rift-gen-{}", uuid::Uuid::new_v4()));
+        let id = uuid::Uuid::new_v4().to_string();
+        let png = write_output_pair(&local, &id);
+        assert_eq!(output_png(&local, &id).unwrap(), png);
+        let path = outputs_dir(&local).join(format!("{id}.png"));
+        let mut corrupted = png.clone();
+        corrupted[corrupted.len() - 1] ^= 1;
+        fs::write(&path, &corrupted).unwrap();
+        assert!(output_png(&local, &id)
+            .unwrap_err()
+            .contains("does not match"));
+        fs::remove_dir_all(local).unwrap();
+    }
+
+    #[test]
+    fn reopened_output_rejects_invalid_record_and_large_files() {
+        let local = std::env::temp_dir().join(format!("optic-rift-gen-{}", uuid::Uuid::new_v4()));
+        let id = uuid::Uuid::new_v4().to_string();
+        write_output_pair(&local, &id);
+        fs::write(outputs_dir(&local).join(format!("{id}.json")), b"not-json").unwrap();
+        assert!(output_png(&local, &id).is_err());
+        assert!(read_output_file(
+            &outputs_dir(&local).join(format!("{id}.png")),
+            1
+        ).is_err());
         fs::remove_dir_all(local).unwrap();
     }
 
