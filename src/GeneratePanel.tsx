@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { SIZE_PRESETS, settingsError, type GpuCheck, type GpuDecision, type ModelLibrary, type Provenance } from "./models";
 import { saveWithPicturesConsent } from "./exportPrivacy";
+import { localImageSourceChoices, type LocalImageSource } from "./imageToImage";
 
 const errorText = (e: unknown) => (typeof e === "string" ? e : e instanceof Error ? e.message : "The desktop bridge is unavailable.");
 
@@ -32,7 +33,7 @@ export default function GeneratePanel({ prompt, mode, historyVersion, projectId,
   const [error, setError] = useState("");
   const [result, setResult] = useState<{ provenance: Provenance; url: string } | null>(null);
   const [saved, setSaved] = useState("");
-  const [sources, setSources] = useState<Provenance[]>([]);
+  const [sources, setSources] = useState<LocalImageSource[]>([]);
   const [sourceId, setSourceId] = useState("");
   const [sourceError, setSourceError] = useState("");
   const [strength, setStrength] = useState(0.65);
@@ -54,11 +55,9 @@ export default function GeneratePanel({ prompt, mode, historyVersion, projectId,
   const refreshSources = useCallback(async () => {
     try {
       const records = await invoke<Provenance[]>("generation_outputs");
-      const valid = records.filter((p) => p.output.width >= 256 && p.output.width <= 1536 &&
-        p.output.height >= 256 && p.output.height <= 1536 &&
-        p.output.width % 8 === 0 && p.output.height % 8 === 0).slice(0, 20);
+      const valid = localImageSourceChoices(records);
       setSources(valid);
-      setSourceId((current) => valid.some((p) => p.job_id === current) ? current : valid[0]?.job_id ?? "");
+      setSourceId((current) => valid.some((p) => p.id === current) ? current : valid[0]?.id ?? "");
       setSourceError("");
     } catch (e) {
       setSources([]);
@@ -83,9 +82,9 @@ export default function GeneratePanel({ prompt, mode, historyVersion, projectId,
   }, [jobId]);
 
   const usable = library?.installed.filter((m) => m.files_present && m.manifest.adapter.endsWith("text-to-image")) ?? [];
-  const source = sources.find((p) => p.job_id === sourceId);
+  const source = sources.find((p) => p.id === sourceId);
   const size = mode === "image-to-image" && source
-    ? { width: source.output.width, height: source.output.height }
+    ? { width: source.width, height: source.height }
     : SIZE_PRESETS[preset];
   const missingSource = mode === "image-to-image" && !source;
   const seed = seedText.trim() === "" ? null : Number(seedText);
@@ -179,8 +178,8 @@ export default function GeneratePanel({ prompt, mode, historyVersion, projectId,
         <label className="field-label" htmlFor="gen-source">Starting image (previously generated here)</label>
         <select id="gen-source" value={sourceId} disabled={jobId !== null || checking} onChange={(e) => setSourceId(e.target.value)}>
           {!sources.length && <option value="">No saved local generations</option>}
-          {sources.map((item) => <option key={item.job_id} value={item.job_id}>
-            {item.prompt.slice(0, 36) || "Untitled"} · {item.output.width}×{item.output.height} · {item.job_id.slice(0, 8)}
+          {sources.map((item) => <option key={item.id} value={item.id}>
+            {item.label} · {item.width}×{item.height} · {item.id.slice(0, 8)}
           </option>)}
         </select>
         <button className="secondary" type="button" disabled={jobId !== null || checking} onClick={() => void refreshSources()}>Refresh starting images</button>
