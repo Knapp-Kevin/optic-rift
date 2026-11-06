@@ -1,0 +1,2840 @@
+{
+  "01-studio-before-generating--1440x900": {
+    "viewport": [
+      1440,
+      900
+    ],
+    "devicePixelRatio": 1,
+    "document_scroll": [
+      1425,
+      1400
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": 68,
+      "w": 245,
+      "h": 1332
+    },
+    "center": {
+      "x": 453,
+      "y": 68,
+      "w": 680,
+      "h": 1332
+    },
+    "canvas": {
+      "x": 477,
+      "y": 122,
+      "w": 632,
+      "h": 356
+    },
+    "inspector": {
+      "x": 1133,
+      "y": 68,
+      "w": 292,
+      "h": 1332
+    },
+    "inspector_scroll": {
+      "scrollHeight": 1332,
+      "clientHeight": 1332,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 1153,
+      "y": 282,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Generate locally",
+      "y": 752,
+      "h": 47,
+      "visible_without_scroll": true
+    },
+    "result_image": null,
+    "canvas_image": null,
+    "history": {
+      "x": 1153,
+      "y": 832,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 17,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "01-studio-before-generating--1920x1080": {
+    "viewport": [
+      1920,
+      1080
+    ],
+    "devicePixelRatio": 1,
+    "document_scroll": [
+      1905,
+      1400
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": 68,
+      "w": 245,
+      "h": 1332
+    },
+    "center": {
+      "x": 453,
+      "y": 68,
+      "w": 1160,
+      "h": 1332
+    },
+    "canvas": {
+      "x": 477,
+      "y": 122,
+      "w": 1112,
+      "h": 626
+    },
+    "inspector": {
+      "x": 1613,
+      "y": 68,
+      "w": 292,
+      "h": 1332
+    },
+    "inspector_scroll": {
+      "scrollHeight": 1332,
+      "clientHeight": 1332,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 1633,
+      "y": 282,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Generate locally",
+      "y": 752,
+      "h": 47,
+      "visible_without_scroll": true
+    },
+    "result_image": null,
+    "canvas_image": null,
+    "history": {
+      "x": 1633,
+      "y": 832,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 17,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "01-studio-before-generating--1280x720": {
+    "viewport": [
+      1280,
+      720
+    ],
+    "devicePixelRatio": 1,
+    "document_scroll": [
+      1265,
+      1400
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": 68,
+      "w": 245,
+      "h": 1332
+    },
+    "center": {
+      "x": 453,
+      "y": 68,
+      "w": 520,
+      "h": 1332
+    },
+    "canvas": {
+      "x": 477,
+      "y": 122,
+      "w": 472,
+      "h": 290
+    },
+    "inspector": {
+      "x": 973,
+      "y": 68,
+      "w": 292,
+      "h": 1332
+    },
+    "inspector_scroll": {
+      "scrollHeight": 1332,
+      "clientHeight": 1332,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 993,
+      "y": 282,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Generate locally",
+      "y": 752,
+      "h": 47,
+      "visible_without_scroll": false
+    },
+    "result_image": null,
+    "canvas_image": null,
+    "history": {
+      "x": 993,
+      "y": 832,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 17,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "01-studio-before-generating--1920x1080@125pct": {
+    "viewport": [
+      1536,
+      864
+    ],
+    "devicePixelRatio": 1.25,
+    "document_scroll": [
+      1521,
+      1400
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": 68,
+      "w": 245,
+      "h": 1332
+    },
+    "center": {
+      "x": 453,
+      "y": 68,
+      "w": 776,
+      "h": 1332
+    },
+    "canvas": {
+      "x": 477,
+      "y": 122,
+      "w": 728,
+      "h": 410
+    },
+    "inspector": {
+      "x": 1229,
+      "y": 68,
+      "w": 292,
+      "h": 1332
+    },
+    "inspector_scroll": {
+      "scrollHeight": 1332,
+      "clientHeight": 1332,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 1249,
+      "y": 282,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Generate locally",
+      "y": 752,
+      "h": 47,
+      "visible_without_scroll": true
+    },
+    "result_image": null,
+    "canvas_image": null,
+    "history": {
+      "x": 1249,
+      "y": 832,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 17,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "01b-full-extent-before-generating--1440xFULL": {
+    "viewport": [
+      1440,
+      1420
+    ],
+    "devicePixelRatio": 1,
+    "document_scroll": [
+      1440,
+      1420
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": 68,
+      "w": 245,
+      "h": 1352
+    },
+    "center": {
+      "x": 453,
+      "y": 68,
+      "w": 695,
+      "h": 1352
+    },
+    "canvas": {
+      "x": 477,
+      "y": 122,
+      "w": 647,
+      "h": 364
+    },
+    "inspector": {
+      "x": 1148,
+      "y": 68,
+      "w": 292,
+      "h": 1352
+    },
+    "inspector_scroll": {
+      "scrollHeight": 1352,
+      "clientHeight": 1352,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 1168,
+      "y": 282,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Generate locally",
+      "y": 752,
+      "h": 47,
+      "visible_without_scroll": true
+    },
+    "result_image": null,
+    "canvas_image": null,
+    "history": {
+      "x": 1168,
+      "y": 832,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 17,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "02-text-to-image-controls-filled--1440x900": {
+    "viewport": [
+      1440,
+      900
+    ],
+    "devicePixelRatio": 1,
+    "document_scroll": [
+      1425,
+      1400
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": 68,
+      "w": 245,
+      "h": 1332
+    },
+    "center": {
+      "x": 453,
+      "y": 68,
+      "w": 680,
+      "h": 1332
+    },
+    "canvas": {
+      "x": 477,
+      "y": 122,
+      "w": 632,
+      "h": 356
+    },
+    "inspector": {
+      "x": 1133,
+      "y": 68,
+      "w": 292,
+      "h": 1332
+    },
+    "inspector_scroll": {
+      "scrollHeight": 1332,
+      "clientHeight": 1332,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 1153,
+      "y": 282,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Generate locally",
+      "y": 752,
+      "h": 47,
+      "visible_without_scroll": true
+    },
+    "result_image": null,
+    "canvas_image": null,
+    "history": {
+      "x": 1153,
+      "y": 832,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 17,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "02-text-to-image-controls-filled--1920x1080": {
+    "viewport": [
+      1920,
+      1080
+    ],
+    "devicePixelRatio": 1,
+    "document_scroll": [
+      1905,
+      1400
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": 68,
+      "w": 245,
+      "h": 1332
+    },
+    "center": {
+      "x": 453,
+      "y": 68,
+      "w": 1160,
+      "h": 1332
+    },
+    "canvas": {
+      "x": 477,
+      "y": 122,
+      "w": 1112,
+      "h": 626
+    },
+    "inspector": {
+      "x": 1613,
+      "y": 68,
+      "w": 292,
+      "h": 1332
+    },
+    "inspector_scroll": {
+      "scrollHeight": 1332,
+      "clientHeight": 1332,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 1633,
+      "y": 282,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Generate locally",
+      "y": 752,
+      "h": 47,
+      "visible_without_scroll": true
+    },
+    "result_image": null,
+    "canvas_image": null,
+    "history": {
+      "x": 1633,
+      "y": 832,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 17,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "02-text-to-image-controls-filled--1280x720": {
+    "viewport": [
+      1280,
+      720
+    ],
+    "devicePixelRatio": 1,
+    "document_scroll": [
+      1265,
+      1400
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": 68,
+      "w": 245,
+      "h": 1332
+    },
+    "center": {
+      "x": 453,
+      "y": 68,
+      "w": 520,
+      "h": 1332
+    },
+    "canvas": {
+      "x": 477,
+      "y": 122,
+      "w": 472,
+      "h": 290
+    },
+    "inspector": {
+      "x": 973,
+      "y": 68,
+      "w": 292,
+      "h": 1332
+    },
+    "inspector_scroll": {
+      "scrollHeight": 1332,
+      "clientHeight": 1332,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 993,
+      "y": 282,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Generate locally",
+      "y": 752,
+      "h": 47,
+      "visible_without_scroll": false
+    },
+    "result_image": null,
+    "canvas_image": null,
+    "history": {
+      "x": 993,
+      "y": 832,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 17,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "02-text-to-image-controls-filled--1920x1080@125pct": {
+    "viewport": [
+      1536,
+      864
+    ],
+    "devicePixelRatio": 1.25,
+    "document_scroll": [
+      1521,
+      1400
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": 68,
+      "w": 245,
+      "h": 1332
+    },
+    "center": {
+      "x": 453,
+      "y": 68,
+      "w": 776,
+      "h": 1332
+    },
+    "canvas": {
+      "x": 477,
+      "y": 122,
+      "w": 728,
+      "h": 410
+    },
+    "inspector": {
+      "x": 1229,
+      "y": 68,
+      "w": 292,
+      "h": 1332
+    },
+    "inspector_scroll": {
+      "scrollHeight": 1332,
+      "clientHeight": 1332,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 1249,
+      "y": 282,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Generate locally",
+      "y": 752,
+      "h": 47,
+      "visible_without_scroll": true
+    },
+    "result_image": null,
+    "canvas_image": null,
+    "history": {
+      "x": 1249,
+      "y": 832,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 17,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "03-text-to-image-progress--1440x900": {
+    "viewport": [
+      1440,
+      900
+    ],
+    "devicePixelRatio": 1,
+    "document_scroll": [
+      1425,
+      1476
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": -508,
+      "w": 245,
+      "h": 1408
+    },
+    "center": {
+      "x": 453,
+      "y": -508,
+      "w": 680,
+      "h": 1408
+    },
+    "canvas": {
+      "x": 477,
+      "y": -454,
+      "w": 632,
+      "h": 356
+    },
+    "inspector": {
+      "x": 1133,
+      "y": -508,
+      "w": 292,
+      "h": 1408
+    },
+    "inspector_scroll": {
+      "scrollHeight": 1408,
+      "clientHeight": 1408,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 1153,
+      "y": -294,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": null,
+    "result_image": null,
+    "canvas_image": null,
+    "history": {
+      "x": 1153,
+      "y": 332,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 17,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "04-completed-result-viewport-top--1440x900": {
+    "viewport": [
+      1440,
+      900
+    ],
+    "devicePixelRatio": 1,
+    "document_scroll": [
+      1425,
+      1944
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": 68,
+      "w": 245,
+      "h": 1876
+    },
+    "center": {
+      "x": 453,
+      "y": 68,
+      "w": 680,
+      "h": 1876
+    },
+    "canvas": {
+      "x": 477,
+      "y": 122,
+      "w": 632,
+      "h": 356
+    },
+    "inspector": {
+      "x": 1133,
+      "y": 68,
+      "w": 292,
+      "h": 1876
+    },
+    "inspector_scroll": {
+      "scrollHeight": 1876,
+      "clientHeight": 1876,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 1153,
+      "y": 282,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Generate locally",
+      "y": 752,
+      "h": 47,
+      "visible_without_scroll": true
+    },
+    "result_image": {
+      "x": 1153,
+      "y": 842,
+      "w": 253,
+      "h": 253
+    },
+    "canvas_image": null,
+    "history": {
+      "x": 1153,
+      "y": 1376,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 18,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "04-completed-result-viewport-top--1920x1080": {
+    "viewport": [
+      1920,
+      1080
+    ],
+    "devicePixelRatio": 1,
+    "document_scroll": [
+      1905,
+      1944
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": 68,
+      "w": 245,
+      "h": 1876
+    },
+    "center": {
+      "x": 453,
+      "y": 68,
+      "w": 1160,
+      "h": 1876
+    },
+    "canvas": {
+      "x": 477,
+      "y": 122,
+      "w": 1112,
+      "h": 626
+    },
+    "inspector": {
+      "x": 1613,
+      "y": 68,
+      "w": 292,
+      "h": 1876
+    },
+    "inspector_scroll": {
+      "scrollHeight": 1876,
+      "clientHeight": 1876,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 1633,
+      "y": 282,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Generate locally",
+      "y": 752,
+      "h": 47,
+      "visible_without_scroll": true
+    },
+    "result_image": {
+      "x": 1633,
+      "y": 842,
+      "w": 253,
+      "h": 253
+    },
+    "canvas_image": null,
+    "history": {
+      "x": 1633,
+      "y": 1376,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 18,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "04-completed-result-viewport-top--1280x720": {
+    "viewport": [
+      1280,
+      720
+    ],
+    "devicePixelRatio": 1,
+    "document_scroll": [
+      1265,
+      1944
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": 68,
+      "w": 245,
+      "h": 1876
+    },
+    "center": {
+      "x": 453,
+      "y": 68,
+      "w": 520,
+      "h": 1876
+    },
+    "canvas": {
+      "x": 477,
+      "y": 122,
+      "w": 472,
+      "h": 290
+    },
+    "inspector": {
+      "x": 973,
+      "y": 68,
+      "w": 292,
+      "h": 1876
+    },
+    "inspector_scroll": {
+      "scrollHeight": 1876,
+      "clientHeight": 1876,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 993,
+      "y": 282,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Generate locally",
+      "y": 752,
+      "h": 47,
+      "visible_without_scroll": false
+    },
+    "result_image": {
+      "x": 993,
+      "y": 842,
+      "w": 253,
+      "h": 253
+    },
+    "canvas_image": null,
+    "history": {
+      "x": 993,
+      "y": 1376,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 18,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "04-completed-result-viewport-top--1920x1080@125pct": {
+    "viewport": [
+      1536,
+      864
+    ],
+    "devicePixelRatio": 1.25,
+    "document_scroll": [
+      1521,
+      1944
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": 68,
+      "w": 245,
+      "h": 1876
+    },
+    "center": {
+      "x": 453,
+      "y": 68,
+      "w": 776,
+      "h": 1876
+    },
+    "canvas": {
+      "x": 477,
+      "y": 122,
+      "w": 728,
+      "h": 410
+    },
+    "inspector": {
+      "x": 1229,
+      "y": 68,
+      "w": 292,
+      "h": 1876
+    },
+    "inspector_scroll": {
+      "scrollHeight": 1876,
+      "clientHeight": 1876,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 1249,
+      "y": 282,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Generate locally",
+      "y": 752,
+      "h": 47,
+      "visible_without_scroll": true
+    },
+    "result_image": {
+      "x": 1249,
+      "y": 842,
+      "w": 253,
+      "h": 253
+    },
+    "canvas_image": null,
+    "history": {
+      "x": 1249,
+      "y": 1376,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 18,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "04b-completed-result-scrolled-to-result--1440x900": {
+    "viewport": [
+      1440,
+      900
+    ],
+    "devicePixelRatio": 1,
+    "document_scroll": [
+      1425,
+      1944
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": -774,
+      "w": 245,
+      "h": 1876
+    },
+    "center": {
+      "x": 453,
+      "y": -774,
+      "w": 680,
+      "h": 1876
+    },
+    "canvas": {
+      "x": 477,
+      "y": -720,
+      "w": 632,
+      "h": 356
+    },
+    "inspector": {
+      "x": 1133,
+      "y": -774,
+      "w": 292,
+      "h": 1876
+    },
+    "inspector_scroll": {
+      "scrollHeight": 1876,
+      "clientHeight": 1876,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 1153,
+      "y": -560,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Generate locally",
+      "y": -90,
+      "h": 47,
+      "visible_without_scroll": false
+    },
+    "result_image": {
+      "x": 1153,
+      "y": 0,
+      "w": 253,
+      "h": 253
+    },
+    "canvas_image": null,
+    "history": {
+      "x": 1153,
+      "y": 534,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 18,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "04b-completed-result-scrolled-to-result--1920x1080": {
+    "viewport": [
+      1920,
+      1080
+    ],
+    "devicePixelRatio": 1,
+    "document_scroll": [
+      1905,
+      1944
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": -774,
+      "w": 245,
+      "h": 1876
+    },
+    "center": {
+      "x": 453,
+      "y": -774,
+      "w": 1160,
+      "h": 1876
+    },
+    "canvas": {
+      "x": 477,
+      "y": -720,
+      "w": 1112,
+      "h": 626
+    },
+    "inspector": {
+      "x": 1613,
+      "y": -774,
+      "w": 292,
+      "h": 1876
+    },
+    "inspector_scroll": {
+      "scrollHeight": 1876,
+      "clientHeight": 1876,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 1633,
+      "y": -560,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Generate locally",
+      "y": -90,
+      "h": 47,
+      "visible_without_scroll": false
+    },
+    "result_image": {
+      "x": 1633,
+      "y": 0,
+      "w": 253,
+      "h": 253
+    },
+    "canvas_image": null,
+    "history": {
+      "x": 1633,
+      "y": 534,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 18,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "04b-completed-result-scrolled-to-result--1280x720": {
+    "viewport": [
+      1280,
+      720
+    ],
+    "devicePixelRatio": 1,
+    "document_scroll": [
+      1265,
+      1944
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": -774,
+      "w": 245,
+      "h": 1876
+    },
+    "center": {
+      "x": 453,
+      "y": -774,
+      "w": 520,
+      "h": 1876
+    },
+    "canvas": {
+      "x": 477,
+      "y": -720,
+      "w": 472,
+      "h": 290
+    },
+    "inspector": {
+      "x": 973,
+      "y": -774,
+      "w": 292,
+      "h": 1876
+    },
+    "inspector_scroll": {
+      "scrollHeight": 1876,
+      "clientHeight": 1876,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 993,
+      "y": -560,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Generate locally",
+      "y": -90,
+      "h": 47,
+      "visible_without_scroll": false
+    },
+    "result_image": {
+      "x": 993,
+      "y": 0,
+      "w": 253,
+      "h": 253
+    },
+    "canvas_image": null,
+    "history": {
+      "x": 993,
+      "y": 534,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 18,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "04b-completed-result-scrolled-to-result--1920x1080@125pct": {
+    "viewport": [
+      1536,
+      864
+    ],
+    "devicePixelRatio": 1.25,
+    "document_scroll": [
+      1521,
+      1944
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": -774,
+      "w": 245,
+      "h": 1876
+    },
+    "center": {
+      "x": 453,
+      "y": -774,
+      "w": 776,
+      "h": 1876
+    },
+    "canvas": {
+      "x": 477,
+      "y": -720,
+      "w": 728,
+      "h": 410
+    },
+    "inspector": {
+      "x": 1229,
+      "y": -774,
+      "w": 292,
+      "h": 1876
+    },
+    "inspector_scroll": {
+      "scrollHeight": 1876,
+      "clientHeight": 1876,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 1249,
+      "y": -560,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Generate locally",
+      "y": -90,
+      "h": 47,
+      "visible_without_scroll": false
+    },
+    "result_image": {
+      "x": 1249,
+      "y": 0,
+      "w": 253,
+      "h": 253
+    },
+    "canvas_image": null,
+    "history": {
+      "x": 1249,
+      "y": 534,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 18,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "04c-completed-full-extent--1440xFULL": {
+    "viewport": [
+      1440,
+      1964
+    ],
+    "devicePixelRatio": 1,
+    "document_scroll": [
+      1440,
+      1964
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": 68,
+      "w": 245,
+      "h": 1896
+    },
+    "center": {
+      "x": 453,
+      "y": 68,
+      "w": 695,
+      "h": 1896
+    },
+    "canvas": {
+      "x": 477,
+      "y": 122,
+      "w": 647,
+      "h": 364
+    },
+    "inspector": {
+      "x": 1148,
+      "y": 68,
+      "w": 292,
+      "h": 1896
+    },
+    "inspector_scroll": {
+      "scrollHeight": 1896,
+      "clientHeight": 1896,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 1168,
+      "y": 282,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Generate locally",
+      "y": 752,
+      "h": 47,
+      "visible_without_scroll": true
+    },
+    "result_image": {
+      "x": 1168,
+      "y": 842,
+      "w": 253,
+      "h": 253
+    },
+    "canvas_image": null,
+    "history": {
+      "x": 1168,
+      "y": 1376,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 18,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "05-image-to-image-source-selected--1440x900": {
+    "viewport": [
+      1440,
+      900
+    ],
+    "devicePixelRatio": 1,
+    "document_scroll": [
+      1425,
+      2191
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": 68,
+      "w": 245,
+      "h": 2123
+    },
+    "center": {
+      "x": 453,
+      "y": 68,
+      "w": 680,
+      "h": 2123
+    },
+    "canvas": {
+      "x": 477,
+      "y": 122,
+      "w": 632,
+      "h": 356
+    },
+    "inspector": {
+      "x": 1133,
+      "y": 68,
+      "w": 292,
+      "h": 2123
+    },
+    "inspector_scroll": {
+      "scrollHeight": 2123,
+      "clientHeight": 2123,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 1153,
+      "y": 282,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Transform locally",
+      "y": 999,
+      "h": 47,
+      "visible_without_scroll": false
+    },
+    "result_image": {
+      "x": 1153,
+      "y": 1089,
+      "w": 253,
+      "h": 253
+    },
+    "canvas_image": null,
+    "history": {
+      "x": 1153,
+      "y": 1623,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 18,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "05-image-to-image-source-selected--1920x1080": {
+    "viewport": [
+      1920,
+      1080
+    ],
+    "devicePixelRatio": 1,
+    "document_scroll": [
+      1905,
+      2191
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": 68,
+      "w": 245,
+      "h": 2123
+    },
+    "center": {
+      "x": 453,
+      "y": 68,
+      "w": 1160,
+      "h": 2123
+    },
+    "canvas": {
+      "x": 477,
+      "y": 122,
+      "w": 1112,
+      "h": 626
+    },
+    "inspector": {
+      "x": 1613,
+      "y": 68,
+      "w": 292,
+      "h": 2123
+    },
+    "inspector_scroll": {
+      "scrollHeight": 2123,
+      "clientHeight": 2123,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 1633,
+      "y": 282,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Transform locally",
+      "y": 999,
+      "h": 47,
+      "visible_without_scroll": true
+    },
+    "result_image": {
+      "x": 1633,
+      "y": 1089,
+      "w": 253,
+      "h": 253
+    },
+    "canvas_image": null,
+    "history": {
+      "x": 1633,
+      "y": 1623,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 18,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "05-image-to-image-source-selected--1280x720": {
+    "viewport": [
+      1280,
+      720
+    ],
+    "devicePixelRatio": 1,
+    "document_scroll": [
+      1265,
+      2191
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": 68,
+      "w": 245,
+      "h": 2123
+    },
+    "center": {
+      "x": 453,
+      "y": 68,
+      "w": 520,
+      "h": 2123
+    },
+    "canvas": {
+      "x": 477,
+      "y": 122,
+      "w": 472,
+      "h": 290
+    },
+    "inspector": {
+      "x": 973,
+      "y": 68,
+      "w": 292,
+      "h": 2123
+    },
+    "inspector_scroll": {
+      "scrollHeight": 2123,
+      "clientHeight": 2123,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 993,
+      "y": 282,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Transform locally",
+      "y": 999,
+      "h": 47,
+      "visible_without_scroll": false
+    },
+    "result_image": {
+      "x": 993,
+      "y": 1089,
+      "w": 253,
+      "h": 253
+    },
+    "canvas_image": null,
+    "history": {
+      "x": 993,
+      "y": 1623,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 18,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "05-image-to-image-source-selected--1920x1080@125pct": {
+    "viewport": [
+      1536,
+      864
+    ],
+    "devicePixelRatio": 1.25,
+    "document_scroll": [
+      1521,
+      2191
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": 68,
+      "w": 245,
+      "h": 2123
+    },
+    "center": {
+      "x": 453,
+      "y": 68,
+      "w": 776,
+      "h": 2123
+    },
+    "canvas": {
+      "x": 477,
+      "y": 122,
+      "w": 728,
+      "h": 410
+    },
+    "inspector": {
+      "x": 1229,
+      "y": 68,
+      "w": 292,
+      "h": 2123
+    },
+    "inspector_scroll": {
+      "scrollHeight": 2123,
+      "clientHeight": 2123,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 1249,
+      "y": 282,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Transform locally",
+      "y": 999,
+      "h": 47,
+      "visible_without_scroll": false
+    },
+    "result_image": {
+      "x": 1249,
+      "y": 1089,
+      "w": 253,
+      "h": 253
+    },
+    "canvas_image": null,
+    "history": {
+      "x": 1249,
+      "y": 1623,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 18,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "05b-image-to-image-controls-scrolled--1440x900": {
+    "viewport": [
+      1440,
+      900
+    ],
+    "devicePixelRatio": 1,
+    "document_scroll": [
+      1425,
+      2191
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": -487,
+      "w": 245,
+      "h": 2123
+    },
+    "center": {
+      "x": 453,
+      "y": -487,
+      "w": 680,
+      "h": 2123
+    },
+    "canvas": {
+      "x": 477,
+      "y": -433,
+      "w": 632,
+      "h": 356
+    },
+    "inspector": {
+      "x": 1133,
+      "y": -487,
+      "w": 292,
+      "h": 2123
+    },
+    "inspector_scroll": {
+      "scrollHeight": 2123,
+      "clientHeight": 2123,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 1153,
+      "y": -273,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Transform locally",
+      "y": 444,
+      "h": 47,
+      "visible_without_scroll": true
+    },
+    "result_image": {
+      "x": 1153,
+      "y": 534,
+      "w": 253,
+      "h": 253
+    },
+    "canvas_image": null,
+    "history": {
+      "x": 1153,
+      "y": 1068,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 18,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "05b-image-to-image-controls-scrolled--1920x1080": {
+    "viewport": [
+      1920,
+      1080
+    ],
+    "devicePixelRatio": 1,
+    "document_scroll": [
+      1905,
+      2191
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": -487,
+      "w": 245,
+      "h": 2123
+    },
+    "center": {
+      "x": 453,
+      "y": -487,
+      "w": 1160,
+      "h": 2123
+    },
+    "canvas": {
+      "x": 477,
+      "y": -433,
+      "w": 1112,
+      "h": 626
+    },
+    "inspector": {
+      "x": 1613,
+      "y": -487,
+      "w": 292,
+      "h": 2123
+    },
+    "inspector_scroll": {
+      "scrollHeight": 2123,
+      "clientHeight": 2123,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 1633,
+      "y": -273,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Transform locally",
+      "y": 444,
+      "h": 47,
+      "visible_without_scroll": true
+    },
+    "result_image": {
+      "x": 1633,
+      "y": 534,
+      "w": 253,
+      "h": 253
+    },
+    "canvas_image": null,
+    "history": {
+      "x": 1633,
+      "y": 1068,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 18,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "05b-image-to-image-controls-scrolled--1280x720": {
+    "viewport": [
+      1280,
+      720
+    ],
+    "devicePixelRatio": 1,
+    "document_scroll": [
+      1265,
+      2191
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": -487,
+      "w": 245,
+      "h": 2123
+    },
+    "center": {
+      "x": 453,
+      "y": -487,
+      "w": 520,
+      "h": 2123
+    },
+    "canvas": {
+      "x": 477,
+      "y": -433,
+      "w": 472,
+      "h": 290
+    },
+    "inspector": {
+      "x": 973,
+      "y": -487,
+      "w": 292,
+      "h": 2123
+    },
+    "inspector_scroll": {
+      "scrollHeight": 2123,
+      "clientHeight": 2123,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 993,
+      "y": -273,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Transform locally",
+      "y": 444,
+      "h": 47,
+      "visible_without_scroll": true
+    },
+    "result_image": {
+      "x": 993,
+      "y": 534,
+      "w": 253,
+      "h": 253
+    },
+    "canvas_image": null,
+    "history": {
+      "x": 993,
+      "y": 1068,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 18,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "05b-image-to-image-controls-scrolled--1920x1080@125pct": {
+    "viewport": [
+      1536,
+      864
+    ],
+    "devicePixelRatio": 1.25,
+    "document_scroll": [
+      1521,
+      2191
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": -487,
+      "w": 245,
+      "h": 2123
+    },
+    "center": {
+      "x": 453,
+      "y": -487,
+      "w": 776,
+      "h": 2123
+    },
+    "canvas": {
+      "x": 477,
+      "y": -433,
+      "w": 728,
+      "h": 410
+    },
+    "inspector": {
+      "x": 1229,
+      "y": -487,
+      "w": 292,
+      "h": 2123
+    },
+    "inspector_scroll": {
+      "scrollHeight": 2123,
+      "clientHeight": 2123,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 1249,
+      "y": -273,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Transform locally",
+      "y": 444,
+      "h": 47,
+      "visible_without_scroll": true
+    },
+    "result_image": {
+      "x": 1249,
+      "y": 534,
+      "w": 253,
+      "h": 253
+    },
+    "canvas_image": null,
+    "history": {
+      "x": 1249,
+      "y": 1068,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 18,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "06-image-to-image-result-viewport-top--1440x900": {
+    "viewport": [
+      1440,
+      900
+    ],
+    "devicePixelRatio": 1,
+    "document_scroll": [
+      1425,
+      2191
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": 68,
+      "w": 245,
+      "h": 2123
+    },
+    "center": {
+      "x": 453,
+      "y": 68,
+      "w": 680,
+      "h": 2123
+    },
+    "canvas": {
+      "x": 477,
+      "y": 122,
+      "w": 632,
+      "h": 356
+    },
+    "inspector": {
+      "x": 1133,
+      "y": 68,
+      "w": 292,
+      "h": 2123
+    },
+    "inspector_scroll": {
+      "scrollHeight": 2123,
+      "clientHeight": 2123,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 1153,
+      "y": 282,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Transform locally",
+      "y": 999,
+      "h": 47,
+      "visible_without_scroll": false
+    },
+    "result_image": {
+      "x": 1153,
+      "y": 1089,
+      "w": 253,
+      "h": 253
+    },
+    "canvas_image": null,
+    "history": {
+      "x": 1153,
+      "y": 1623,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 19,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "06-image-to-image-result-viewport-top--1920x1080": {
+    "viewport": [
+      1920,
+      1080
+    ],
+    "devicePixelRatio": 1,
+    "document_scroll": [
+      1905,
+      2191
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": 68,
+      "w": 245,
+      "h": 2123
+    },
+    "center": {
+      "x": 453,
+      "y": 68,
+      "w": 1160,
+      "h": 2123
+    },
+    "canvas": {
+      "x": 477,
+      "y": 122,
+      "w": 1112,
+      "h": 626
+    },
+    "inspector": {
+      "x": 1613,
+      "y": 68,
+      "w": 292,
+      "h": 2123
+    },
+    "inspector_scroll": {
+      "scrollHeight": 2123,
+      "clientHeight": 2123,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 1633,
+      "y": 282,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Transform locally",
+      "y": 999,
+      "h": 47,
+      "visible_without_scroll": true
+    },
+    "result_image": {
+      "x": 1633,
+      "y": 1089,
+      "w": 253,
+      "h": 253
+    },
+    "canvas_image": null,
+    "history": {
+      "x": 1633,
+      "y": 1623,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 19,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "06-image-to-image-result-viewport-top--1280x720": {
+    "viewport": [
+      1280,
+      720
+    ],
+    "devicePixelRatio": 1,
+    "document_scroll": [
+      1265,
+      2191
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": 68,
+      "w": 245,
+      "h": 2123
+    },
+    "center": {
+      "x": 453,
+      "y": 68,
+      "w": 520,
+      "h": 2123
+    },
+    "canvas": {
+      "x": 477,
+      "y": 122,
+      "w": 472,
+      "h": 290
+    },
+    "inspector": {
+      "x": 973,
+      "y": 68,
+      "w": 292,
+      "h": 2123
+    },
+    "inspector_scroll": {
+      "scrollHeight": 2123,
+      "clientHeight": 2123,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 993,
+      "y": 282,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Transform locally",
+      "y": 999,
+      "h": 47,
+      "visible_without_scroll": false
+    },
+    "result_image": {
+      "x": 993,
+      "y": 1089,
+      "w": 253,
+      "h": 253
+    },
+    "canvas_image": null,
+    "history": {
+      "x": 993,
+      "y": 1623,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 19,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "06-image-to-image-result-viewport-top--1920x1080@125pct": {
+    "viewport": [
+      1536,
+      864
+    ],
+    "devicePixelRatio": 1.25,
+    "document_scroll": [
+      1521,
+      2191
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": 68,
+      "w": 245,
+      "h": 2123
+    },
+    "center": {
+      "x": 453,
+      "y": 68,
+      "w": 776,
+      "h": 2123
+    },
+    "canvas": {
+      "x": 477,
+      "y": 122,
+      "w": 728,
+      "h": 410
+    },
+    "inspector": {
+      "x": 1229,
+      "y": 68,
+      "w": 292,
+      "h": 2123
+    },
+    "inspector_scroll": {
+      "scrollHeight": 2123,
+      "clientHeight": 2123,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 1249,
+      "y": 282,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Transform locally",
+      "y": 999,
+      "h": 47,
+      "visible_without_scroll": false
+    },
+    "result_image": {
+      "x": 1249,
+      "y": 1089,
+      "w": 253,
+      "h": 253
+    },
+    "canvas_image": null,
+    "history": {
+      "x": 1249,
+      "y": 1623,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 19,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "06b-image-to-image-result-scrolled--1440x900": {
+    "viewport": [
+      1440,
+      900
+    ],
+    "devicePixelRatio": 1,
+    "document_scroll": [
+      1425,
+      2191
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": -1021,
+      "w": 245,
+      "h": 2123
+    },
+    "center": {
+      "x": 453,
+      "y": -1021,
+      "w": 680,
+      "h": 2123
+    },
+    "canvas": {
+      "x": 477,
+      "y": -967,
+      "w": 632,
+      "h": 356
+    },
+    "inspector": {
+      "x": 1133,
+      "y": -1021,
+      "w": 292,
+      "h": 2123
+    },
+    "inspector_scroll": {
+      "scrollHeight": 2123,
+      "clientHeight": 2123,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 1153,
+      "y": -807,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Transform locally",
+      "y": -90,
+      "h": 47,
+      "visible_without_scroll": false
+    },
+    "result_image": {
+      "x": 1153,
+      "y": 0,
+      "w": 253,
+      "h": 253
+    },
+    "canvas_image": null,
+    "history": {
+      "x": 1153,
+      "y": 534,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 19,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "06b-image-to-image-result-scrolled--1920x1080": {
+    "viewport": [
+      1920,
+      1080
+    ],
+    "devicePixelRatio": 1,
+    "document_scroll": [
+      1905,
+      2191
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": -1021,
+      "w": 245,
+      "h": 2123
+    },
+    "center": {
+      "x": 453,
+      "y": -1021,
+      "w": 1160,
+      "h": 2123
+    },
+    "canvas": {
+      "x": 477,
+      "y": -967,
+      "w": 1112,
+      "h": 626
+    },
+    "inspector": {
+      "x": 1613,
+      "y": -1021,
+      "w": 292,
+      "h": 2123
+    },
+    "inspector_scroll": {
+      "scrollHeight": 2123,
+      "clientHeight": 2123,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 1633,
+      "y": -807,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Transform locally",
+      "y": -90,
+      "h": 47,
+      "visible_without_scroll": false
+    },
+    "result_image": {
+      "x": 1633,
+      "y": 0,
+      "w": 253,
+      "h": 253
+    },
+    "canvas_image": null,
+    "history": {
+      "x": 1633,
+      "y": 534,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 19,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "06b-image-to-image-result-scrolled--1280x720": {
+    "viewport": [
+      1280,
+      720
+    ],
+    "devicePixelRatio": 1,
+    "document_scroll": [
+      1265,
+      2191
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": -1021,
+      "w": 245,
+      "h": 2123
+    },
+    "center": {
+      "x": 453,
+      "y": -1021,
+      "w": 520,
+      "h": 2123
+    },
+    "canvas": {
+      "x": 477,
+      "y": -967,
+      "w": 472,
+      "h": 290
+    },
+    "inspector": {
+      "x": 973,
+      "y": -1021,
+      "w": 292,
+      "h": 2123
+    },
+    "inspector_scroll": {
+      "scrollHeight": 2123,
+      "clientHeight": 2123,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 993,
+      "y": -807,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Transform locally",
+      "y": -90,
+      "h": 47,
+      "visible_without_scroll": false
+    },
+    "result_image": {
+      "x": 993,
+      "y": 0,
+      "w": 253,
+      "h": 253
+    },
+    "canvas_image": null,
+    "history": {
+      "x": 993,
+      "y": 534,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 19,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "06b-image-to-image-result-scrolled--1920x1080@125pct": {
+    "viewport": [
+      1536,
+      864
+    ],
+    "devicePixelRatio": 1.25,
+    "document_scroll": [
+      1521,
+      2191
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": -1021,
+      "w": 245,
+      "h": 2123
+    },
+    "center": {
+      "x": 453,
+      "y": -1021,
+      "w": 776,
+      "h": 2123
+    },
+    "canvas": {
+      "x": 477,
+      "y": -967,
+      "w": 728,
+      "h": 410
+    },
+    "inspector": {
+      "x": 1229,
+      "y": -1021,
+      "w": 292,
+      "h": 2123
+    },
+    "inspector_scroll": {
+      "scrollHeight": 2123,
+      "clientHeight": 2123,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 1249,
+      "y": -807,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Transform locally",
+      "y": -90,
+      "h": 47,
+      "visible_without_scroll": false
+    },
+    "result_image": {
+      "x": 1249,
+      "y": 0,
+      "w": 253,
+      "h": 253
+    },
+    "canvas_image": null,
+    "history": {
+      "x": 1249,
+      "y": 534,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 19,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "07-recent-generations--1440x900": {
+    "viewport": [
+      1440,
+      900
+    ],
+    "devicePixelRatio": 1,
+    "document_scroll": [
+      1425,
+      2191
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": -1223,
+      "w": 245,
+      "h": 2123
+    },
+    "center": {
+      "x": 453,
+      "y": -1223,
+      "w": 680,
+      "h": 2123
+    },
+    "canvas": {
+      "x": 477,
+      "y": -1169,
+      "w": 632,
+      "h": 356
+    },
+    "inspector": {
+      "x": 1133,
+      "y": -1223,
+      "w": 292,
+      "h": 2123
+    },
+    "inspector_scroll": {
+      "scrollHeight": 2123,
+      "clientHeight": 2123,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 1153,
+      "y": -1009,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Transform locally",
+      "y": -292,
+      "h": 47,
+      "visible_without_scroll": false
+    },
+    "result_image": {
+      "x": 1153,
+      "y": -202,
+      "w": 253,
+      "h": 253
+    },
+    "canvas_image": null,
+    "history": {
+      "x": 1153,
+      "y": 332,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 19,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "07-recent-generations--1920x1080": {
+    "viewport": [
+      1920,
+      1080
+    ],
+    "devicePixelRatio": 1,
+    "document_scroll": [
+      1905,
+      2191
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": -1043,
+      "w": 245,
+      "h": 2123
+    },
+    "center": {
+      "x": 453,
+      "y": -1043,
+      "w": 1160,
+      "h": 2123
+    },
+    "canvas": {
+      "x": 477,
+      "y": -989,
+      "w": 1112,
+      "h": 626
+    },
+    "inspector": {
+      "x": 1613,
+      "y": -1043,
+      "w": 292,
+      "h": 2123
+    },
+    "inspector_scroll": {
+      "scrollHeight": 2123,
+      "clientHeight": 2123,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 1633,
+      "y": -829,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Transform locally",
+      "y": -112,
+      "h": 47,
+      "visible_without_scroll": false
+    },
+    "result_image": {
+      "x": 1633,
+      "y": -22,
+      "w": 253,
+      "h": 253
+    },
+    "canvas_image": null,
+    "history": {
+      "x": 1633,
+      "y": 512,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 19,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "07-recent-generations--1280x720": {
+    "viewport": [
+      1280,
+      720
+    ],
+    "devicePixelRatio": 1,
+    "document_scroll": [
+      1265,
+      2191
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": -1403,
+      "w": 245,
+      "h": 2123
+    },
+    "center": {
+      "x": 453,
+      "y": -1403,
+      "w": 520,
+      "h": 2123
+    },
+    "canvas": {
+      "x": 477,
+      "y": -1349,
+      "w": 472,
+      "h": 290
+    },
+    "inspector": {
+      "x": 973,
+      "y": -1403,
+      "w": 292,
+      "h": 2123
+    },
+    "inspector_scroll": {
+      "scrollHeight": 2123,
+      "clientHeight": 2123,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 993,
+      "y": -1189,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Transform locally",
+      "y": -472,
+      "h": 47,
+      "visible_without_scroll": false
+    },
+    "result_image": {
+      "x": 993,
+      "y": -382,
+      "w": 253,
+      "h": 253
+    },
+    "canvas_image": null,
+    "history": {
+      "x": 993,
+      "y": 152,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 19,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "07-recent-generations--1920x1080@125pct": {
+    "viewport": [
+      1536,
+      864
+    ],
+    "devicePixelRatio": 1.25,
+    "document_scroll": [
+      1521,
+      2191
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": -1259,
+      "w": 245,
+      "h": 2123
+    },
+    "center": {
+      "x": 453,
+      "y": -1259,
+      "w": 776,
+      "h": 2123
+    },
+    "canvas": {
+      "x": 477,
+      "y": -1205,
+      "w": 728,
+      "h": 410
+    },
+    "inspector": {
+      "x": 1229,
+      "y": -1259,
+      "w": 292,
+      "h": 2123
+    },
+    "inspector_scroll": {
+      "scrollHeight": 2123,
+      "clientHeight": 2123,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 1249,
+      "y": -1045,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Transform locally",
+      "y": -328,
+      "h": 47,
+      "visible_without_scroll": false
+    },
+    "result_image": {
+      "x": 1249,
+      "y": -238,
+      "w": 253,
+      "h": 253
+    },
+    "canvas_image": null,
+    "history": {
+      "x": 1249,
+      "y": 296,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 19,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "08-result-opened-in-canvas--1440x900": {
+    "viewport": [
+      1440,
+      900
+    ],
+    "devicePixelRatio": 1,
+    "document_scroll": [
+      1425,
+      2521
+    ],
+    "horizontal_overflow": false,
+    "media_panel": {
+      "x": 208,
+      "y": 68,
+      "w": 245,
+      "h": 2453
+    },
+    "center": {
+      "x": 453,
+      "y": 68,
+      "w": 680,
+      "h": 2453
+    },
+    "canvas": {
+      "x": 477,
+      "y": 122,
+      "w": 632,
+      "h": 356
+    },
+    "inspector": {
+      "x": 1133,
+      "y": 68,
+      "w": 292,
+      "h": 2453
+    },
+    "inspector_scroll": {
+      "scrollHeight": 2453,
+      "clientHeight": 2453,
+      "overflowY": "visible"
+    },
+    "prompt": {
+      "x": 1153,
+      "y": 282,
+      "w": 253,
+      "h": 143
+    },
+    "primary_button": {
+      "text": "Transform locally",
+      "y": 999,
+      "h": 47,
+      "visible_without_scroll": false
+    },
+    "result_image": {
+      "x": 1153,
+      "y": 1089,
+      "w": 253,
+      "h": 253
+    },
+    "canvas_image": {
+      "rendered": {
+        "x": 478,
+        "y": 123,
+        "w": 630,
+        "h": 510
+      },
+      "natural": [
+        1024,
+        1024
+      ]
+    },
+    "history": {
+      "x": 1153,
+      "y": 1623,
+      "w": 253,
+      "h": 544
+    },
+    "history_items": 19,
+    "font_sizes": {
+      "inspector_hint": "12px",
+      "field_label": "11px"
+    }
+  },
+  "tab_order": [
+    "button:▤ Projects",
+    "button:▣ Studio",
+    "button:◈ Models",
+    "button:⚙ Settings",
+    "button:No project open",
+    "button:Model manager",
+    "button:＋ Import media",
+    "button:▧generated-67f7ae6d.pngimage ·",
+    "button:Remove generated-67f7ae6d.png",
+    "select:capability",
+    "textarea:prompt",
+    "select:gen-model",
+    "select:gen-source",
+    "button:Refresh starting images",
+    "input:gen-strength",
+    "input:gen-negative",
+    "input:INPUT",
+    "input:INPUT",
+    "input:INPUT",
+    "button:Transform locally",
+    "button:Save to Pictures (may sync)",
+    "button:Open in studio",
+    "button:Unload model from GPU",
+    "button:Refresh",
+    "button:Open",
+    "button:Save copy",
+    "button:Open",
+    "button:Save copy",
+    "button:Open",
+    "button:Save copy",
+    "button:Open",
+    "button:Save copy",
+    "button:Open",
+    "button:Save copy",
+    "button:Open",
+    "button:Save copy",
+    "button:Open",
+    "button:Save copy",
+    "button:Open",
+    "button:Save copy"
+  ]
+}
