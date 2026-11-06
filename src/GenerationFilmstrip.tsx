@@ -58,7 +58,7 @@ export default function GenerationFilmstrip({ refreshVersion, selectedId, onSele
       {records.map((item) => <div role="listitem" key={item.job_id}>
         <button type="button" className={selectedId === item.job_id ? "create-thumbnail selected" : "create-thumbnail"}
           aria-label={`Select image generated on ${new Date(item.created_unix_ms).toLocaleString()}`}
-          aria-pressed={selectedId === item.job_id} title={item.prompt || "Untitled generation"}
+          aria-pressed={selectedId === item.job_id} title={new Date(item.created_unix_ms).toLocaleString()}
           disabled={working !== null} onClick={() => void choose(item)}>
           {previewsRevealed ? <GenerationThumbnail jobId={item.job_id} /> : <span className="generation-thumbnail" aria-hidden="true">▧</span>}
           <span className="create-thumbnail-name">{item.source ? "Variation" : "Image"} · {item.output.width}×{item.output.height}</span>
