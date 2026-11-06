@@ -43,4 +43,6 @@ test("History does not render sensitive thumbnails or select source by default",
   assert.doesNotMatch(history, /item\.prompt/);
   assert.match(engine, /item\.id\.slice\(0, 8\)\} · \{item\.width\}/);
   assert.match(engine, /layout === "create" \? "" : valid\[0\]/);
+  assert.match(engine, /className="create-progress"/);
+  assert.match(engine, /aria-live="polite"/);
 });
