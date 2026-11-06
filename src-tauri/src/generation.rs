@@ -577,13 +577,28 @@ pub fn loaded_model() -> Option<(String, String)> {
 }
 
 pub fn list_outputs(app_local: &Path) -> Vec<Provenance> {
-    let mut out: Vec<Provenance> = fs::read_dir(outputs_dir(app_local))
+    let root = outputs_dir(app_local);
+    let Ok(metadata) = fs::symlink_metadata(&root) else {
+        return Vec::new();
+    };
+    if !metadata.is_dir()
+        || metadata.file_type().is_symlink()
+        || output_is_reparse_point(&metadata)
+    {
+        return Vec::new();
+    }
+    let mut out: Vec<Provenance> = fs::read_dir(&root)
         .into_iter()
         .flatten()
         .flatten()
         .filter(|e| e.path().extension().is_some_and(|x| x == "json"))
-        .filter_map(|e| serde_json::from_slice::<Provenance>(&fs::read(e.path()).ok()?).ok())
-        .filter(|p| valid_job_id(&p.job_id))
+        .filter_map(|e| {
+            let bytes = read_output_file(&e.path(), MAX_OUTPUT_RECORD_BYTES).ok()?;
+            let record = serde_json::from_slice::<Provenance>(&bytes).ok()?;
+            (valid_job_id(&record.job_id)
+                && e.file_name().to_string_lossy() == format!("{}.json", record.job_id))
+            .then_some(record)
+        })
         .collect();
     out.sort_by_key(|p| std::cmp::Reverse(p.created_unix_ms));
     out.truncate(100);
@@ -815,6 +830,20 @@ mod tests {
         fs::write(&record, serde_json::to_vec(&bad).unwrap()).unwrap();
         assert!(save_copy(&local, &pictures, &id).is_err());
         assert!(!pictures.join("Optic Rift").exists());
+        fs::remove_dir_all(local).unwrap();
+    }
+
+    #[test]
+    fn history_only_lists_bounded_records_matching_their_filenames() {
+        let local = std::env::temp_dir().join(format!("optic-rift-gen-{}", uuid::Uuid::new_v4()));
+        let id = uuid::Uuid::new_v4().to_string();
+        write_output_pair(&local, &id);
+        assert_eq!(list_outputs(&local).len(), 1);
+        let invalid_name = outputs_dir(&local).join("unrelated.json");
+        fs::copy(outputs_dir(&local).join(format!("{id}.json")), &invalid_name).unwrap();
+        assert_eq!(list_outputs(&local).len(), 1, "mismatched identity is ignored");
+        fs::write(invalid_name, vec![b'x'; 512 * 1024 + 1]).unwrap();
+        assert_eq!(list_outputs(&local).len(), 1, "oversized metadata is skipped");
         fs::remove_dir_all(local).unwrap();
     }
 
