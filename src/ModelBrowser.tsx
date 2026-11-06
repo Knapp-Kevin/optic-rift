@@ -67,7 +67,7 @@ export default function ModelBrowser({ includeAdult, onLibraryChanged }: Props) 
       <h2 className="model-section-title">Discover models on Hugging Face</h2>
       <form className="model-search" onSubmit={search}>
         <select aria-label="Capability" value={capability} onChange={(e) => { setCapability(e.target.value as Capability); setResult(null); setInspection(null); }}>
-          {capabilities.map((c) => <option key={c.id} value={c.id}>{c.label}{c.adapters.length ? "" : " (discover only)"}</option>)}
+          {capabilities.map((c) => <option key={c.id} value={c.id}>{c.label}{c.adapters.length ? "" : " (not runnable)"}</option>)}
         </select>
         <input aria-label="Search models" value={query} maxLength={120} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name, e.g. SDXL, SSD-1B, upscaler" />
         <button className="primary" type="submit" disabled={searching}>{searching ? "Searching…" : "Search"}</button>
