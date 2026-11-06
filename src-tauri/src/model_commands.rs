@@ -7,6 +7,7 @@ use crate::generation::{self, GenerateRequest, GpuInfo, Provenance};
 use crate::hf_catalog::{self, ModelDetail, SearchResult};
 use crate::model_store::{self, InstallRequest, InstalledModel, Manifest};
 use crate::runtime::{self, RuntimeManifest, RuntimeStatus};
+use crate::video_metadata_cache::{self, CacheReceipt, CacheRequest};
 use base64::Engine;
 use serde::Serialize;
 use std::path::PathBuf;
@@ -43,6 +44,7 @@ pub async fn catalog_search(
 #[derive(Serialize)]
 pub struct Inspection {
     detail: ModelDetail,
+    cached_metadata: bool,
     installed: Option<InstalledModel>,
     gpu: GpuInfo,
     runtime_installed: bool,
@@ -62,6 +64,7 @@ pub async fn catalog_inspect<R: tauri::Runtime>(
     let (data, local) = model_store::dirs(&app)?;
     let models = model_store::model_dir(&data, &local);
     Ok(Inspection {
+        cached_metadata: video_metadata_cache::cached_receipt(&local, &detail).is_some(),
         installed: model_store::find_installed(&models, &detail.id, &detail.revision),
         gpu: generation::gpu_info(),
         runtime_installed: runtime::manifest(&runtime::root(&local)).is_some(),
@@ -69,6 +72,33 @@ pub async fn catalog_inspect<R: tauri::Runtime>(
         model_dir: models,
         detail,
     })
+}
+
+/// Download and verify one inert public video configuration at an immutable source SHA.
+/// This does not install any weights or register an inference adapter.
+#[tauri::command]
+pub async fn video_cache_metadata<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
+    request: CacheRequest,
+) -> Result<CacheReceipt, String> {
+    let (_, local) = model_store::dirs(&app)?;
+    video_metadata_cache::cache_public_metadata(local, request).await
+}
+
+/// Clear only the receipt and JSON configuration belonging to one pinned model.
+#[tauri::command]
+pub async fn video_cache_clear<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
+    repo: String,
+    revision: String,
+    accept: bool,
+) -> Result<(), String> {
+    let (_, local) = model_store::dirs(&app)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        video_metadata_cache::remove_metadata(&local, &repo, &revision, accept)
+    })
+    .await
+    .map_err(|_| "Metadata cache cleanup stopped.".to_string())?
 }
 
 #[tauri::command]
