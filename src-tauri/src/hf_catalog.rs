@@ -351,6 +351,8 @@ pub struct ModelDetail {
     pub format: Format,
     pub repo_files: usize,
     pub repo_bytes: u64,
+    /// An inert, hash-addressable configuration sample. This is NOT model weights or execution support.
+    pub cache_metadata_file: Option<RepoFile>,
     pub plans: Vec<PlanView>,
     pub rejections: Vec<Rejection>,
     pub page_url: String,
@@ -388,6 +390,34 @@ fn repo_files(siblings: &[RawSibling]) -> Vec<RepoFile> {
             blob_id: s.blob_id.clone(),
         })
         .collect()
+}
+
+/// Metadata-only cache is deliberately much narrower than model-file installation.
+/// A video repository without a safely hash-identifiable, small config stays discover-only.
+pub fn video_cache_candidate(capability: Capability, files: &[RepoFile]) -> Option<RepoFile> {
+    if !matches!(
+        capability,
+        Capability::TextToVideo | Capability::ImageToVideo | Capability::VideoToVideo
+    ) {
+        return None;
+    }
+    const SMALL_CONFIG_BYTES: u64 = 256 * 1024;
+    for name in ["model_index.json", "config.json"] {
+        if let Some(file) = files.iter().find(|f| {
+            f.path == name
+                && f.size > 0
+                && f.size <= SMALL_CONFIG_BYTES
+                && (f.blob_id.as_ref().is_some_and(|id| valid_hash(id, 40))
+                    || f.lfs_sha256.as_ref().is_some_and(|id| valid_hash(id, 64)))
+        }) {
+            return Some(file.clone());
+        }
+    }
+    None
+}
+
+pub fn valid_hash(hash: &str, len: usize) -> bool {
+    hash.len() == len && hash.bytes().all(|ch| ch.is_ascii_hexdigit() && !ch.is_ascii_uppercase())
 }
 
 /// Inspect one repository at `revision` ("main" or a commit SHA) and evaluate every adapter.
@@ -495,6 +525,7 @@ pub async fn inspect(
         format: format_of(&names),
         repo_files: files.len(),
         repo_bytes: files.iter().map(|f| f.size).sum(),
+        cache_metadata_file: video_cache_candidate(capability, &files),
         page_url: format!("{HUB}/{id}"),
         id: raw.id,
         revision: sha,
@@ -510,6 +541,33 @@ pub async fn inspect(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn cache_preview_is_only_small_hash_identified_video_config() {
+        let f = |path: &str, size: u64, hash: Option<&str>| RepoFile {
+            path: path.into(), size, lfs_sha256: None, blob_id: hash.map(str::to_owned),
+        };
+        let sha = "a".repeat(40);
+        let list = vec![
+            f("README.md", 100, Some(&sha)),
+            f("model_index.json", 1133, Some(&sha)),
+            f("transformer/model.safetensors", 2000, Some(&sha)),
+        ];
+        for task in [
+            Capability::TextToVideo, Capability::ImageToVideo, Capability::VideoToVideo,
+        ] {
+            let selected = video_cache_candidate(task, &list).unwrap();
+            assert_eq!(selected.path, "model_index.json");
+            assert_eq!(selected.size, 1133);
+        }
+        assert!(video_cache_candidate(Capability::TextToImage, &list).is_none());
+        assert!(video_cache_candidate(Capability::TextToVideo, &[f("model_index.json", 0, Some(&sha))]).is_none());
+        assert!(video_cache_candidate(Capability::TextToVideo, &[f("model_index.json", 262_145, Some(&sha))]).is_none());
+        assert!(video_cache_candidate(Capability::VideoToVideo, &[f("../config.json", 200, Some(&sha))]).is_none());
+        assert!(video_cache_candidate(Capability::VideoToVideo, &[f("model_index.json", 200, None)]).is_none());
+        assert!(video_cache_candidate(Capability::VideoToVideo, &[f("model_index.json", 200, Some("invalid"))]).is_none());
+        assert!(video_cache_candidate(Capability::VideoToVideo, &[f("model_index.json", 200, Some(&"A".repeat(40)))]).is_none());
+    }
 
     #[test]
     fn repo_ids_and_revisions_are_strict() {
