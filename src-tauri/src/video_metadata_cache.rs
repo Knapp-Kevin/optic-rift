@@ -358,18 +358,46 @@ pub async fn cache_public_metadata(
         status: "metadata-only".into(),
     };
     tauri::async_runtime::spawn_blocking(move || {
-        let dir = cache_folder(&app_local, &detail.id, &detail.revision)?;
-        if cached_receipt(&app_local, &detail).is_some() {
-            return Err("Configuration metadata is already cached and verified.".into());
-        }
-        publish_new_file(&dir, &file.path, &bytes)?;
-        let manifest = serde_json::to_vec_pretty(&receipt)
-            .map_err(|_| "Could not create metadata receipt.".to_string())?;
-        publish_new_file(&dir, RECEIPT_NAME, &manifest)?;
+        store_verified(&app_local, &detail, &file, &bytes, &receipt)?;
         Ok(receipt)
     })
     .await
     .map_err(|_| "Metadata cache task could not complete.".to_string())?
+}
+
+/// Publish an already source-verified configuration and then its receipt.
+///
+/// The two files cannot be published atomically. If an earlier attempt stopped after
+/// the configuration but before the receipt, that orphan would otherwise block every
+/// later cache attempt and could not be cleared (clearing requires a receipt). Such an
+/// orphan is adopted only when it is a regular file byte-identical to the freshly
+/// verified source; anything else is refused and nothing is overwritten.
+fn store_verified(
+    app_local: &Path,
+    detail: &ModelDetail,
+    file: &RepoFile,
+    bytes: &[u8],
+    receipt: &CacheReceipt,
+) -> Result<(), String> {
+    let dir = cache_folder(app_local, &detail.id, &detail.revision)?;
+    if cached_receipt(app_local, detail).is_some() {
+        return Err("Configuration metadata is already cached and verified.".into());
+    }
+    let config_path = dir.join(&file.path);
+    if fs::symlink_metadata(&config_path).is_ok() {
+        let existing = safe_read_file(&config_path, MAX_JSON_BYTES as u64)?;
+        if existing != bytes {
+            return Err(
+                "A different configuration file is already in the cache folder; nothing was overwritten."
+                    .into(),
+            );
+        }
+    } else {
+        publish_new_file(&dir, &file.path, bytes)?;
+    }
+    let manifest = serde_json::to_vec_pretty(receipt)
+        .map_err(|_| "Could not create metadata receipt.".to_string())?;
+    publish_new_file(&dir, RECEIPT_NAME, &manifest)
 }
 
 /// Remove only our two cache files after checking exact identity and layout.
@@ -476,6 +504,310 @@ mod tests {
             adult_acknowledged: false,
             accept: true,
         }
+    }
+
+    fn temp_root() -> PathBuf {
+        let root = std::env::temp_dir().join(format!("optic-video-q-{}", uuid::Uuid::new_v4()));
+        fs::create_dir(&root).unwrap();
+        root
+    }
+
+    fn fixture_receipt(d: &ModelDetail, bytes: &[u8]) -> CacheReceipt {
+        CacheReceipt {
+            repo: d.id.clone(),
+            revision: d.revision.clone(),
+            capability: d.capability,
+            source_license: "unknown".into(),
+            source_audience: d.audience.into(),
+            filename: "model_index.json".into(),
+            sha256: digest_sha256(bytes),
+            bytes: bytes.len() as u64,
+            cached_unix_ms: 1,
+            status: "metadata-only".into(),
+        }
+    }
+
+    const FIXTURE: &[u8] = b"{\"_class_name\":\"LTXPipeline\"}";
+
+    #[test]
+    fn refused_top_level_requests_fail_before_any_network_or_disk_access() {
+        let root = std::env::temp_dir().join(format!("optic-video-none-{}", uuid::Uuid::new_v4()));
+        let mut cases = Vec::new();
+        let mut r = req();
+        r.accept = false;
+        cases.push(r);
+        let mut r = req();
+        r.repo = "not a repo".into();
+        cases.push(r);
+        let mut r = req();
+        r.revision = "main".into();
+        cases.push(r);
+        let mut r = req();
+        r.capability = Capability::TextToImage;
+        cases.push(r);
+        for r in cases {
+            // The pre-check message is produced only before inspection, so no request was made.
+            let err =
+                tauri::async_runtime::block_on(cache_public_metadata(root.clone(), r)).unwrap_err();
+            assert!(err.starts_with("Cache request lacks"), "{err}");
+        }
+        assert!(!root.exists(), "nothing was created on disk");
+    }
+
+    #[test]
+    fn admission_refuses_missing_or_unverifiable_candidates_and_bad_identity() {
+        let mut d = detail(false, "no", None);
+        d.cache_metadata_file = None;
+        assert!(admit(&req(), &d).unwrap_err().contains("No small"));
+        for (path, size, blob) in [
+            ("../model_index.json", 10, Some("a".repeat(40))),
+            ("weights.safetensors", 10, Some("a".repeat(40))),
+            ("model_index.json", 0, Some("a".repeat(40))),
+            ("model_index.json", 262_145, Some("a".repeat(40))),
+            ("model_index.json", 10, Some("A".repeat(40))),
+            ("model_index.json", 10, Some("a".repeat(39))),
+            ("model_index.json", 10, None),
+        ] {
+            let mut d = detail(false, "no", None);
+            d.cache_metadata_file = Some(RepoFile {
+                path: path.into(),
+                size,
+                blob_id: blob,
+                lfs_sha256: None,
+            });
+            assert!(admit(&req(), &d).is_err(), "{path} {size}");
+        }
+        for gated in ["auto", "manual", "yes", ""] {
+            assert!(
+                admit(&req(), &detail(false, gated, None)).is_err(),
+                "{gated}"
+            );
+        }
+        let mut r = req();
+        r.repo = "../escape".into();
+        assert!(admit(&r, &detail(false, "no", None)).is_err());
+        let mut d = detail(false, "no", None);
+        d.pipeline_tag = None;
+        assert!(admit(&req(), &d).unwrap_err().contains("declared task"));
+        let mut r = req();
+        r.license_acknowledged = "apache-2.0".into();
+        assert!(admit(&r, &detail(false, "no", Some("mit"))).is_err());
+        r.license_acknowledged = "mit".into();
+        assert!(admit(&r, &detail(false, "no", Some("mit"))).is_ok());
+    }
+
+    #[test]
+    fn verify_download_refuses_size_hash_and_json_mismatches() {
+        let good = RepoFile {
+            path: "model_index.json".into(),
+            size: FIXTURE.len() as u64,
+            blob_id: Some(git_blob_id(FIXTURE)),
+            lfs_sha256: None,
+        };
+        assert!(verify_download(FIXTURE, &good).is_ok());
+        let mut altered = FIXTURE.to_vec();
+        altered[2] ^= 1;
+        assert!(verify_download(&altered, &good)
+            .unwrap_err()
+            .contains("Git blob"));
+        assert!(verify_download(&FIXTURE[1..], &good)
+            .unwrap_err()
+            .contains("size"));
+        assert!(verify_download(b"", &good).is_err());
+        let mut lfs = good.clone();
+        lfs.blob_id = None;
+        lfs.lfs_sha256 = Some("0".repeat(64));
+        assert!(verify_download(FIXTURE, &lfs)
+            .unwrap_err()
+            .contains("SHA-256"));
+        let truncated = b"{\"_class_name\":";
+        let corrupt = RepoFile {
+            path: "model_index.json".into(),
+            size: truncated.len() as u64,
+            blob_id: Some(git_blob_id(truncated)),
+            lfs_sha256: None,
+        };
+        assert!(verify_download(truncated, &corrupt)
+            .unwrap_err()
+            .contains("JSON"));
+        let mut none = good.clone();
+        none.blob_id = None;
+        assert!(verify_download(FIXTURE, &none).is_err());
+    }
+
+    #[test]
+    fn status_inspection_is_read_only_and_rejects_tampering() {
+        let root = temp_root();
+        let d = detail(false, "no", None);
+        assert!(cached_receipt(&root, &d).is_none());
+        assert!(
+            !root.join(CACHE_DIR).exists(),
+            "inspection must not create cache folders"
+        );
+        let receipt = fixture_receipt(&d, FIXTURE);
+        store_verified(
+            &root,
+            &d,
+            d.cache_metadata_file.as_ref().unwrap(),
+            FIXTURE,
+            &receipt,
+        )
+        .unwrap();
+        assert!(cached_receipt(&root, &d).is_some());
+        let dir = existing_cache_folder(&root, &d.id, &d.revision).unwrap();
+        // Duplicate cache attempts are refused and change nothing.
+        let before = fs::read(dir.join(RECEIPT_NAME)).unwrap();
+        assert!(store_verified(
+            &root,
+            &d,
+            d.cache_metadata_file.as_ref().unwrap(),
+            FIXTURE,
+            &receipt
+        )
+        .unwrap_err()
+        .contains("already cached"));
+        assert_eq!(fs::read(dir.join(RECEIPT_NAME)).unwrap(), before);
+        // Corrupt receipt, mismatched receipt identity and tampered payload all read as not cached.
+        fs::remove_file(dir.join(RECEIPT_NAME)).unwrap();
+        fs::write(dir.join(RECEIPT_NAME), b"{not json").unwrap();
+        assert!(cached_receipt(&root, &d).is_none());
+        let mut other = receipt.clone();
+        other.revision = "b".repeat(40);
+        fs::remove_file(dir.join(RECEIPT_NAME)).unwrap();
+        fs::write(dir.join(RECEIPT_NAME), serde_json::to_vec(&other).unwrap()).unwrap();
+        assert!(cached_receipt(&root, &d).is_none());
+        fs::remove_file(dir.join(RECEIPT_NAME)).unwrap();
+        fs::write(
+            dir.join(RECEIPT_NAME),
+            serde_json::to_vec(&receipt).unwrap(),
+        )
+        .unwrap();
+        assert!(cached_receipt(&root, &d).is_some());
+        fs::remove_file(dir.join("model_index.json")).unwrap();
+        fs::write(
+            dir.join("model_index.json"),
+            b"{\"_class_name\":\"LTXPipelinf\"}",
+        )
+        .unwrap();
+        assert!(cached_receipt(&root, &d).is_none());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn orphaned_config_is_adopted_only_when_byte_identical() {
+        let root = temp_root();
+        let d = detail(false, "no", None);
+        let file = d.cache_metadata_file.clone().unwrap();
+        let receipt = fixture_receipt(&d, FIXTURE);
+        // Simulate a stop between the configuration and its receipt.
+        let dir = cache_folder(&root, &d.id, &d.revision).unwrap();
+        publish_new_file(&dir, "model_index.json", FIXTURE).unwrap();
+        assert!(cached_receipt(&root, &d).is_none());
+        store_verified(&root, &d, &file, FIXTURE, &receipt).unwrap();
+        assert!(cached_receipt(&root, &d).is_some());
+        remove_metadata(&root, &d.id, &d.revision, true).unwrap();
+        assert!(!dir.exists(), "clear removes the emptied revision folder");
+        // A different orphan is never overwritten or adopted.
+        let dir = cache_folder(&root, &d.id, &d.revision).unwrap();
+        publish_new_file(&dir, "model_index.json", b"{\"user\":\"data\"}").unwrap();
+        assert!(store_verified(&root, &d, &file, FIXTURE, &receipt)
+            .unwrap_err()
+            .contains("different configuration"));
+        assert_eq!(
+            fs::read(dir.join("model_index.json")).unwrap(),
+            b"{\"user\":\"data\"}"
+        );
+        assert!(!dir.join(RECEIPT_NAME).exists());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn clear_refuses_inconsistent_receipts_tampering_and_partials() {
+        let root = temp_root();
+        let d = detail(false, "no", None);
+        let receipt = fixture_receipt(&d, FIXTURE);
+        store_verified(
+            &root,
+            &d,
+            d.cache_metadata_file.as_ref().unwrap(),
+            FIXTURE,
+            &receipt,
+        )
+        .unwrap();
+        let dir = existing_cache_folder(&root, &d.id, &d.revision).unwrap();
+        let rewrite = |r: &CacheReceipt| {
+            fs::remove_file(dir.join(RECEIPT_NAME)).unwrap();
+            fs::write(dir.join(RECEIPT_NAME), serde_json::to_vec(r).unwrap()).unwrap();
+        };
+        assert!(remove_metadata(&root, &d.id, "not-a-sha", true).is_err());
+        assert!(remove_metadata(&root, "../x", &d.revision, true).is_err());
+        let mut traversal = receipt.clone();
+        traversal.filename = "../../model_index.json".into();
+        rewrite(&traversal);
+        assert!(remove_metadata(&root, &d.id, &d.revision, true).is_err());
+        let mut wrong_status = receipt.clone();
+        wrong_status.status = "installed".into();
+        rewrite(&wrong_status);
+        assert!(remove_metadata(&root, &d.id, &d.revision, true).is_err());
+        let mut wrong_hash = receipt.clone();
+        wrong_hash.sha256 = "0".repeat(64);
+        rewrite(&wrong_hash);
+        assert!(remove_metadata(&root, &d.id, &d.revision, true).is_err());
+        fs::remove_file(dir.join(RECEIPT_NAME)).unwrap();
+        fs::write(dir.join(RECEIPT_NAME), b"{corrupt").unwrap();
+        assert!(remove_metadata(&root, &d.id, &d.revision, true).is_err());
+        rewrite(&receipt);
+        fs::write(dir.join(".model_index.json.partial-x"), b"{}").unwrap();
+        assert!(remove_metadata(&root, &d.id, &d.revision, true)
+            .unwrap_err()
+            .contains("other files"));
+        // Every refusal above left both files in place.
+        assert_eq!(fs::read(dir.join("model_index.json")).unwrap(), FIXTURE);
+        fs::remove_file(dir.join(".model_index.json.partial-x")).unwrap();
+        remove_metadata(&root, &d.id, &d.revision, true).unwrap();
+        assert!(cached_receipt(&root, &d).is_none());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn junctioned_cache_folders_are_never_used_or_cleared() {
+        let root = temp_root();
+        let elsewhere = temp_root();
+        let d = detail(false, "no", None);
+        let receipt = fixture_receipt(&d, FIXTURE);
+        store_verified(
+            &elsewhere,
+            &d,
+            d.cache_metadata_file.as_ref().unwrap(),
+            FIXTURE,
+            &receipt,
+        )
+        .unwrap();
+        // Directory junctions need no elevation, unlike symbolic links.
+        let status = std::process::Command::new("cmd")
+            .args(["/C", "mklink", "/J"])
+            .arg(root.join(CACHE_DIR))
+            .arg(elsewhere.join(CACHE_DIR))
+            .output()
+            .unwrap();
+        assert!(status.status.success(), "mklink /J failed: {status:?}");
+        assert!(cached_receipt(&root, &d).is_none());
+        assert!(remove_metadata(&root, &d.id, &d.revision, true).is_err());
+        assert!(store_verified(
+            &root,
+            &d,
+            d.cache_metadata_file.as_ref().unwrap(),
+            FIXTURE,
+            &receipt
+        )
+        .unwrap_err()
+        .contains("redirected"));
+        // The real target is untouched.
+        assert!(cached_receipt(&elsewhere, &d).is_some());
+        fs::remove_dir(root.join(CACHE_DIR)).unwrap();
+        fs::remove_dir_all(root).unwrap();
+        fs::remove_dir_all(elsewhere).unwrap();
     }
 
     #[test]
