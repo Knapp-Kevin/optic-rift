@@ -65,7 +65,7 @@ export async function renderAdjustedPhoto(
   const response = await fetch(sourceUrl);
   if (!response.ok) throw new Error("The source photo is no longer available.");
   const source = await response.blob();
-  if (!source.type.startsWith("image/") || !source.size || source.size > MAX_PHOTO_SOURCE_BYTES) {
+  if (!["image/png", "image/jpeg", "image/webp"].includes(source.type) || !source.size || source.size > MAX_PHOTO_SOURCE_BYTES) {
     throw new Error("The source photo exceeds the supported 32 MB export limit.");
   }
   // Source hash is a browser-observed lineage hint, not a native-authenticated
