@@ -286,7 +286,7 @@ export default function GeneratePanel({ prompt, mode, layout = "inspector", onPr
           <label htmlFor="create-source">Starting image</label>
           <select id="create-source" value={sourceId} disabled={jobId !== null || checking} onChange={(e) => setSourceId(e.target.value)}>
             {!sources.length && <option value="">No saved generations yet</option>}
-            {sources.map((item) => <option key={item.id} value={item.id}>{item.label} · {item.width}×{item.height}</option>)}
+            {sources.map((item) => <option key={item.id} value={item.id}>{item.id.slice(0, 8)} · {item.width}×{item.height}</option>)}
           </select>
           <label htmlFor="create-strength">Change strength: {strength.toFixed(2)}</label>
           <input id="create-strength" type="range" min={0.05} max={0.95} step={0.05} value={strength} disabled={jobId !== null} onChange={(e) => setStrength(Number(e.target.value))} />
