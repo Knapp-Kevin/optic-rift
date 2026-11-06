@@ -70,7 +70,8 @@ test("Photo edit values match the displayed inspector range", () => {
 
 test("Source photo cannot trigger remote fetch or an arbitrary filesystem destination", () => {
   const edit = here("../src/photoEdits.ts");
-  const native = here("../src-tauri/src/photo_export.rs");
+  // Production code only: the Windows junction test legitimately runs `mklink`.
+  const native = here("../src-tauri/src/photo_export.rs").split("#[cfg(test)]")[0];
   const ipc = here("../src-tauri/src/lib.rs");
   assert.match(edit, /sourceUrl\.startsWith\("blob:"\)/);
   assert.match(edit, /canvas\.toBlob/);
@@ -78,7 +79,7 @@ test("Source photo cannot trigger remote fetch or an arbitrary filesystem destin
   assert.match(edit, /crypto\.subtle\.digest\("SHA-256"/);
   assert.match(native, /if !r\.accept_pictures_export/);
   assert.match(native, /fn decode_verified_png/);
-  assert.match(native, /reader\.next_frame/);
+  assert.match(native, /reader\s*\.next_frame/);
   assert.match(native, /fs::hard_link\(&stage_png, &png_path\)/);
   assert.match(native, /fs::hard_link\(&stage_receipt, &receipt_path\)/);
   assert.match(native, /source_sha256_webview_reported/);
@@ -94,4 +95,22 @@ test("Photo Studio offers a real save action but honestly labels current limits"
   assert.match(app, /OneDrive/);
   assert.match(app, /not save an asset into this project/);
   assert.doesNotMatch(app, /Exporting adjusted images is not implemented yet/);
+});
+
+test("Quarter-turn preview fits the frame like the export, and type errors are not reported as size errors", () => {
+  const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../src/styles.css", import.meta.url), "utf8");
+  const edits = readFileSync(new URL("../src/photoEdits.ts", import.meta.url), "utf8");
+  // A 90/270 turn swaps the box to the frame's height x width before rotating, so nothing is clipped.
+  assert.match(app, /className=\{rotation % 180 === 90 \? "quarter-turn" : undefined\}/);
+  assert.match(app, /\(rotation % 180 === 90 \? "translate\(-50%, -50%\) " : ""\) \+ "rotate\("/);
+  assert.match(css, /\.canvas\{container-type:size\}/);
+  assert.match(css, /\.canvas img\.quarter-turn\{position:absolute;left:50%;top:50%;width:100cqh;height:100cqw;max-width:none;max-height:none\}/);
+  assert.match(edits, /Only PNG, JPEG and WebP photos can be exported\. This file type is not supported\./);
+});
+
+test("Edit media stays within the viewport on desktop; its columns scroll on their own", () => {
+  const css = readFileSync(new URL("../src/styles.css", import.meta.url), "utf8");
+  assert.match(css, /@media\(min-width:1201px\)\{\s*\.studio-tabs~\.workspace\{flex:none;height:calc\(100vh - 120px\);min-height:0\}/);
+  assert.match(css, /\.studio-tabs~\.workspace>\.editor-inspector\{min-height:0;overflow-y:auto;overscroll-behavior:contain\}/);
 });

@@ -136,7 +136,11 @@ export async function renderAdjustedPhoto(
   const response = await fetch(sourceUrl);
   if (!response.ok) throw new Error("The source photo is no longer available.");
   const source = await response.blob();
-  if (!["image/png", "image/jpeg", "image/webp"].includes(source.type) || !source.size || source.size > MAX_PHOTO_SOURCE_BYTES) {
+  // Separate messages: an SVG or other type previously reported a misleading size error.
+  if (!["image/png", "image/jpeg", "image/webp"].includes(source.type)) {
+    throw new Error("Only PNG, JPEG and WebP photos can be exported. This file type is not supported.");
+  }
+  if (!source.size || source.size > MAX_PHOTO_SOURCE_BYTES) {
     throw new Error("The source photo exceeds the supported 32 MB export limit.");
   }
   // Source hash is a browser-observed lineage hint, not a native-authenticated

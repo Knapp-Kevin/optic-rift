@@ -39,7 +39,9 @@ pub struct PhotoExportReceipt {
 }
 
 fn valid_source_hash(s: &str) -> bool {
-    s.len() == 64 && s.bytes().all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+    s.len() == 64
+        && s.bytes()
+            .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
 }
 
 fn validate_request(r: &PhotoExportRequest) -> Result<(), String> {
@@ -80,19 +82,22 @@ fn decode_verified_png(r: &PhotoExportRequest) -> Result<Vec<u8>, String> {
     decoder.set_transformations(png::Transformations::EXPAND | png::Transformations::STRIP_16);
     decoder.set_ignore_text_chunk(true);
     decoder.set_ignore_iccp_chunk(true);
-    let mut reader = decoder.read_info()
+    let mut reader = decoder
+        .read_info()
         .map_err(|_| "The exported photo has an invalid PNG header.".to_string())?;
     let info = reader.info();
     if info.width != r.width || info.height != r.height {
         return Err("The image dimensions do not match the export request.".into());
     }
-    let capacity = reader.output_buffer_size()
+    let capacity = reader
+        .output_buffer_size()
         .ok_or("The PNG exceeds the decoded memory limit.")?;
     if capacity > MAX_DECODE_BYTES {
         return Err("The PNG exceeds the decoded memory limit.".into());
     }
     let mut buffer = vec![0; capacity];
-    let frame = reader.next_frame(&mut buffer)
+    let frame = reader
+        .next_frame(&mut buffer)
         .map_err(|_| "The PNG data is truncated or corrupted.".to_string())?;
     if frame.width != r.width || frame.height != r.height {
         return Err("The PNG frame size differs from its header.".into());
@@ -114,13 +119,18 @@ fn check_directory(path: &Path) -> Result<(), String> {
     let meta = fs::symlink_metadata(path)
         .map_err(|_| "The Pictures export directory is unavailable.".to_string())?;
     if !meta.is_dir() || meta.file_type().is_symlink() || is_reparse(&meta) {
-        return Err("The Pictures export path is linked or redirected; no files were written.".into());
+        return Err(
+            "The Pictures export path is linked or redirected; no files were written.".into(),
+        );
     }
     Ok(())
 }
 
 fn write_stage(path: &Path, bytes: &[u8]) -> Result<(), String> {
-    let mut file = OpenOptions::new().write(true).create_new(true).open(path)
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(path)
         .map_err(|_| "Cannot create a unique export staging file.".to_string())?;
     let saved = file.write_all(bytes).and_then(|_| file.sync_all());
     drop(file);
@@ -132,7 +142,8 @@ fn write_stage(path: &Path, bytes: &[u8]) -> Result<(), String> {
 }
 
 pub fn export_to_pictures(
-    pictures: &Path, request: PhotoExportRequest,
+    pictures: &Path,
+    request: PhotoExportRequest,
 ) -> Result<PhotoExportReceipt, String> {
     let bytes = decode_verified_png(&request)?; // fail before any filesystem writes
     check_directory(pictures)?;
@@ -187,8 +198,9 @@ pub fn export_to_pictures(
         write_stage(&stage_receipt, &metadata)?;
         // Hard-link publication is non-overwriting on both Windows NTFS and
         // other supported filesystems. No unverified replacement of user files.
-        fs::hard_link(&stage_png, &png_path)
-            .map_err(|_| "Could not publish a new photo without overwriting another file.".to_string())?;
+        fs::hard_link(&stage_png, &png_path).map_err(|_| {
+            "Could not publish a new photo without overwriting another file.".to_string()
+        })?;
         linked_png = true;
         fs::hard_link(&stage_receipt, &receipt_path)
             .map_err(|_| "Could not publish the matching photo export receipt.".to_string())?;
@@ -219,8 +231,12 @@ mod tests {
         PhotoExportRequest {
             png_base64: base64::engine::general_purpose::STANDARD.encode(png),
             source_sha256: "a".repeat(64),
-            brightness: 100, contrast: 100, rotation: 0,
-            width: 2, height: 1, accept_pictures_export: true,
+            brightness: 100,
+            contrast: 100,
+            rotation: 0,
+            width: 2,
+            height: 1,
+            accept_pictures_export: true,
         }
     }
 
@@ -229,7 +245,9 @@ mod tests {
         let mut request = fixture();
         assert!(decode_verified_png(&request).is_ok());
         request.accept_pictures_export = false;
-        assert!(decode_verified_png(&request).unwrap_err().contains("Approve export"));
+        assert!(decode_verified_png(&request)
+            .unwrap_err()
+            .contains("Approve export"));
         request = fixture();
         request.brightness = 200;
         assert!(decode_verified_png(&request).is_err());
@@ -267,8 +285,111 @@ mod tests {
     }
 
     #[test]
+    fn refusals_happen_before_any_file_is_written() {
+        let root =
+            std::env::temp_dir().join(format!("optic-photo-refuse-{}", uuid::Uuid::new_v4()));
+        fs::create_dir(&root).unwrap();
+        let good = fixture();
+        let png = base64::engine::general_purpose::STANDARD
+            .decode(&good.png_base64)
+            .unwrap();
+        let mut cases: Vec<(&str, PhotoExportRequest)> = Vec::new();
+        let mut r = fixture();
+        r.accept_pictures_export = false;
+        cases.push(("no consent", r));
+        let mut r = fixture();
+        r.rotation = 45;
+        cases.push(("rotation", r));
+        let mut r = fixture();
+        r.contrast = 24;
+        cases.push(("contrast", r));
+        let mut r = fixture();
+        r.source_sha256 = "A".repeat(64);
+        cases.push(("uppercase hash", r));
+        let mut r = fixture();
+        r.width = 9000;
+        r.height = 1;
+        cases.push(("edge limit", r));
+        let mut r = fixture();
+        r.width = 5000;
+        r.height = 5000;
+        cases.push(("pixel limit", r));
+        let mut r = fixture();
+        r.png_base64 = "A".repeat(MAX_PNG_BYTES.div_ceil(3) * 4 + 8);
+        cases.push(("huge base64", r));
+        let mut r = fixture();
+        r.png_base64 = base64::engine::general_purpose::STANDARD.encode(&png[..png.len() - 20]);
+        cases.push(("truncated pixel data", r));
+        let mut r = fixture();
+        r.png_base64 = base64::engine::general_purpose::STANDARD.encode(b"GIF89a not a png");
+        cases.push(("not png", r));
+        for (label, request) in cases {
+            assert!(export_to_pictures(&root, request).is_err(), "{label}");
+        }
+        assert!(
+            !root.join("Optic Rift").exists(),
+            "no folder or file before validation passes"
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn unknown_request_fields_are_rejected() {
+        let json = serde_json::json!({
+            "png_base64": "", "source_sha256": "a".repeat(64), "brightness": 100, "contrast": 100,
+            "rotation": 0, "width": 1, "height": 1, "accept_pictures_export": true,
+            "path": "C:\\Windows\\x.png"
+        });
+        assert!(serde_json::from_value::<PhotoExportRequest>(json).is_err());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn junctioned_optic_rift_folder_is_refused_without_writing() {
+        let root =
+            std::env::temp_dir().join(format!("optic-photo-junction-{}", uuid::Uuid::new_v4()));
+        let elsewhere =
+            std::env::temp_dir().join(format!("optic-photo-target-{}", uuid::Uuid::new_v4()));
+        fs::create_dir(&root).unwrap();
+        fs::create_dir(&elsewhere).unwrap();
+        // Directory junctions need no elevation, unlike symbolic links.
+        let status = std::process::Command::new("cmd")
+            .args(["/C", "mklink", "/J"])
+            .arg(root.join("Optic Rift"))
+            .arg(&elsewhere)
+            .output()
+            .unwrap();
+        assert!(status.status.success(), "mklink /J failed: {status:?}");
+        assert!(export_to_pictures(&root, fixture())
+            .unwrap_err()
+            .contains("redirected"));
+        assert_eq!(
+            fs::read_dir(&elsewhere).unwrap().count(),
+            0,
+            "nothing written through the junction"
+        );
+        // The Pictures root itself being a junction is refused too.
+        let linked_root =
+            std::env::temp_dir().join(format!("optic-photo-root-{}", uuid::Uuid::new_v4()));
+        let status = std::process::Command::new("cmd")
+            .args(["/C", "mklink", "/J"])
+            .arg(&linked_root)
+            .arg(&elsewhere)
+            .output()
+            .unwrap();
+        assert!(status.status.success());
+        assert!(export_to_pictures(&linked_root, fixture()).is_err());
+        assert_eq!(fs::read_dir(&elsewhere).unwrap().count(), 0);
+        fs::remove_dir(root.join("Optic Rift")).unwrap();
+        fs::remove_dir(&linked_root).unwrap();
+        fs::remove_dir_all(root).unwrap();
+        fs::remove_dir_all(elsewhere).unwrap();
+    }
+
+    #[test]
     fn export_refuses_redirected_destination_without_writing() {
-        let root = std::env::temp_dir().join(format!("optic-photo-invalid-{}", uuid::Uuid::new_v4()));
+        let root =
+            std::env::temp_dir().join(format!("optic-photo-invalid-{}", uuid::Uuid::new_v4()));
         assert!(export_to_pictures(&root, fixture()).is_err());
         assert!(!root.exists());
     }
