@@ -1,61 +1,95 @@
 # Optic Rift Architectural Index
 
-**Canonical path:** `docs/ARCHITECTURE_INDEX.md`
-**Status:** Established as the owner's required **product-truth routing index** on 2026-11-05. Registered designs retain their own Proposed/Accepted/Implemented/Qualified maturity; this index does not approve them.
+**Index identity:** `docs/ARCHITECTURE_INDEX.md` is Optic Rift's **one canonical architectural filing and product-truth routing index**. This identity was explicitly directed by the repository owner on 2026-11-05. All project READMEs and agent entry points route here; no README or Wayfinder issue is a competing architecture index.
 
-**This is the single architectural entry point.** The [root README](../README.md), [documentation README](README.md) and [agent instructions](../AGENTS.md) point here rather than maintaining separate architecture registers. The index is authoritative for **where product truth lives**, not a replacement for the sources and evidence that establish truth.
+**Adoption history:** The explicit index path was established on `main` through [PR #12](https://github.com/Knapp-Kevin/optic-rift/pull/12) at merge commit `2230f43459fe8e10a1c895a2189a7e13ab2969eb`. This proposal extends the owner register with eight still-**Proposed** design pages; their acceptance remains separately gated.
 
-## How to establish a product claim
+**Index status:** Established as the agreed *routing location*, **not** an independent architecture approval, runtime qualification, release authorization, or replacement for individual source owners. Individual documents own their actual claims. The source/decision/evidence supporting a claim is the truth for that claim, not a copied summary here.
 
-| Claim being made | Accountable source | What it does not establish |
+**Reading path:** [root README](../README.md) → **this index** → relevant owner source → executed evidence, where applicable.
+
+**Authority boundary:** This index routes each product/architecture claim to one accountable owner. It is not a second governance policy, architectural decision, code contract, qualification record, release approval or living roadmap. A registered proposal is still a proposal.
+
+## Product truth and claim precedence
+
+Use this index as the **only canonical map of product truth**. It assigns ownership, not automatic correctness or maturity.
+
+- **Product intent and scope** belong to the [product charter](../README.md) and any expressly owner-accepted decisions. Intent alone does not prove delivery.
+- **Design authority** belongs to an accepted, scope-bound ADR/contract and its recorded owner decision. A draft diagram is a proposal even if indexed.
+- **Implemented behavior** belongs to versioned source/schema and their real callers, not to aspirations in the charter.
+- **Qualified behavior** belongs to executed tests, real Windows/user acceptance, environment and exact subject revision. A green doc linter does not qualify the app.
+- **Published behavior** belongs to installer/release artifact and actual activation observations, not to a merged PR.
+- **Next work** belongs to live tickets and PRs, including the Wayfinder map. They do not establish adopted design.
+- **Historical origin** remains accessible with explicit supersession/lineage; recency alone does not transfer authority.
+
+If these sources disagree, record **drift with exact paths and revisions**, identify the accountable owner and leave the conflict unresolved until an authorized decision. Do not silently revise the ADR to match code or the charter to match a mockup.
+
+## Source of truth by claim
+
+| Question | Accountable source | Status / boundary |
 | --- | --- | --- |
-| Product purpose and intended user value | [Product charter](../README.md) and explicitly owner-accepted scope decisions | Implemented features |
-| Repository change authority and required gates | [Qortara governance manifest](../governance/manifest.json), host rulesets and authentic lifecycle receipts | Enforced policy from a JSON file alone |
-| Qortara policy interpretation | [Qortara Logic canonical engine/schema](https://github.com/MythologIQ-Labs-LLC/qortara-logic/tree/6ee2d7b15a1c5732e1ae2d2485e2fded0bd100ac/src/qortara_logic) | Host availability or permission to merge |
-| Architecture and product design | Owner-accepted, scope-bound ADR/contract registered below | Code, test or release acceptance |
-| Implemented APIs and behavior | Exact versioned source, schemas and real callers | An accepted conflicting design or qualified device result |
-| Qualification and user-experienced behavior | Executed checks, actual Windows device tests, user journey evidence, exact subject revision | Other environments, later source changes or deployment authority |
-| Published reality | Signed release artifacts, installation checks and actual publication records | Merely having a build or merged PR |
-| Outstanding decisions and work | [Wayfinder map](https://github.com/Knapp-Kevin/optic-rift/issues/4), [issues](https://github.com/Knapp-Kevin/optic-rift/issues) and [pull requests](https://github.com/Knapp-Kevin/optic-rift/pulls) | Accepted design or delivered implementation |
-| Historical/superseded material | Pinned original and explicit supersession decision | Current authority without an accepted handoff |
+| What should Optic Rift be? | [Project README](../README.md) and owner-accepted decisions | Product intent; not implemented-feature proof |
+| Which rules govern repository changes? | [Qortara Logic repository governance manifest](../governance/manifest.json) | Manifest merged; active main ruleset has **0 mandatory approving reviews** and no native Qortara lifecycle enforcement ([issue #2](https://github.com/Knapp-Kevin/optic-rift/issues/2)) |
+| What do Qortara contracts mean? | [Canonical Qortara Logic engine and schemas](https://github.com/MythologIQ-Labs-LLC/qortara-logic/tree/6ee2d7b15a1c5732e1ae2d2485e2fded0bd100ac/src/qortara_logic) | Schema provenance at source commit `6ee2d7b`; hosted engine version must be checked independently |
+| How do agents start work? | [AGENTS.md](../AGENTS.md) | Portable index pointer; no duplicated policy rules |
+| What architecture is proposed? | [Architecture shelves below](#architecture-shelves-proposed), plus [desktop foundation PR #1](https://github.com/Knapp-Kevin/optic-rift/pull/1) | **Proposals** and source-oriented design records; no owner-accepted runtime architecture or shipped application guaranteed |
+| What product constraints are proposed? | [Model discovery](contracts/model-discovery-and-execution.md), [adult previews](contracts/adult-content-and-preview.md), and [Windows performance gates](engineering/performance-gates.md) | Proposed, with specific observed Windows test evidence in the performance owner; not a signed release |
+| Which changes are outstanding? | Live GitHub [issues](https://github.com/Knapp-Kevin/optic-rift/issues) and [pull requests](https://github.com/Knapp-Kevin/optic-rift/pulls) | Status at time of access; no duplicated issue tracker |
+| Which behaviors actually passed? | Exact-version executed test/Windows evidence and Qortara runtime records | Claude's owner-hosted Windows results are linked in [PR #1](https://github.com/Knapp-Kevin/optic-rift/pull/1); independent acceptance / Qortara source gate not recorded |
+| What is published? | Signed release artifacts and real deployment/installation checks | No release proven by documentation |
 
-## Architecture owner register
+## Architecture shelves (proposed)
 
-**Current `main` baseline:** No `docs/architecture/*.md` design has yet been merged. This first index deliberately does **not** link to nonexistent local documents or claim the proposed designs are accepted. When architecture pages are adopted, **register each exactly once here** in the same change.
+This file is the **only** filing register for Optic Rift architecture. The listed documents own non-overlapping architectural questions; they are **proposals under review**, not accepted ADRs, runtime contracts or evidence. Each proposed design's status and acceptance live at its destination, not in a duplicated approval list. Resolve decisions through the [Wayfinder architecture map](https://github.com/Knapp-Kevin/optic-rift/issues/4) and its issue tickets; the map indexes decisions, while this table indexes architecture claim owners. Neither substitutes for Qortara lifecycle enforcement.
 
-| Scoped ownership | Present owning location | Maturity |
+| Architectural shelf / ownership | Single owner document | Decision / maturity |
 | --- | --- | --- |
-| Windows desktop stack, native media preview and performance fallback | [ADR-0001: Windows-first desktop](architecture/ADR-0001-windows-desktop.md) ([draft foundation PR #1](https://github.com/Knapp-Kevin/optic-rift/pull/1)) | Proposed; this stacked branch, unqualified |
-| Whole studio composition, project lineage, media pipeline, transformations/jobs, model trust, studio UX, outliers and qualification | [Architecture proposal PR #11](https://github.com/Knapp-Kevin/optic-rift/pull/11) | Proposed; eight topic files, not merged or accepted |
-| User-journey-to-decision routing | [Wayfinder architectural decision map](https://github.com/Knapp-Kevin/optic-rift/issues/4) | Planning questions, not implementation approval |
-| Product requirements | [README charter](../README.md) | Owner intent; no release qualification |
-| Governance and change authority | [Qortara manifest](../governance/manifest.json), [enforcement gap issue](https://github.com/Knapp-Kevin/optic-rift/issues/2) | Manifest merged; actual GitHub/runtime enforcement incomplete |
+| Whole studio and architecture paths | [Studio composition and alternatives](architecture/studio-composition.md) | Proposed; revisit against [media boundary](https://github.com/Knapp-Kevin/optic-rift/issues/6) |
+| Stable project identity, immutable source media and derivation history | [Project and asset lineage](architecture/project-asset-lineage.md) | Proposed; [asset decision](https://github.com/Knapp-Kevin/optic-rift/issues/5) |
+| Video/image preview, frame accuracy, ordinary media editing and export | [Media pipeline](architecture/media-pipeline.md) | Proposed; [Windows prototype decision](https://github.com/Knapp-Kevin/optic-rift/issues/6) |
+| Transformation request, queue, state machine, cancellation and commit | [Transformations and durable jobs](architecture/transformations-and-jobs.md) | Proposed; [job boundary](https://github.com/Knapp-Kevin/optic-rift/issues/7) |
+| Model discovery-to-runtime trust boundary and source consent integration | [Model runtime and trust](architecture/model-runtime-and-trust.md) | Proposed; [model/rights decision](https://github.com/Knapp-Kevin/optic-rift/issues/9). Detailed catalog/content rules belong to PR #1 contracts |
+| Studio workspace UX, navigation and journey actions | [Studio interactions](architecture/studio-interactions.md) | Proposed; [interaction decision](https://github.com/Knapp-Kevin/optic-rift/issues/8) |
+| Stage boundaries and explicit deferred/outlier capabilities | [Roadmap and outlier register](architecture/roadmap-and-outliers.md) | Proposed; [alpha scope decision](https://github.com/Knapp-Kevin/optic-rift/issues/10) |
+| Outcome acceptance, test/evidence and handoff criteria | [Qualification and evidence](architecture/qualification-and-evidence.md) | Proposed; actual measurements absent |
+| Approved brand artwork, visual assets and icon generation | [Visual identity and source provenance](../assets/branding/README.md) | Approved image published in [PR #17](https://github.com/Knapp-Kevin/optic-rift/pull/17); native taskbar/installer adoption remains unqualified |
+| Desktop shell selection, native UI/IPC source | [ADR-0001 Windows-first desktop](architecture/ADR-0001-windows-desktop.md) | Status: Proposed; Tauri source and Windows observed receipts are scoped to particular revisions, no signed release or owner-accepted design |
+| Hugging Face model discovery/rights and adapter boundaries | [Model discovery and execution contract](contracts/model-discovery-and-execution.md) | Proposed; no model discovery service or model execution implemented |
+| Adult-focused model labeling and preview permissions | [Adult content and preview contract](contracts/adult-content-and-preview.md) | Proposed; audience preference prototype only, not complete access controls |
+| Windows performance and WebView2 privacy qualification | [Performance qualification gates](engineering/performance-gates.md) | Proposed thresholds with a version-bound Windows 26/26 walkthrough and 120-second zero-observed-egress result; further device/release checks required |
 
-**When PR #11 becomes eligible for adoption**, replace its aggregate row with direct, unique links to each topic owner's `docs/architecture/*.md` file. Keep the external draft PR as history. Do not create a second authoritative register in `docs/README.md`.
+**Status rule:** A diagram or recommended path does not establish implementation, schema acceptance, CI, independent review or production readiness. Publishing the desktop source on `main` is an implementation milestone, **not** proof of a usable released editor or a qualified installer. No design in this section should be marked Accepted until the corresponding Wayfinder question is resolved, required review/owner acceptance occurs and the precise accepted artifact is recorded. If a decision changes the shell, update the existing ADR-0001 at its owner rather than creating ADR-0001 again.
 
-## Claim and maturity rules
+**How designs graduate:** (1) resolve a named decision ticket with observed evidence and owner input where required; (2) update its one architectural owner and any affected contracts/ADR with a revision-bound supersession note; (3) have the single index point to that accepted version; (4) only then prepare an implementation spec and feature tickets. Deferred features stay in the outlier register (registered above), not a forgotten pile or implied alpha promises.
 
-- **Proposed:** exploratory design; neither accepted nor implemented.
-- **Accepted:** accepted design for a precisely defined scope and revision; not code proof.
-- **Implemented:** observed source and contracts at a named revision; not device qualification.
-- **Qualified:** executed acceptance evidence for that subject/environment/revision.
-- **Historical / Superseded:** provenance with explicit effective replacement.
-- **Published:** release/deployment proof held by its own artifact owner, not an architecture page.
+## Index maintenance contract (required for every architectural change)
 
-When code contradicts an accepted decision, document **drift** with paths, revisions, decision authority and affected dependents. Do not automatically rewrite the decision to fit code, and do not equate more recent text with greater authority.
+1. **Start here** before planning or editing architecture. Resolve the intended claim and its existing owner. Never create a second index or a second owner for the same architectural claim.
+2. **File each new architecture document once** under its owning shelf in this file, in the **same PR** that adds it. Update root `README.md`, `docs/README.md` and `AGENTS.md` only as routing pointers, not as duplicated owner tables.
+3. **Declare maturity at the destination:** `Status: Proposed`, `Accepted`, `Implemented`, `Qualified`, `Historical` or `Superseded`, scoped to the relevant claim. Status is not inferred from merge, most recent edit or filename.
+4. **Attach real decision authority:** an architecture change becomes accepted only when its accountable owner decision, affected contract/ADR and revision are recorded. Wayfinder resolution alone is insufficient when independent review or Qortara gate requirements still apply.
+5. **Do not overwrite history.** A supersession records old claim/path, replacement owner, scope, reason, decision/approval authority, effective revision/date and dependent contracts/implementations/tests that require revalidation.
+6. **Keep evidence outside the index.** Bind test results, benchmark/device reports, independent reviews, releases and Qortara lifecycle receipts to their exact artifacts in their own owners. This file links to them and must never become another evidence ledger.
+7. **Revalidate registration:** all existing `docs/architecture/*.md` pages must be registered exactly once **in this file**, all local links must resolve, and every page must use a recognized status declaration. Validate on the target revision. A structural PASS does not establish semantic acceptance.
+8. **Preserve governance:** protect `governance/manifest.json` and the native Qortara ledger; only approved runtime/governance changes can alter those. Owner-directed index location does not grant a policy-evaluation result.
+9. **Audit architectural drift:** when source changes, report which contracts, plans, references, renderers and tests may be affected. Update their accountable sources and this index together rather than leaving stale claims.
 
-## Maintenance and supersession protocol
+**Qortara catalog integration:** Qortara Logic's baseline checker defaults to `docs/README.md` in its own repository. Optic Rift intentionally assigns the index to **`docs/ARCHITECTURE_INDEX.md`** instead. The actual local Qortara host/check configuration must point to this path before claiming a valid catalog PASS. A default check against `docs/README.md` is **not equivalent** and must not be reported as successful catalog verification. Until native configuration and an executed check exist, automated enforcement is **not established**.
 
-1. **Before design or code:** read this index and the existing source owner. No new architecture page unless no existing document owns the claim or a genuinely distinct scope warrants it.
-2. **One owner per claim:** put the new document under the correct shelf and register it exactly once here **in the same PR**. Root README, docs README and AGENTS are pointers only.
-3. **Status stays with the owner:** each `docs/architecture/*.md` must carry the parser-readable `Status: Proposed`, `Accepted`, `Implemented`, `Qualified`, `Historical` or `Superseded`. Index links confer no acceptance.
-4. **Decisions need authority:** Wayfinder questions resolve into recorded owner decisions and scoped contracts/ADRs. Required independent review, exact-revision evaluation and Qortara lifecycle gates remain separate.
-5. **Supersession needs a record:** cite old claim/path, new owner, scope, decision and authority, effective revision/date, reason, and dependent interfaces/tests to requalify. Keep old history discoverable.
-6. **Keep evidence with its source:** tests, Windows performance, licenses, model revisions, independent reviews, actual release/downloads and Qortara ledger events stay in their accountable sources, not duplicated here.
-7. **Verify the index on each changed revision:** inspect local links, unique registrations for the actual `docs/architecture/` directory, status parsing, competing owners, cross-contract drift and pending evidence. A successful structural scan is not semantic acceptance.
+## Filing and conflict rules
 
-## Qortara integration boundary
+1. Keep product intent in the existing README and scoped decisions in `docs/architecture/`. Register an accepted ADR here once, after its decision/owner status is clear.
+2. Keep model/security contracts in `docs/contracts/`; engine semantics are owned by Qortara Logic, not copied here.
+3. Keep governance requirements in the Qortara manifest only. Do not add a separate rules/CONSTITUTION/framework with overlapping authority. Repository enforcement must be implemented in GitHub protection/rulesets and trusted host gates; the JSON manifest alone does not enforce anything.
+4. Keep executable proof and reviewer signatures outside summaries, bound to exact commits and qualified actors. Missing or conflicting evidence remains unresolved.
+5. A changed policy or architecture requires a proposed change, a review with the applicable independence condition, and source-accurate supersession. Recency does not create authority.
+6. Native Qortara runtime, not an agent editing by hand, owns the hash-chained ledger at `governance/ledger.jsonl`. An absent ledger cannot be called intact.
 
-This file follows the [Qortara architectural index protocol](https://github.com/MythologIQ-Labs-LLC/qortara-logic/blob/6ee2d7b15a1c5732e1ae2d2485e2fded0bd100ac/skill-source/references/architecture-index.md). The stock Qortara catalog check uses `docs/README.md` by default, while Optic Rift's **explicit owner-directed canonical index is `docs/ARCHITECTURE_INDEX.md`**. An authorized native Qortara host must configure its index check for this exact path; checking the default README and calling it a PASS would be invalid. No native index-gate receipt is asserted here.
+## Governance bootstrap scope
 
-Repository `main` was observed without branch rulesets, and no independent review or authenticated Qortara receipt has been recorded for the bootstrap. [Governance issue #2](https://github.com/Knapp-Kevin/optic-rift/issues/2) remains open. No architecture, Windows application, installed model, edited media export or signed release is qualified by creating this index.
+Source schema: `urn:qortara-logic:schema:policy:governance-manifest` at Qortara Logic `6ee2d7b15a1c5732e1ae2d2485e2fded0bd100ac`; hosted plugin reports read-only contract 1.3 and a separately reported backend revision. The source and deployed versions must not be assumed identical without verification.
+
+Historical initial assessment (2026-11-05) reported no main rulesets. **Later live GitHub readback** found active ruleset `26658544` on `main`, blocking deletion/non-fast-forward changes and requiring pull requests, but configured for **zero** approving reviews, no required check contexts, and role-based bypass. It does not satisfy the independent/Qortara lifecycle requirements. The manifest declares stricter controls than the current GitHub ruleset; a declared requirement does not enact it. CI and native Qortara evidence are not established by this documentation; do **not** invent either. An owner must enable protections via an authorized GitHub administration surface and require checks only once they genuinely exist. The single owner cannot self-certify an independent approval.
+
+**No native lifecycle ledger or independent audit receipt is created by this bootstrap.** Track adoption and gaps in [issue #2](https://github.com/Knapp-Kevin/optic-rift/issues/2).
+
