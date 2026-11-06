@@ -66,6 +66,7 @@ export function probePhotoDimensions(bytes: Uint8Array, mime: string): { width: 
     }
     const kind = String.fromCharCode(...bytes.slice(12, 16));
     if (kind === "VP8X" && bytes.length >= 30) {
+      if (bytes[20] & 2) throw new Error("Animated WebP is not a still photo. Extract a still frame first.");
       width = 1 + u24le(24);
       height = 1 + u24le(27);
     } else if (kind === "VP8 " && bytes.length >= 30 && bytes[23] === 157 &&
