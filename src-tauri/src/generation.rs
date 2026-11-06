@@ -427,6 +427,19 @@ struct ImageReference {
     sha256: String,
 }
 
+pub(crate) fn preflight_image_reference(
+    app_local: &Path,
+    mode: GenerationMode,
+    source_job_id: Option<&str>,
+    strength: Option<f32>,
+    width: u32,
+    height: u32,
+) -> Result<(), String> {
+    // Preflight from a UI action never produces or allocates a generation ID.
+    verified_image_reference(app_local, mode, source_job_id, strength, width, height, "")
+        .map(|_| ())
+}
+
 fn verified_image_reference(
     app_local: &Path,
     mode: GenerationMode,
@@ -519,6 +532,11 @@ fn generate_blocking<R: tauri::Runtime>(
     if !installed.files_present {
         return Err("The installed model is incomplete. Remove and reinstall it.".into());
     }
+    if req.mode == GenerationMode::ImageToImage
+        && installed.manifest.adapter != "diffusers-sdxl-text-to-image"
+    {
+        return Err("Image-to-image currently requires an installed SDXL model.".into());
+    }
     let root = runtime::root(&local);
     let rt = runtime::manifest(&root).ok_or("Install the image runtime first (Models page).")?;
     let w = worker(app, &root)?;
@@ -582,6 +600,8 @@ fn run_job<R: tauri::Runtime>(
         req.height,
         &req.job_id,
     )?;
+    // GPU sharing state may change during the source hash/decode checks.
+    budget_mb = gpu_budget(model, req)?;
     let out_dir = outputs_dir(local);
     fs::create_dir_all(&out_dir).map_err(|e| e.to_string())?;
     let png = out_dir.join(format!("{}.png", req.job_id));
@@ -589,7 +609,7 @@ fn run_job<R: tauri::Runtime>(
         "op": "generate", "job_id": req.job_id, "prompt": req.prompt, "negative_prompt": req.negative_prompt,
         "width": req.width, "height": req.height, "steps": req.steps, "guidance": req.guidance,
         "seed": req.seed, "output_path": png, "vram_budget_mb": budget_mb,
-        "mode": req.mode.as_str(), "reference": reference, "strength": req.strength,
+        "mode": req.mode.as_str(), "reference": reference.as_ref(), "strength": req.strength,
     }))?;
     let job = req.job_id.clone();
     let end = w.wait_for(
