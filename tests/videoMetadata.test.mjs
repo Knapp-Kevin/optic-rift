@@ -91,13 +91,14 @@ test("Model downloads are owned app-wide, not by the Models page (issue #27)", (
   assert.equal((downloads.match(/listen<InstallEvent>\("model-install"/g) ?? []).length, 1);
   assert.match(downloads, /e\.payload\.install_id !== s\.installId\) return s;/);
   // Cancel uses the exact live id from a ref, and an unaccepted cancel triggers native reconciliation.
-  assert.match(downloads, /invoke<boolean>\("model_install_cancel", \{ installId: s\.installId \}\)/);
+  assert.match(downloads, /const id = s\.installId;/);
+  assert.match(downloads, /invoke<boolean>\("model_install_cancel", \{ installId: id \}\)/);
   assert.match(downloads, /if \(!accepted\) void reconcile\(\);/);
   assert.match(downloads, /invoke<NativeStatus \| null>\("model_install_status"\)/);
   // One status display per page; a flagged name is hidden while discovery is off.
   assert.match(app, /\{view !== "models" && <DownloadStatus includeAdult=\{includeAdultModels\} compact \/>\}/);
   assert.match(browser, /\{!statusInDetail && <DownloadStatus includeAdult=\{includeAdult\} \/>\}/);
-  assert.match(downloads, /item\.flagged && !includeAdult \? "a model" : item\.repo/);
+  assert.match(source("src/downloadState.ts"), /return !includeAdult && item\.flagged !== false;/);
   // No persisted download history.
   assert.doesNotMatch(downloads, /localStorage|sessionStorage|indexedDB/);
   // Native: one download at a time, claimed before inspection, exact-id cancel, released by a guard.

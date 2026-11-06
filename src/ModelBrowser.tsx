@@ -171,7 +171,7 @@ export default function ModelBrowser({ includeAdult, onLibraryChanged }: Props) 
         <div className="model-detail">
           {inspecting && <p className="model-hint">Inspecting {inspecting} at its current revision…</p>}
           {inspectError && <p className="project-error" role="alert">{inspectError}</p>}
-          {visibleInspection && !inspecting && <ModelDetailView inspection={visibleInspection} library={library}
+          {visibleInspection && !inspecting && <ModelDetailView inspection={visibleInspection} library={library} includeAdult={includeAdult}
             installSession={installSession} installError={installError}
             onInstall={(accept) => void installFromDetail(visibleInspection, accept)}
             onInstalled={() => { void refreshLibrary(); onLibraryChanged(); void inspect({ id: visibleInspection.detail.id }, visibleInspection.detail.revision, inspectionFromLocalLibrary); }} />}
@@ -192,7 +192,8 @@ function StateRow({ inspection, loaded }: { inspection: Inspection; loaded: [str
   );
 }
 
-function ModelDetailView({ inspection, library, installSession, installError, onInstall, onInstalled }: {
+function ModelDetailView({ inspection, library, includeAdult, installSession, installError, onInstall, onInstalled }: {
+  includeAdult: boolean;
   inspection: Inspection; library: ModelLibrary | null; installSession: DownloadSession | null; installError: DownloadError | null;
   onInstall: (accept: boolean) => void; onInstalled: () => void;
 }) {
@@ -242,7 +243,7 @@ function ModelDetailView({ inspection, library, installSession, installError, on
       )}
       {session && (
         <div className="model-progress" role="status">
-          <DownloadProgress session={session} />
+          <DownloadProgress session={session} includeAdult={includeAdult} />
         </div>
       )}
       {error && <p className="project-error" role="alert">{error}</p>}

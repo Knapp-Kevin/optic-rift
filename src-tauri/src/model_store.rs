@@ -374,7 +374,8 @@ struct Active {
     install_id: String,
     repo: String,
     revision: String,
-    source_flagged: bool,
+    /// `None` until the pinned source inspection completes: unknown, so the UI must conceal.
+    source_flagged: Option<bool>,
     cancel: Arc<AtomicBool>,
     last: Option<InstallEvent>,
 }
@@ -391,8 +392,8 @@ pub struct InstallStatus {
     pub install_id: String,
     pub repo: String,
     pub revision: String,
-    /// Source "not-for-all-audiences" flag, known after the pinned inspection.
-    pub source_flagged: bool,
+    /// Source "not-for-all-audiences" flag: `null` until the pinned inspection completes.
+    pub source_flagged: Option<bool>,
     pub cancel_requested: bool,
     pub last: Option<InstallEvent>,
 }
@@ -438,7 +439,7 @@ fn claim(req: &InstallRequest) -> Result<(ActiveGuard, Arc<AtomicBool>), String>
         install_id: req.install_id.clone(),
         repo: req.repo.clone(),
         revision: req.revision.clone(),
-        source_flagged: false,
+        source_flagged: None,
         cancel: flag.clone(),
         last: None,
     });
@@ -565,7 +566,7 @@ pub async fn install<R: tauri::Runtime>(
     // Re-inspect at the pinned revision; never trust a plan supplied by the UI.
     let detail = hf_catalog::inspect(&req.repo, &req.revision, adapter.capability).await?;
     update_active(&req.install_id, |a| {
-        a.source_flagged = detail.audience == "not-for-all-audiences"
+        a.source_flagged = Some(detail.audience == "not-for-all-audiences")
     });
     if flag.load(Ordering::SeqCst) {
         return Err(cancelled_early());
@@ -946,9 +947,11 @@ mod tests {
         assert!(cancel("first"));
         assert!(flag.load(Ordering::SeqCst));
         assert!(status().unwrap().cancel_requested);
-        update_active("first", |a| a.source_flagged = true);
-        update_active("other", |a| a.source_flagged = false);
-        assert!(status().unwrap().source_flagged);
+        // Unknown until the pinned inspection completes, never a premature "not flagged".
+        assert_eq!(status().unwrap().source_flagged, None);
+        update_active("first", |a| a.source_flagged = Some(true));
+        update_active("other", |a| a.source_flagged = Some(false));
+        assert_eq!(status().unwrap().source_flagged, Some(true));
         drop(guard);
         assert!(status().is_none(), "released on every exit path");
         assert!(!cancel("first"), "a finished id is stale");
