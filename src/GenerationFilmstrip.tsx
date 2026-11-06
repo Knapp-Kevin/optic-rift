@@ -17,6 +17,7 @@ export default function GenerationFilmstrip({ refreshVersion, selectedId, onSele
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState<string | null>(null);
   const [refresh, setRefresh] = useState(0);
+  const [previewsRevealed, setPreviewsRevealed] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -45,15 +46,21 @@ export default function GenerationFilmstrip({ refreshVersion, selectedId, onSele
   return <section className="create-filmstrip" aria-label="Recent local generations">
     <div className="create-filmstrip-heading">
       <div><strong>Recent generations</strong><small>Choose an image to view or transform. Local files survive restarts.</small></div>
-      <button type="button" className="secondary" disabled={working !== null} onClick={() => setRefresh(n => n + 1)}>Refresh</button>
+      <div className="model-actions">
+        <button type="button" className="secondary" aria-pressed={previewsRevealed} onClick={() => setPreviewsRevealed((shown) => !shown)}>
+          {previewsRevealed ? "Hide previews" : "Show previews"}
+        </button>
+        <button type="button" className="secondary" disabled={working !== null} onClick={() => setRefresh(n => n + 1)}>Refresh</button>
+      </div>
     </div>
+    {!previewsRevealed && <small className="model-hint">Previews stay hidden until you choose to show them. Local images may contain sensitive content.</small>}
     <div className="create-thumbnails" role="list">
       {records.map((item) => <div role="listitem" key={item.job_id}>
         <button type="button" className={selectedId === item.job_id ? "create-thumbnail selected" : "create-thumbnail"}
           aria-label={`Select image generated on ${new Date(item.created_unix_ms).toLocaleString()}`}
           aria-pressed={selectedId === item.job_id} title={item.prompt || "Untitled generation"}
           disabled={working !== null} onClick={() => void choose(item)}>
-          <GenerationThumbnail jobId={item.job_id} />
+          {previewsRevealed ? <GenerationThumbnail jobId={item.job_id} /> : <span className="generation-thumbnail" aria-hidden="true">▧</span>}
           <span className="create-thumbnail-name">{item.source ? "Variation" : "Image"} · {item.output.width}×{item.output.height}</span>
         </button>
       </div>)}
