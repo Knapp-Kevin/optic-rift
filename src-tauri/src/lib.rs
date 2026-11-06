@@ -8,6 +8,7 @@ mod hf_access;
 mod hf_catalog;
 mod model_commands;
 mod model_store;
+mod process_tree;
 mod project_store;
 mod runtime;
 

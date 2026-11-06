@@ -114,7 +114,14 @@ pub struct VerifiedReceipt {
     pub measured_peak_vram_mb: Option<u32>,
 }
 
-pub const VERIFIED: &[VerifiedReceipt] = &[];
+pub const VERIFIED: &[VerifiedReceipt] = &[VerifiedReceipt {
+    repo: "segmind/SSD-1B",
+    revision: "60987f37e94cd59c36b1cba832b9f97b57395a10",
+    adapter: "diffusers-sdxl-text-to-image",
+    hardware_class: "NVIDIA RTX 5070 Ti 16 GB (sm_120), driver 621.01, Windows 11, runtime diffusers-v1 (torch 2.14.1+cu130)",
+    evidence: "2026-11-05 release-app runs: 1024x1024/25 steps in 14.5 s cold (9.1 s load), 3.9-5.4 s warm; same seed bit-identical; cancel, unload, crash recovery and GPU-sharing guard exercised",
+    measured_peak_vram_mb: Some(8349),
+}];
 
 pub fn verified_receipt(
     repo: &str,

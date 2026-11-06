@@ -22,6 +22,8 @@ use tauri::{Emitter, Manager};
 
 struct Worker {
     child: Mutex<Child>,
+    /// Kill-on-close job holding the launcher and the real interpreter it starts.
+    tree: crate::process_tree::ProcessTree,
     stdin: Mutex<ChildStdin>,
     events: Mutex<Receiver<Value>>,
     alive: Arc<AtomicBool>,
@@ -80,6 +82,13 @@ fn spawn<R: tauri::Runtime>(
     let mut child = worker_command(root)?
         .spawn()
         .map_err(|e| format!("Could not start the image worker: {e}"))?;
+    let tree = match crate::process_tree::ProcessTree::adopt(&child) {
+        Ok(tree) => tree,
+        Err(e) => {
+            let _ = child.kill();
+            return Err(e);
+        }
+    };
     let stdin = child.stdin.take().unwrap();
     let stdout = child.stdout.take().unwrap();
     let stderr = child.stderr.take().unwrap();
@@ -120,6 +129,7 @@ fn spawn<R: tauri::Runtime>(
     });
     let worker = Worker {
         child: Mutex::new(child),
+        tree,
         stdin: Mutex::new(stdin),
         events: Mutex::new(rx),
         alive,
@@ -168,11 +178,26 @@ impl Worker {
         }
     }
 
+    /// End the worker and every process it started (not just the venv launcher).
     fn kill(&self) {
+        self.tree.terminate();
         let mut child = self.child.lock().unwrap();
         let _ = child.kill();
         let _ = child.wait();
         self.alive.store(false, Ordering::SeqCst);
+    }
+
+    /// Ask the worker to exit, wait briefly for a clean exit, then end the whole tree regardless.
+    fn stop(&self) {
+        let _ = self.send(&json!({"op": "shutdown"}));
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while Instant::now() < deadline {
+            if matches!(self.child.lock().unwrap().try_wait(), Ok(Some(_))) {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(50));
+        }
+        self.kill();
     }
 }
 
@@ -219,17 +244,13 @@ pub fn health_once(root: &Path) -> Result<Value, String> {
     let result = w
         .send(&json!({"op": "health"}))
         .and_then(|_| w.wait_for(|e| e["event"] == "health", Duration::from_secs(600)));
-    let _ = w.send(&json!({"op": "shutdown"}));
-    std::thread::sleep(Duration::from_millis(300));
-    w.kill();
+    w.stop();
     result
 }
 
 pub fn shutdown() {
     if let Some(w) = slot().lock().unwrap().take() {
-        let _ = w.send(&json!({"op": "shutdown"}));
-        std::thread::sleep(Duration::from_millis(500));
-        w.kill();
+        w.stop();
     }
 }
 
@@ -275,10 +296,11 @@ pub fn gpu_info() -> GpuInfo {
 }
 
 /// Estimated total VRAM for a job: model weights plus working memory that grows with image area.
-/// Conservative until a measured receipt exists for the model.
+/// Calibrated from a measured run (SSD-1B fp16 at 1024x1024 peaked at 8,349 MB allocated:
+/// 4,261 MB weights + about 4,088 MB working memory per megapixel).
 pub fn job_need_mb(weights_bytes: u64, width: u32, height: u32) -> u64 {
     let pixels = (width as u64 * height as u64).max(1);
-    let workspace = (2048 * pixels / (1024 * 1024)).max(1024);
+    let workspace = (4096 * pixels / (1024 * 1024)).max(1536);
     weights_bytes / (1024 * 1024) + workspace
 }
 
@@ -598,10 +620,14 @@ mod tests {
     #[test]
     fn job_need_grows_with_image_area() {
         let weights = 4_468_829_801;
-        assert_eq!(job_need_mb(weights, 1024, 1024), 4261 + 2048);
+        assert_eq!(job_need_mb(weights, 1024, 1024), 4261 + 4096);
+        assert!(
+            job_need_mb(weights, 1024, 1024) >= 8349,
+            "covers the measured peak"
+        );
         assert_eq!(
             job_need_mb(weights, 512, 512),
-            4261 + 1024,
+            4261 + 1536,
             "floor for small images"
         );
         assert!(job_need_mb(weights, 1536, 1536) > job_need_mb(weights, 1024, 1024));

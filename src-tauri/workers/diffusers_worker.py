@@ -215,9 +215,14 @@ class Worker:
             emit("error", job_id=job_id, category="invalid_output", message=problem)
             return
         sha256 = save_png(image, params["output_path"])
+        peak = torch.cuda.max_memory_allocated() // 2**20
+        del result, image
+        # Return cached working memory to the driver so other apps (games) get it back between jobs;
+        # only the model weights stay resident until unload.
+        self.recover()
         emit("done", job_id=job_id, path=params["output_path"], sha256=sha256, seed=params["seed"],
-             width=image.width, height=image.height, seconds=seconds,
-             peak_vram_mb=torch.cuda.max_memory_allocated() // 2**20)
+             width=params["width"], height=params["height"], seconds=seconds, peak_vram_mb=peak,
+             resident_vram_mb=torch.cuda.memory_reserved() // 2**20)
 
     def recover(self):
         gc.collect()
