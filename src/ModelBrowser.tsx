@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import {
@@ -21,6 +21,23 @@ export default function ModelBrowser({ includeAdult, onLibraryChanged }: Props) 
   const [inspecting, setInspecting] = useState<string | null>(null);
   const [inspectError, setInspectError] = useState("");
   const [library, setLibrary] = useState<ModelLibrary | null>(null);
+  const searchVersion = useRef(0);
+  const inspectVersion = useRef(0);
+  const [inspectionFromLocalLibrary, setInspectionFromLocalLibrary] = useState(false);
+
+  // Scope consent to discovery. Disabling it must stop displaying an earlier
+  // source-flagged result without unmounting live install/progress components.
+  useEffect(() => {
+    searchVersion.current++;
+    inspectVersion.current++;
+    setResult(null);
+    setInspection(null);
+    setSearchError("");
+    setInspectError("");
+    setSearching(false);
+    setInspecting(null);
+    setInspectionFromLocalLibrary(false);
+  }, [includeAdult]);
 
   const refreshLibrary = useCallback(async () => {
     try { setLibrary(await invoke<ModelLibrary>("models_library")); } catch { setLibrary(null); }
@@ -33,40 +50,64 @@ export default function ModelBrowser({ includeAdult, onLibraryChanged }: Props) 
 
   async function search(event?: FormEvent) {
     event?.preventDefault();
+    const version = ++searchVersion.current;
     setSearching(true);
+    setResult(null);
     setSearchError("");
     try {
-      setResult(await invoke<SearchResult>("catalog_search", { query, capability, includeAdult }));
+      const found = await invoke<SearchResult>("catalog_search", { query, capability, includeAdult });
+      if (version === searchVersion.current) setResult(found);
     } catch (e) {
-      setSearchError(errorText(e));
+      if (version === searchVersion.current) setSearchError(errorText(e));
     } finally {
-      setSearching(false);
+      if (version === searchVersion.current) setSearching(false);
     }
   }
 
-  async function inspect(model: ModelSummary | { id: string }, revision?: string) {
+  async function inspect(model: ModelSummary | { id: string }, revision?: string, fromLocalLibrary = false) {
+    const version = ++inspectVersion.current;
     setInspecting(model.id);
+    setInspection(null);
+    setInspectionFromLocalLibrary(fromLocalLibrary);
     setInspectError("");
     try {
-      setInspection(await invoke<Inspection>("catalog_inspect", { repo: model.id, revision: revision ?? null, capability }));
+      const detail = await invoke<Inspection>("catalog_inspect", { repo: model.id, revision: revision ?? null, capability });
+      if (version === inspectVersion.current) setInspection(detail);
     } catch (e) {
-      setInspection(null);
-      setInspectError(errorText(e));
+      if (version === inspectVersion.current) {
+        setInspection(null);
+        setInspectError(errorText(e));
+      }
     } finally {
-      setInspecting(null);
+      if (version === inspectVersion.current) setInspecting(null);
     }
   }
+
+  const visibleModels = (result?.models ?? []).filter((model) => includeAdult || model.audience !== "not-for-all-audiences");
+  // An explicit click on an already-owned local model is separate from discovery.
+  const visibleInspection = inspection && (includeAdult || inspectionFromLocalLibrary
+    || inspection.detail.audience !== "not-for-all-audiences") ? inspection : null;
 
   const adaptersFor = capabilities.find((c) => c.id === capability)?.adapters ?? [];
 
   return (
     <section className="model-browser" aria-label="Hugging Face model browser">
       <RuntimePanel library={library} onChanged={() => { void refreshLibrary(); onLibraryChanged(); }} />
-      <InstalledPanel library={library} onChanged={() => { void refreshLibrary(); onLibraryChanged(); }} onInspect={(repo, revision) => void inspect({ id: repo }, revision)} />
+      <InstalledPanel library={library} onChanged={() => { void refreshLibrary(); onLibraryChanged(); }} onInspect={(repo, revision) => void inspect({ id: repo }, revision, true)} />
 
       <h2 className="model-section-title">Discover models on Hugging Face</h2>
       <form className="model-search" onSubmit={search}>
-        <select aria-label="Capability" value={capability} onChange={(e) => { setCapability(e.target.value as Capability); setResult(null); setInspection(null); }}>
+        <select aria-label="Capability" value={capability} onChange={(e) => {
+            searchVersion.current++;
+            inspectVersion.current++;
+            setCapability(e.target.value as Capability);
+            setResult(null);
+            setInspection(null);
+            setSearching(false);
+            setInspecting(null);
+            setSearchError("");
+            setInspectError("");
+          }}>
           {capabilities.map((c) => <option key={c.id} value={c.id}>{c.label}{c.adapters.length ? "" : " (not runnable)"}</option>)}
         </select>
         <input aria-label="Search models" value={query} maxLength={120} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name, e.g. SDXL, SSD-1B, upscaler" />
@@ -79,12 +120,12 @@ export default function ModelBrowser({ includeAdult, onLibraryChanged }: Props) 
         {" "}Search is anonymous; model cards and preview images are not loaded.
       </p>
       {searchError && <p className="project-error" role="alert">{searchError}</p>}
-      {result && <p className="model-hint">{result.models.length} results{result.hidden_not_for_all_audiences ? ` · ${result.hidden_not_for_all_audiences} flagged "not for all audiences" hidden (adult discovery is off)` : ""}</p>}
+      {result && <p className="model-hint">{visibleModels.length} results{result.hidden_not_for_all_audiences ? ` · ${result.hidden_not_for_all_audiences} flagged "not for all audiences" hidden (adult discovery is off)` : ""}</p>}
 
       <div className="model-columns">
         <ul className="model-results">
-          {result?.models.map((m) => (
-            <li key={m.id} className={inspection?.detail.id === m.id ? "model-result active" : "model-result"}>
+          {visibleModels.map((m) => (
+            <li key={m.id} className={visibleInspection?.detail.id === m.id ? "model-result active" : "model-result"}>
               <button onClick={() => void inspect(m)} disabled={inspecting !== null}>
                 <strong>{m.id}</strong>
                 <span className="model-badges">
@@ -102,8 +143,8 @@ export default function ModelBrowser({ includeAdult, onLibraryChanged }: Props) 
         <div className="model-detail">
           {inspecting && <p className="model-hint">Inspecting {inspecting} at its current revision…</p>}
           {inspectError && <p className="project-error" role="alert">{inspectError}</p>}
-          {inspection && !inspecting && <ModelDetailView inspection={inspection} library={library} onInstalled={() => { void refreshLibrary(); onLibraryChanged(); void inspect({ id: inspection.detail.id }, inspection.detail.revision); }} />}
-          {!inspection && !inspecting && !inspectError && <p className="model-hint">Select a model to see its license, files, hardware needs and whether Optic Rift can run it.</p>}
+          {visibleInspection && !inspecting && <ModelDetailView inspection={visibleInspection} library={library} onInstalled={() => { void refreshLibrary(); onLibraryChanged(); void inspect({ id: visibleInspection.detail.id }, visibleInspection.detail.revision, inspectionFromLocalLibrary); }} />}
+          {!visibleInspection && !inspecting && !inspectError && <p className="model-hint">Select a model to see its license, files, hardware needs and whether Optic Rift can run it.</p>}
         </div>
       </div>
     </section>
