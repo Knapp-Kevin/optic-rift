@@ -2,7 +2,7 @@
 
 - Date: 2026-11-05
 Status: Proposed
-- Qualification: Windows playback/media performance unmeasured; this is not an accepted shell decision.
+- Qualification: initial Windows host validation exists at specified revisions, but this architecture is not accepted for a signed release.
 - Decision owner: repository owner
 - Scope: initial Optic Rift alpha, not a release claim
 

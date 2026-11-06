@@ -30,3 +30,23 @@ These are **proposed acceptance thresholds** rather than data or guarantees.
 ## Go/no-go
 
 Do not declare Tauri unsuitable based on theoretical WebView overhead, nor suitable based on a static UI. A failed seek/preview gate should trigger a narrow native Qt comparison before a product-wide rewrite.
+
+## Native WebView2 privacy regression gate (observed Windows result)
+
+**Evidence scope (2026-11-05):** Claude's owner-hosted Windows walkthrough at desktop foundation `984bd670c0441300b7566836ac0d89e0b398e9d3` (included in integrated media descendant `de1663820f9c241b7dc6e4bd1f4e433391df76bb`) recorded:
+
+- Windows 11 Pro build 26300, WebView2 runtime `156.0.4314.58`; on the native **release build** launched using application configuration, not a Vite-only browser.
+- WebView2 process tree: no observed TCP or UDP endpoints in a 120-second soak; no `oneauth.dll` loaded. Prior runtime behavior included Microsoft-account and background-network requests.
+- Interactive 26/26 walkthrough passed on the combined branch; seek p50/p95 28/87 ms, 0 dropped frames in the observed sample.
+- Source: [PR #1 local Windows qualification](https://github.com/Knapp-Kevin/optic-rift/pull/1#issuecomment-6672658605). These are **specific observed results**, not universal privacy or performance guarantees. Full logs remain on the tested host.
+
+**Release and runtime-update acceptance gate:**
+
+1. Identify executable commit, signed/unsigned package state, Windows build, user profile, WebView2 **actual installed runtime version**, Tauri version, FFmpeg, driver and environment. A code-only test is not enough.
+2. Launch a **release build** with no explicit Hugging Face or other network action. Confirm the browser command-line switches are effective and OneAuth/WAM components are not loaded. Cover both initial startup and media import/playback.
+3. Observe **all app-owned processes including WebView2 helpers** for at least 120 seconds, measuring outbound TCP and UDP at startup, while idle and during a complete click-through. Distinguish no *observed socket endpoints* from a comprehensive packet/ETW trace, since periodic polling can miss short-lived connections. Document the collection method and uncertainty.
+4. Treat any unexpected egress as a privacy regression until explained and owner-approved. Deliberate user-initiated external actions, including **Get Hugging Face token** and **Test connection**, must have separate, explicit authorization and observations; they do not make passive background traffic acceptable.
+5. Run `npm run test:content` with `tests/webviewPrivacy.test.mjs` and validate that removal of **each** required startup switch fails the configuration guard. This test checks configuration only; it cannot prove the runtime honored undocumented Edge flags.
+6. **Repeat the release-build soak after every WebView2/Tauri runtime update and for every release candidate.** Undocumented `ms*` feature names can disappear or change without a compile failure. Re-evaluate whether disabling component updates has security/patching consequences; do not assume privacy and patch security are interchangeable.
+
+**Current qualification:** the measured configuration qualified on the named host/runtime at `984bd67`; the stronger per-switch mutation guard was subsequently added and must be re-run on the current branch head. The project is **not** signed/packaged or generally qualified for other WebView2 versions by this observation.
