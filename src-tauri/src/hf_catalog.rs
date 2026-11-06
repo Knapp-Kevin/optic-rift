@@ -484,7 +484,7 @@ async fn inspect_with_token_policy(
     };
     let mut model_index = None;
     if names.iter().any(|n| n == "model_index.json") {
-        let (resp, used_token) = get_with_token_policy(
+        let (mut resp, used_token) = get_with_token_policy(
             &format!("{HUB}/{id}/resolve/{sha}/model_index.json"),
             Duration::from_secs(20),
             allow_token,
@@ -498,9 +498,19 @@ async fn inspect_with_token_policy(
                     Access::Public
                 };
             }
-            let bytes = resp.bytes().await.map_err(net_error)?;
-            if bytes.len() <= MAX_INDEX_BYTES {
-                model_index = serde_json::from_slice::<serde_json::Value>(&bytes).ok();
+            // Never buffer an unbounded upstream config before checking its size.
+            if resp.content_length().is_none_or(|n| n <= MAX_INDEX_BYTES as u64) {
+                let mut bytes = Vec::new();
+                while let Some(chunk) = resp.chunk().await.map_err(net_error)? {
+                    if bytes.len().saturating_add(chunk.len()) > MAX_INDEX_BYTES {
+                        bytes.clear();
+                        break;
+                    }
+                    bytes.extend_from_slice(&chunk);
+                }
+                if !bytes.is_empty() {
+                    model_index = serde_json::from_slice::<serde_json::Value>(&bytes).ok();
+                }
             }
         }
     }
