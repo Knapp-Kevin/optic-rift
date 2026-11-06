@@ -299,7 +299,7 @@ pub async fn cache_public_metadata(
     }
     // Re-read public source metadata at the pinned commit. A UI-provided
     // inspection, hash, path or license is never sufficient authorization.
-    let detail = hf_catalog::inspect(&request.repo, &request.revision, request.capability).await?;
+    let detail = hf_catalog::inspect_public(&request.repo, &request.revision, request.capability).await?;
     let file = admit(&request, &detail)?;
     let bytes = read_public_config(&request.repo, &request.revision, &file).await?;
     let now = SystemTime::now().duration_since(UNIX_EPOCH)
