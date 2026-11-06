@@ -200,6 +200,25 @@ pub async fn generation_output_image<R: tauri::Runtime>(
     ))
 }
 
+/// Preview-only data, decoded and downscaled after the same source/provenance checks as Open.
+/// No thumbnail file is stored on disk.
+#[tauri::command]
+pub async fn generation_output_thumbnail<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
+    job_id: String,
+) -> Result<String, String> {
+    let (_, local) = model_store::dirs(&app)?;
+    let png = tauri::async_runtime::spawn_blocking(move || {
+        generation::output_thumbnail_png(&local, &job_id)
+    })
+    .await
+    .map_err(|_| "Thumbnail processing stopped unexpectedly.".to_string())??;
+    Ok(format!(
+        "data:image/png;base64,{}",
+        base64::engine::general_purpose::STANDARD.encode(png)
+    ))
+}
+
 #[tauri::command]
 pub async fn generation_save<R: tauri::Runtime>(
     app: tauri::AppHandle<R>,
