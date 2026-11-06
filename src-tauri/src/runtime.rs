@@ -12,6 +12,7 @@ use tauri::Emitter;
 
 pub const RUNTIME_ID: &str = "diffusers-v1";
 pub const WORKER_SOURCE: &str = include_str!("../workers/diffusers_worker.py");
+const REFERENCE_SOURCE: &str = include_str!("../workers/img2img_reference.py");
 const PYTHON_VERSION: &str = "3.12";
 const TORCH_INDEX: &str = "https://download.pytorch.org/whl/cu130";
 const TORCH: &str = "torch==2.14.1+cu130";
@@ -69,6 +70,15 @@ pub fn ensure_worker_script(root: &Path) -> Result<PathBuf, String> {
         fs::create_dir_all(root).map_err(|e| e.to_string())?;
         fs::write(&path, WORKER_SOURCE)
             .map_err(|e| format!("Cannot write the worker script: {e}"))?;
+    }
+    // Python -I excludes the script directory from sys.path; the worker loads
+    // this app-owned helper explicitly from this same runtime directory.
+    let reference_path = root.join("img2img_reference.py");
+    let reference_want = Sha256::digest(REFERENCE_SOURCE.as_bytes());
+    let reference_current = fs::read(&reference_path).ok().map(|b| Sha256::digest(&b));
+    if reference_current.as_deref() != Some(reference_want.as_slice()) {
+        fs::write(&reference_path, REFERENCE_SOURCE)
+            .map_err(|e| format!("Cannot write the image reference verifier: {e}"))?;
     }
     Ok(path)
 }

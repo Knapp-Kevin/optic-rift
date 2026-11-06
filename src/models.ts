@@ -45,12 +45,12 @@ export type ModelLibrary = { model_dir: string; free_bytes: number | null; insta
 export type InstallEvent = { install_id: string; repo: string; state: string; file: string | null; file_index: number; file_count: number; bytes_done: number; bytes_total: number; message: string | null };
 export type Provenance = {
   job_id: string; created_unix_ms: number; prompt: string; negative_prompt: string;
-  parameters: { width: number; height: number; steps: number; guidance: number; seed: number };
+  parameters: { width: number; height: number; steps: number; guidance: number; seed: number; mode?: "text-to-image" | "image-to-image"; strength?: number | null };
   model: { repo: string; revision: string; adapter: string; license: string | null };
   runtime: { torch: string; diffusers: string; device: string | null };
   output: { sha256: string; width: number; height: number; bytes: number };
   metrics: { generation_seconds: number | null; load_seconds: number | null; peak_vram_allocated_mb: number | null };
-  project_id: string | null; lineage_note: string;
+  project_id: string | null; source?: { role: "initial-image"; job_id: string; sha256: string; width: number; height: number } | null; lineage_note: string;
 };
 
 export type StateFlag = { reached: boolean; detail: string };

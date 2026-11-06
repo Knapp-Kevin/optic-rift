@@ -6,6 +6,8 @@ import test from "node:test";
 // app showed no TCP/UDP endpoints in a 120-second monitored soak.
 // Undocumented WebView2 feature names can change with runtime upgrades.
 // This static guard does NOT replace release-build runtime egress qualification.
+// WebView2 157.0.4341.42 (auto-updated 2026-11-06) also needs msForceOneAuthWAM disabled:
+// without it oneauth.dll loaded and a 443 connection to Microsoft sign-in occurred at launch.
 const config = JSON.parse(readFileSync(new URL("../src-tauri/tauri.conf.json", import.meta.url), "utf8"));
 const args = config.app.windows.map((w) => w.additionalBrowserArgs ?? "");
 
@@ -15,7 +17,7 @@ function switchValues(line, name) {
 }
 
 
-const REQUIRED_DISABLED = ["msWebOOUI","msPdfOOUI","msSmartScreenProtection","msLoadOneAuthInBackground","msOneAuthWAM","msImplicitSignin","msEnableProfileAADAccountSSO","msM365LinksImplicitSignin","msSSOBrowserHint","msSSOBrowserHintPhase2","msSendSSODiagnostics"];
+const REQUIRED_DISABLED = ["msWebOOUI","msPdfOOUI","msSmartScreenProtection","msLoadOneAuthInBackground","msOneAuthWAM","msImplicitSignin","msEnableProfileAADAccountSSO","msM365LinksImplicitSignin","msSSOBrowserHint","msSSOBrowserHintPhase2","msSendSSODiagnostics","msForceOneAuthWAM"];
 const REQUIRED_ENABLED = ["msLazyLoadOneAuthInWebView"];
 const REQUIRED_FLAGS = ["--disable-background-networking","--disable-component-update","--no-pings"];
 

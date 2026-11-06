@@ -194,9 +194,9 @@ export default function App() {
             </select>
             <label className="field-label" htmlFor="prompt">Describe your idea</label>
             <textarea id="prompt" value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="A quiet mountain lake at sunrise, soft golden light and a gentle breeze..." rows={6} />
-            {capability === "Text to image"
-              ? <GeneratePanel prompt={prompt} projectId={project?.id ?? null} libraryVersion={libraryVersion} onOpenModels={() => setView("models")} onResult={addGenerated} onGenerated={() => setHistoryVersion(v => v + 1)} />
-              : <><div className="model-info"><strong>No adapter for {capability.toLowerCase()} yet</strong><p>You can discover these models on the Models page, but Optic Rift can only run text-to-image models today.</p></div>
+            {(capability === "Text to image" || capability === "Image to image")
+              ? <GeneratePanel prompt={prompt} mode={capability === "Image to image" ? "image-to-image" : "text-to-image"} historyVersion={historyVersion} projectId={project?.id ?? null} libraryVersion={libraryVersion} onOpenModels={() => setView("models")} onResult={addGenerated} onGenerated={() => setHistoryVersion(v => v + 1)} />
+              : <><div className="model-info"><strong>No adapter for {capability.toLowerCase()} yet</strong><p>You can discover these models on the Models page. Only SDXL text-to-image and its local-output transformation path have experimental execution code.</p></div>
                 <button className="secondary full" onClick={() => setView("models")}>Browse models</button></>}
             <GenerationHistory refreshVersion={historyVersion} onResult={addGenerated} />
             {selected?.kind === "image" && !previewFailed && <div className="adjustments">

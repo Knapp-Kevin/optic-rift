@@ -3,7 +3,7 @@
 //! setting, and none returns credentials.
 
 use crate::adapters::{self, Capability};
-use crate::generation::{self, GenerateRequest, GpuInfo, Provenance};
+use crate::generation::{self, GenerateRequest, GenerationMode, GpuInfo, Provenance};
 use crate::hf_catalog::{self, ModelDetail, SearchResult};
 use crate::model_store::{self, InstallRequest, InstalledModel, Manifest};
 use crate::runtime::{self, RuntimeManifest, RuntimeStatus};
@@ -218,6 +218,9 @@ pub struct GpuCheck {
 }
 
 /// Read-only check of who else is using the GPU, before the user starts a generation.
+// Each argument is a named IPC field the Studio already sends; bundling them into a struct would
+// change the frontend contract, so the argument count is accepted here.
+#[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub async fn gpu_check<R: tauri::Runtime>(
     app: tauri::AppHandle<R>,
@@ -225,21 +228,41 @@ pub async fn gpu_check<R: tauri::Runtime>(
     revision: String,
     width: u32,
     height: u32,
+    steps: u32,
+    mode: Option<GenerationMode>,
+    source_job_id: Option<String>,
+    strength: Option<f32>,
 ) -> Result<GpuCheck, String> {
+    generation::validate_image_to_image_steps(mode.unwrap_or_default(), steps, strength)?;
     let (data, local) = model_store::dirs(&app)?;
+    let mode = mode.unwrap_or_default();
     let model =
         model_store::find_installed(&model_store::model_dir(&data, &local), &repo, &revision)
             .ok_or("That model is not installed.")?;
+    if mode == GenerationMode::ImageToImage
+        && model.manifest.adapter != "diffusers-sdxl-text-to-image"
+    {
+        return Err("Image-to-image currently requires an installed SDXL model.".into());
+    }
     tauri::async_runtime::spawn_blocking(move || {
+        // Hashing/reading the optional local reference must stay off the UI runtime.
+        generation::preflight_image_reference(
+            &local,
+            mode,
+            source_job_id.as_deref(),
+            strength,
+            width,
+            height,
+        )?;
         let (snapshot, decision, need_mb) =
-            generation::gpu_decision(model.manifest.total_bytes, width, height, &[]);
-        GpuCheck {
+            generation::gpu_decision(model.manifest.total_bytes, width, height, mode, &[]);
+        Ok(GpuCheck {
             snapshot,
             decision,
             need_mb,
             idle_unload_seconds: generation::IDLE_UNLOAD.as_secs(),
-        }
+        })
     })
     .await
-    .map_err(|e| e.to_string())
+    .map_err(|e| e.to_string())?
 }

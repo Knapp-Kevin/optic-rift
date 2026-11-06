@@ -304,15 +304,27 @@ pub fn job_need_mb(weights_bytes: u64, width: u32, height: u32) -> u64 {
     weights_bytes / (1024 * 1024) + workspace
 }
 
+/// Until an exact-machine GPU measurement exists for img2img, conservatively
+/// reserve 2 GiB beyond the measured text-to-image estimate. This is a
+/// preflight estimate, never a hard system-wide VRAM cap or qualification.
+pub fn job_need_for_mode(weights_bytes: u64, width: u32, height: u32, mode: GenerationMode) -> u64 {
+    let base = job_need_mb(weights_bytes, width, height);
+    match mode {
+        GenerationMode::TextToImage => base,
+        GenerationMode::ImageToImage => base.saturating_add(2048),
+    }
+}
+
 /// Check the GPU is free enough to use right now, considering every other process.
 pub fn gpu_decision(
     weights_bytes: u64,
     width: u32,
     height: u32,
+    mode: GenerationMode,
     acknowledged: &[u32],
 ) -> (gpu_guard::GpuSnapshot, gpu_guard::Decision, u64) {
     let snapshot = gpu_guard::snapshot();
-    let need = job_need_mb(weights_bytes, width, height);
+    let need = job_need_for_mode(weights_bytes, width, height, mode);
     let decision = gpu_guard::evaluate(&snapshot, need, acknowledged);
     (snapshot, decision, need)
 }
@@ -322,6 +334,7 @@ fn gpu_budget(model: &InstalledModel, req: &GenerateRequest) -> Result<u64, Stri
         model.manifest.total_bytes,
         req.width,
         req.height,
+        req.mode,
         &req.gpu_acknowledged,
     )
     .1
@@ -329,6 +342,23 @@ fn gpu_budget(model: &InstalledModel, req: &GenerateRequest) -> Result<u64, Stri
         gpu_guard::Decision::Proceed { budget_mb } => Ok(budget_mb),
         gpu_guard::Decision::Confirm { message, .. } => Err(format!("GPU_BUSY: {message}")),
         gpu_guard::Decision::Block { message } => Err(message),
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum GenerationMode {
+    #[default]
+    TextToImage,
+    ImageToImage,
+}
+
+impl GenerationMode {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::TextToImage => "text-to-image",
+            Self::ImageToImage => "image-to-image",
+        }
     }
 }
 
@@ -345,6 +375,12 @@ pub struct GenerateRequest {
     pub steps: u32,
     pub guidance: f32,
     pub seed: Option<u64>,
+    #[serde(default)]
+    pub mode: GenerationMode,
+    #[serde(default)]
+    pub source_job_id: Option<String>,
+    #[serde(default)]
+    pub strength: Option<f32>,
     pub project_id: Option<String>,
     /// PIDs of other GPU apps the user explicitly agreed to share the GPU with for this job.
     #[serde(default)]
@@ -364,6 +400,8 @@ pub struct Provenance {
     pub output: Value,
     pub metrics: Value,
     pub project_id: Option<String>,
+    #[serde(default)]
+    pub source: Option<Value>,
     pub lineage_note: String,
 }
 
@@ -373,6 +411,102 @@ fn valid_job_id(id: &str) -> bool {
 
 pub fn outputs_dir(app_local: &Path) -> PathBuf {
     app_local.join("outputs")
+}
+
+/// Path and digest constructed only from verified app-owned output history.
+/// The browser never supplies a reference path or reference SHA to the worker.
+#[derive(Debug, Clone, Serialize)]
+struct ImageReference {
+    job_id: String,
+    path: PathBuf,
+    sha256: String,
+}
+
+/// JSON number for an f32 setting using its shortest decimal form, so a slider value of 0.65 is
+/// sent and recorded as 0.65 rather than the widened 0.6499999761581421.
+fn decimal_f32(value: Option<f32>) -> Value {
+    value
+        .filter(|v| v.is_finite())
+        .and_then(|v| v.to_string().parse::<f64>().ok())
+        .map_or(Value::Null, Value::from)
+}
+
+/// SDXL img2img truncates steps * strength to an integer. Reject a zero-step
+/// combination before model loading or starting a GPU job. This is independent
+/// of source-file integrity validation and does not change text-to-image.
+pub(crate) fn validate_image_to_image_steps(
+    mode: GenerationMode,
+    steps: u32,
+    strength: Option<f32>,
+) -> Result<(), String> {
+    if mode == GenerationMode::ImageToImage
+        && strength
+            .is_some_and(|value| value.is_finite() && (f64::from(value) * f64::from(steps)) < 1.0)
+    {
+        return Err("Increase Steps or image strength to run at least one denoising step.".into());
+    }
+    Ok(())
+}
+
+pub(crate) fn preflight_image_reference(
+    app_local: &Path,
+    mode: GenerationMode,
+    source_job_id: Option<&str>,
+    strength: Option<f32>,
+    width: u32,
+    height: u32,
+) -> Result<(), String> {
+    // Preflight from a UI action never produces or allocates a generation ID.
+    verified_image_reference(app_local, mode, source_job_id, strength, width, height, "")
+        .map(|_| ())
+}
+
+fn verified_image_reference(
+    app_local: &Path,
+    mode: GenerationMode,
+    source_job_id: Option<&str>,
+    strength: Option<f32>,
+    width: u32,
+    height: u32,
+    output_job_id: &str,
+) -> Result<Option<ImageReference>, String> {
+    match mode {
+        GenerationMode::TextToImage => {
+            if source_job_id.is_some() || strength.is_some() {
+                return Err(
+                    "Text-to-image requests must not include a source or image strength.".into(),
+                );
+            }
+            Ok(None)
+        }
+        GenerationMode::ImageToImage => {
+            let id = source_job_id.ok_or("Choose a previous local generation first.")?;
+            if !valid_job_id(id) || id == output_job_id {
+                return Err("Choose a valid, different source generation.".into());
+            }
+            if !strength.is_some_and(|s| s.is_finite() && (0.05..=0.95).contains(&s)) {
+                return Err("Image strength must be between 0.05 and 0.95.".into());
+            }
+            let (png, record) = verified_output(app_local, id)?;
+            if png.len() > 32 * 1024 * 1024 || png_size(&png) != Some((width, height)) {
+                return Err(
+                    "The local source must be at most 32 MB and match the generation dimensions."
+                        .into(),
+                );
+            }
+            let provenance: Provenance = serde_json::from_slice(&record)
+                .map_err(|_| "The source provenance is invalid.".to_string())?;
+            let sha256 = provenance.output["sha256"]
+                .as_str()
+                .ok_or("The source record has no image digest.")?
+                .to_string();
+            Ok(Some(ImageReference {
+                job_id: id.into(),
+                path: outputs_dir(app_local).join(format!("{id}.png")),
+                sha256,
+            }))
+        }
+    }
 }
 
 /// Parse width/height from a PNG IHDR chunk.
@@ -407,12 +541,28 @@ fn generate_blocking<R: tauri::Runtime>(
             return Err("Invalid project id.".into());
         }
     }
+    validate_image_to_image_steps(req.mode, req.steps, req.strength)?;
     let (data, local) = model_store::dirs(app)?;
+    // Fail closed before loading the GPU worker on malformed or mismatched sources.
+    verified_image_reference(
+        &local,
+        req.mode,
+        req.source_job_id.as_deref(),
+        req.strength,
+        req.width,
+        req.height,
+        &req.job_id,
+    )?;
     let models = model_store::model_dir(&data, &local);
     let installed: InstalledModel = model_store::find_installed(&models, &req.repo, &req.revision)
         .ok_or("That model is not installed.")?;
     if !installed.files_present {
         return Err("The installed model is incomplete. Remove and reinstall it.".into());
+    }
+    if req.mode == GenerationMode::ImageToImage
+        && installed.manifest.adapter != "diffusers-sdxl-text-to-image"
+    {
+        return Err("Image-to-image currently requires an installed SDXL model.".into());
     }
     let root = runtime::root(&local);
     let rt = runtime::manifest(&root).ok_or("Install the image runtime first (Models page).")?;
@@ -436,8 +586,9 @@ fn run_job<R: tauri::Runtime>(
     let key = (model.manifest.repo.clone(), model.manifest.revision.clone());
     let mut load_seconds = Value::Null;
     *w.last_used.lock().unwrap() = Instant::now();
-    // Re-checked for every job: a game may have started since the model was loaded.
-    let mut budget_mb = gpu_budget(model, req)?;
+    // Re-checked for every job: a game may have started since the model was loaded. This early
+    // check fails closed before any multi-GB verification; each later use re-checks again.
+    gpu_budget(model, req)?;
     if w.loaded.lock().unwrap().as_ref() != Some(&key) {
         let _ = app.emit(
             "generation",
@@ -446,12 +597,12 @@ fn run_job<R: tauri::Runtime>(
         model_store::verify_installed_files(model)?;
         // Verification can read gigabytes. The GPU sharing snapshot taken before
         // that disk I/O may now be stale, so re-check immediately before loading.
-        budget_mb = gpu_budget(model, req)?;
+        let load_budget_mb = gpu_budget(model, req)?;
         let _ = app.emit(
             "generation",
             json!({"event": "loading", "job_id": req.job_id}),
         );
-        w.send(&json!({"op": "load", "model_dir": model.dir, "adapter": model.manifest.adapter, "variant": model.manifest.variant, "vram_budget_mb": budget_mb}))?;
+        w.send(&json!({"op": "load", "model_dir": model.dir, "adapter": model.manifest.adapter, "variant": model.manifest.variant, "vram_budget_mb": load_budget_mb}))?;
         let loaded = w.wait_for(
             |e| e["event"] == "loaded" || (e["event"] == "error" && e["op"] == "load"),
             Duration::from_secs(600),
@@ -466,6 +617,19 @@ fn run_job<R: tauri::Runtime>(
         load_seconds = loaded["seconds"].clone();
         *w.loaded.lock().unwrap() = Some(key);
     }
+    // A hash check before model load may be old by now; revalidate the source
+    // immediately before sending the job. The worker independently hashes again.
+    let reference = verified_image_reference(
+        local,
+        req.mode,
+        req.source_job_id.as_deref(),
+        req.strength,
+        req.width,
+        req.height,
+        &req.job_id,
+    )?;
+    // GPU sharing state may change during the source hash/decode checks.
+    let budget_mb = gpu_budget(model, req)?;
     let out_dir = outputs_dir(local);
     fs::create_dir_all(&out_dir).map_err(|e| e.to_string())?;
     let png = out_dir.join(format!("{}.png", req.job_id));
@@ -473,6 +637,7 @@ fn run_job<R: tauri::Runtime>(
         "op": "generate", "job_id": req.job_id, "prompt": req.prompt, "negative_prompt": req.negative_prompt,
         "width": req.width, "height": req.height, "steps": req.steps, "guidance": req.guidance,
         "seed": req.seed, "output_path": png, "vram_budget_mb": budget_mb,
+        "mode": req.mode.as_str(), "reference": reference.as_ref(), "strength": decimal_f32(req.strength),
     }))?;
     let job = req.job_id.clone();
     let end = w.wait_for(
@@ -521,7 +686,7 @@ fn run_job<R: tauri::Runtime>(
         created_unix_ms: SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0),
         prompt: req.prompt.trim().into(),
         negative_prompt: req.negative_prompt.trim().into(),
-        parameters: json!({"width": req.width, "height": req.height, "steps": req.steps, "guidance": req.guidance, "seed": end["seed"]}),
+        parameters: json!({"width": req.width, "height": req.height, "steps": req.steps, "guidance": decimal_f32(Some(req.guidance)), "seed": end["seed"], "mode": req.mode.as_str(), "strength": decimal_f32(req.strength)}),
         model: json!({
             "repo": model.manifest.repo, "revision": model.manifest.revision, "adapter": model.manifest.adapter,
             "adapter_version": model.manifest.adapter_version, "variant": model.manifest.variant,
@@ -532,6 +697,10 @@ fn run_job<R: tauri::Runtime>(
         output: json!({"file": png.file_name().map(|n| n.to_string_lossy().to_string()), "sha256": sha256, "width": req.width, "height": req.height, "format": "png", "bytes": bytes.len()}),
         metrics: json!({"generation_seconds": end["seconds"], "load_seconds": load_seconds, "peak_vram_allocated_mb": end["peak_vram_mb"]}),
         project_id: req.project_id.clone(),
+        source: reference.map(|r| json!({
+            "role": "initial-image", "job_id": r.job_id, "sha256": r.sha256,
+            "width": req.width, "height": req.height,
+        })),
         lineage_note: "Stored in Optic Rift's local output folder. Not yet linked into project asset lineage (decision #5 pending).".into(),
     };
     let record = out_dir.join(format!("{}.json", req.job_id));
@@ -767,6 +936,19 @@ mod tests {
     }
 
     #[test]
+    fn f32_settings_are_recorded_as_their_decimal_values() {
+        assert_eq!(decimal_f32(Some(0.65)), json!(0.65));
+        assert_eq!(decimal_f32(Some(7.5)), json!(7.5));
+        assert_eq!(decimal_f32(None), Value::Null);
+        assert_eq!(decimal_f32(Some(f32::NAN)), Value::Null);
+        assert_ne!(
+            json!(0.65f32),
+            json!(0.65),
+            "documents the widening this avoids"
+        );
+    }
+
+    #[test]
     fn png_header_parsing() {
         let mut png = b"\x89PNG\r\n\x1a\n\0\0\0\rIHDR".to_vec();
         png.extend(1024u32.to_be_bytes());
@@ -778,9 +960,13 @@ mod tests {
     /// A small PNG-header fixture is enough for the native save path's validation.
     /// The independent image-generation path validates actual worker output separately.
     fn write_output_pair(local: &Path, id: &str) -> Vec<u8> {
+        write_output_pair_for_size(local, id, 1, 1)
+    }
+
+    fn write_output_pair_for_size(local: &Path, id: &str, width: u32, height: u32) -> Vec<u8> {
         let mut png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR".to_vec();
-        png.extend_from_slice(&1u32.to_be_bytes());
-        png.extend_from_slice(&1u32.to_be_bytes());
+        png.extend_from_slice(&width.to_be_bytes());
+        png.extend_from_slice(&height.to_be_bytes());
         let sha = Sha256::digest(&png)
             .iter()
             .map(|b| format!("{b:02x}"))
@@ -791,7 +977,7 @@ mod tests {
             "record_version": 1, "job_id": id, "created_unix_ms": 0,
             "prompt": "test", "negative_prompt": "", "parameters": {},
             "model": {}, "runtime": {}, "metrics": {},
-            "output": {"sha256": sha, "width": 1, "height": 1, "bytes": png.len()},
+            "output": {"sha256": sha, "width": width, "height": height, "bytes": png.len()},
             "project_id": null, "lineage_note": "test"
         });
         fs::write(
@@ -931,5 +1117,160 @@ mod tests {
             .join(format!("optic-rift-{id}.png"));
         assert_eq!(fs::read(dest).unwrap(), png);
         fs::remove_dir_all(local).unwrap();
+    }
+    #[test]
+    fn image_modes_default_to_text_and_unknown_modes_fail_closed() {
+        let base = json!({
+            "job_id": uuid::Uuid::new_v4().to_string(),
+            "repo": "segmind/SSD-1B", "revision": "0".repeat(40),
+            "prompt": "a garden", "width": 512, "height": 512,
+            "steps": 20, "guidance": 7.0, "seed": null, "project_id": null
+        });
+        let request: GenerateRequest = serde_json::from_value(base.clone()).unwrap();
+        assert_eq!(request.mode, GenerationMode::TextToImage);
+        let mut bad = base;
+        bad["mode"] = json!("arbitrary-mode");
+        assert!(serde_json::from_value::<GenerateRequest>(bad).is_err());
+    }
+
+    #[test]
+    fn image_to_image_reference_must_match_verified_local_history() {
+        let local =
+            std::env::temp_dir().join(format!("optic-rift-img2img-{}", uuid::Uuid::new_v4()));
+        let id = uuid::Uuid::new_v4().to_string();
+        let dest = uuid::Uuid::new_v4().to_string();
+        let original = write_output_pair_for_size(&local, &id, 512, 512);
+        let reference = verified_image_reference(
+            &local,
+            GenerationMode::ImageToImage,
+            Some(&id),
+            Some(0.65),
+            512,
+            512,
+            &dest,
+        )
+        .unwrap()
+        .unwrap();
+        assert_eq!(reference.job_id, id);
+        assert_eq!(
+            reference.path,
+            outputs_dir(&local).join(format!("{id}.png"))
+        );
+        assert_eq!(reference.sha256, format!("{:x}", Sha256::digest(&original)));
+        assert!(verified_image_reference(
+            &local,
+            GenerationMode::ImageToImage,
+            Some(&id),
+            Some(0.65),
+            1024,
+            1024,
+            &dest,
+        )
+        .is_err());
+        assert!(verified_image_reference(
+            &local,
+            GenerationMode::ImageToImage,
+            Some(&id),
+            Some(0.65),
+            512,
+            512,
+            &id,
+        )
+        .is_err());
+        fs::write(&reference.path, b"tampered same-origin local output").unwrap();
+        assert!(verified_image_reference(
+            &local,
+            GenerationMode::ImageToImage,
+            Some(&id),
+            Some(0.65),
+            512,
+            512,
+            &dest,
+        )
+        .is_err());
+        fs::remove_dir_all(local).unwrap();
+    }
+
+    #[test]
+    fn image_to_image_rejects_invalid_input_and_preserves_t2i_contract() {
+        let local =
+            std::env::temp_dir().join(format!("optic-rift-img2img-{}", uuid::Uuid::new_v4()));
+        let dest = uuid::Uuid::new_v4().to_string();
+        assert!(preflight_image_reference(
+            &local,
+            GenerationMode::TextToImage,
+            None,
+            None,
+            512,
+            512,
+        )
+        .is_ok());
+        assert!(preflight_image_reference(
+            &local,
+            GenerationMode::TextToImage,
+            Some("bogus"),
+            None,
+            512,
+            512,
+        )
+        .is_err());
+        for strength in [None, Some(f32::NAN), Some(0.0), Some(1.0)] {
+            assert!(verified_image_reference(
+                &local,
+                GenerationMode::ImageToImage,
+                Some(&dest),
+                strength,
+                512,
+                512,
+                "",
+            )
+            .is_err());
+        }
+        assert!(verified_image_reference(
+            &local,
+            GenerationMode::ImageToImage,
+            Some("../not-a-job"),
+            Some(0.5),
+            512,
+            512,
+            "",
+        )
+        .is_err());
+        assert!(verified_image_reference(
+            &local,
+            GenerationMode::ImageToImage,
+            None,
+            Some(0.5),
+            512,
+            512,
+            "",
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn img2img_needs_at_least_one_effective_denoising_step() {
+        assert!(
+            validate_image_to_image_steps(GenerationMode::ImageToImage, 1, Some(0.65)).is_err()
+        );
+        assert!(
+            validate_image_to_image_steps(GenerationMode::ImageToImage, 10, Some(0.05)).is_err()
+        );
+        assert!(
+            validate_image_to_image_steps(GenerationMode::ImageToImage, 20, Some(0.05)).is_ok()
+        );
+        assert!(
+            validate_image_to_image_steps(GenerationMode::ImageToImage, 25, Some(0.65)).is_ok()
+        );
+        assert!(validate_image_to_image_steps(GenerationMode::TextToImage, 1, None).is_ok());
+    }
+
+    #[test]
+    fn img2img_gpu_preflight_uses_additional_unqualified_margin() {
+        let weights = 4_468_829_801;
+        let text = job_need_for_mode(weights, 1024, 1024, GenerationMode::TextToImage);
+        let reference = job_need_for_mode(weights, 1024, 1024, GenerationMode::ImageToImage);
+        assert_eq!(text, job_need_mb(weights, 1024, 1024));
+        assert_eq!(reference, text + 2048);
     }
 }
