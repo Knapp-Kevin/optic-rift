@@ -24,3 +24,13 @@ Same method: synthetic IPC only, emulating native `model_install_status` / `mode
 | `edge-cases/10-BEFORE-8e25456-…` | Native rejected Cancel: button stuck on "Cancelling…" |
 | `edge-cases/11-AFTER-13e803a-…` | Same moment: "Downloading a model · file 2 of 6 · 1.00 GB of 4.00 GB", Cancel available |
 | `edge-cases/12-AFTER-13e803a-…` | Native rejected Cancel: button re-enabled |
+
+## Owner-approved bounded real cancellation (2026-11-06, `13e803a`)
+
+Real native install path with no IPC interception, in the isolated QA profile, with no GPU work. Public `segmind/SSD-1B@60987f37`. Hard cap 600 MB (the app would have been killed above it); cancel at about 150 MB.
+
+| File | State |
+|---|---|
+| `real-cancel/13-real-early-cancel` | Cancel pressed during native pre-inspection: "Installation cancelled before any model file was downloaded" |
+| `real-cancel/14-real-download-on-studio-rail` | Real download continuing on the Studio rail after leaving Models |
+| `real-cancel/15-real-after-native-cancel` | After Cancel from the Studio rail at 164 MiB: native confirmed, slot released |
