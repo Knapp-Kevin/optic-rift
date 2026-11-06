@@ -18,7 +18,7 @@ test("declining Pictures save causes no native write", async () => {
 });
 
 test("approval copies exactly once and propagates native failures", async () => {
-  const calls: string[] = [];
+  const calls = [];
   const consented = await saveWithPicturesConsent("job-id", (notice) => {
     assert.equal(notice, PICTURES_EXPORT_WARNING);
     return true;
