@@ -139,7 +139,9 @@ fn verify_uv_checksum(path: &Path, approved_sha256: &str) -> Result<(), String> 
         return Err("A valid SHA-256 approval is required before running uv.".into());
     }
     if sha256_file(path).as_deref() != Some(approved_sha256) {
-        return Err("The selected uv executable changed since approval. Recheck runtime setup.".into());
+        return Err(
+            "The selected uv executable changed since approval. Recheck runtime setup.".into(),
+        );
     }
     Ok(())
 }
@@ -284,7 +286,13 @@ pub fn install<R: tauri::Runtime>(
         "https://pypi.org/simple",
     ];
     args.extend(PACKAGES);
-    run_logged(app, "Installing diffusion libraries", &uv, approved_uv_sha256, &args)?;
+    run_logged(
+        app,
+        "Installing diffusion libraries",
+        &uv,
+        approved_uv_sha256,
+        &args,
+    )?;
     let _ = app.emit(
         "runtime-install",
         RuntimeEvent {

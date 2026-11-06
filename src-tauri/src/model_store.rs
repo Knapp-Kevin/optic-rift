@@ -241,7 +241,9 @@ pub fn verify_installed_files(model: &InstalledModel) -> Result<(), String> {
                 .bytes()
                 .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
         {
-            return Err("The model manifest contains an invalid path or digest; reinstall it.".into());
+            return Err(
+                "The model manifest contains an invalid path or digest; reinstall it.".into(),
+            );
         }
 
         // Reject in-tree symlinks and Windows junctions before hashing. Without this
@@ -285,10 +287,7 @@ pub fn verify_installed_files(model: &InstalledModel) -> Result<(), String> {
 fn verify_real_directory(path: &Path) -> Result<(), String> {
     let metadata = fs::symlink_metadata(path)
         .map_err(|_| "A model installation directory is missing.".to_string())?;
-    if !metadata.is_dir()
-        || metadata.file_type().is_symlink()
-        || file_is_reparse_point(&metadata)
-    {
+    if !metadata.is_dir() || metadata.file_type().is_symlink() || file_is_reparse_point(&metadata) {
         return Err("A model installation directory is a link or reparse point.".into());
     }
     Ok(())

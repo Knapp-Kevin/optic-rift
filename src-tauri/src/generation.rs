@@ -307,12 +307,7 @@ pub fn job_need_mb(weights_bytes: u64, width: u32, height: u32) -> u64 {
 /// Until an exact-machine GPU measurement exists for img2img, conservatively
 /// reserve 2 GiB beyond the measured text-to-image estimate. This is a
 /// preflight estimate, never a hard system-wide VRAM cap or qualification.
-pub fn job_need_for_mode(
-    weights_bytes: u64,
-    width: u32,
-    height: u32,
-    mode: GenerationMode,
-) -> u64 {
+pub fn job_need_for_mode(weights_bytes: u64, width: u32, height: u32, mode: GenerationMode) -> u64 {
     let base = job_need_mb(weights_bytes, width, height);
     match mode {
         GenerationMode::TextToImage => base,
@@ -436,7 +431,8 @@ pub(crate) fn validate_image_to_image_steps(
     strength: Option<f32>,
 ) -> Result<(), String> {
     if mode == GenerationMode::ImageToImage
-        && strength.is_some_and(|value| value.is_finite() && (f64::from(value) * f64::from(steps)) < 1.0)
+        && strength
+            .is_some_and(|value| value.is_finite() && (f64::from(value) * f64::from(steps)) < 1.0)
     {
         return Err("Increase Steps or image strength to run at least one denoising step.".into());
     }
@@ -468,7 +464,9 @@ fn verified_image_reference(
     match mode {
         GenerationMode::TextToImage => {
             if source_job_id.is_some() || strength.is_some() {
-                return Err("Text-to-image requests must not include a source or image strength.".into());
+                return Err(
+                    "Text-to-image requests must not include a source or image strength.".into(),
+                );
             }
             Ok(None)
         }
@@ -482,7 +480,10 @@ fn verified_image_reference(
             }
             let (png, record) = verified_output(app_local, id)?;
             if png.len() > 32 * 1024 * 1024 || png_size(&png) != Some((width, height)) {
-                return Err("The local source must be at most 32 MB and match the generation dimensions.".into());
+                return Err(
+                    "The local source must be at most 32 MB and match the generation dimensions."
+                        .into(),
+                );
             }
             let provenance: Provenance = serde_json::from_slice(&record)
                 .map_err(|_| "The source provenance is invalid.".to_string())?;
@@ -576,8 +577,9 @@ fn run_job<R: tauri::Runtime>(
     let key = (model.manifest.repo.clone(), model.manifest.revision.clone());
     let mut load_seconds = Value::Null;
     *w.last_used.lock().unwrap() = Instant::now();
-    // Re-checked for every job: a game may have started since the model was loaded.
-    let mut budget_mb = gpu_budget(model, req)?;
+    // Re-checked for every job: a game may have started since the model was loaded. This early
+    // check fails closed before any multi-GB verification; each later use re-checks again.
+    gpu_budget(model, req)?;
     if w.loaded.lock().unwrap().as_ref() != Some(&key) {
         let _ = app.emit(
             "generation",
@@ -586,12 +588,12 @@ fn run_job<R: tauri::Runtime>(
         model_store::verify_installed_files(model)?;
         // Verification can read gigabytes. The GPU sharing snapshot taken before
         // that disk I/O may now be stale, so re-check immediately before loading.
-        budget_mb = gpu_budget(model, req)?;
+        let load_budget_mb = gpu_budget(model, req)?;
         let _ = app.emit(
             "generation",
             json!({"event": "loading", "job_id": req.job_id}),
         );
-        w.send(&json!({"op": "load", "model_dir": model.dir, "adapter": model.manifest.adapter, "variant": model.manifest.variant, "vram_budget_mb": budget_mb}))?;
+        w.send(&json!({"op": "load", "model_dir": model.dir, "adapter": model.manifest.adapter, "variant": model.manifest.variant, "vram_budget_mb": load_budget_mb}))?;
         let loaded = w.wait_for(
             |e| e["event"] == "loaded" || (e["event"] == "error" && e["op"] == "load"),
             Duration::from_secs(600),
@@ -618,7 +620,7 @@ fn run_job<R: tauri::Runtime>(
         &req.job_id,
     )?;
     // GPU sharing state may change during the source hash/decode checks.
-    budget_mb = gpu_budget(model, req)?;
+    let budget_mb = gpu_budget(model, req)?;
     let out_dir = outputs_dir(local);
     fs::create_dir_all(&out_dir).map_err(|e| e.to_string())?;
     let png = out_dir.join(format!("{}.png", req.job_id));
@@ -739,9 +741,7 @@ pub fn list_outputs(app_local: &Path) -> Vec<Provenance> {
     let Ok(metadata) = fs::symlink_metadata(&root) else {
         return Vec::new();
     };
-    if !metadata.is_dir()
-        || metadata.file_type().is_symlink()
-        || output_is_reparse_point(&metadata)
+    if !metadata.is_dir() || metadata.file_type().is_symlink() || output_is_reparse_point(&metadata)
     {
         return Vec::new();
     }
@@ -817,7 +817,10 @@ fn verified_output(app_local: &Path, job_id: &str) -> Result<(Vec<u8>, Vec<u8>),
         return Err("The local output folder is redirected or invalid.".into());
     }
     let png = read_output_file(&root.join(format!("{job_id}.png")), MAX_OUTPUT_PNG_BYTES)?;
-    let record = read_output_file(&root.join(format!("{job_id}.json")), MAX_OUTPUT_RECORD_BYTES)?;
+    let record = read_output_file(
+        &root.join(format!("{job_id}.json")),
+        MAX_OUTPUT_RECORD_BYTES,
+    )?;
     let provenance: Provenance = serde_json::from_slice(&record)
         .map_err(|_| "The output's provenance record is invalid.".to_string())?;
     let actual_digest: String = Sha256::digest(&png)
@@ -866,7 +869,9 @@ pub fn save_copy(app_local: &Path, pictures: &Path, job_id: &str) -> Result<Path
         .write(true)
         .create_new(true)
         .open(&dest)
-        .map_err(|e| format!("Cannot create the image without overwriting an existing file: {e}"))?;
+        .map_err(|e| {
+            format!("Cannot create the image without overwriting an existing file: {e}")
+        })?;
     let result = output.write_all(&png).and_then(|_| output.sync_all());
     drop(output);
     if let Err(e) = result {
@@ -882,7 +887,9 @@ pub fn save_copy(app_local: &Path, pictures: &Path, job_id: &str) -> Result<Path
         Ok(file) => file,
         Err(e) => {
             let _ = fs::remove_file(&dest);
-            return Err(format!("Cannot create the provenance record without overwriting an existing file: {e}"));
+            return Err(format!(
+                "Cannot create the provenance record without overwriting an existing file: {e}"
+            ));
         }
     };
     let result = sidecar.write_all(&record).and_then(|_| sidecar.sync_all());
@@ -954,7 +961,8 @@ mod tests {
         fs::write(
             outputs_dir(local).join(format!("{id}.json")),
             serde_json::to_vec(&record).unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
         png
     }
 
@@ -968,9 +976,13 @@ mod tests {
         let png = write_output_pair(&local, &id);
         let saved = save_copy(&local, &pictures, &id).unwrap();
         assert_eq!(fs::read(&saved).unwrap(), png);
-        assert!(saved.to_string_lossy().contains(&id), "full UUID is retained");
+        assert!(
+            saved.to_string_lossy().contains(&id),
+            "full UUID is retained"
+        );
         let provenance = saved.with_file_name(format!("optic-rift-{id}.provenance.json"));
-        let saved_meta: Provenance = serde_json::from_slice(&fs::read(provenance).unwrap()).unwrap();
+        let saved_meta: Provenance =
+            serde_json::from_slice(&fs::read(provenance).unwrap()).unwrap();
         assert_eq!(saved_meta.job_id, id);
         assert!(save_copy(&local, &pictures, &id).is_err());
         assert_eq!(fs::read(&saved).unwrap(), png);
@@ -1003,10 +1015,22 @@ mod tests {
         write_output_pair(&local, &id);
         assert_eq!(list_outputs(&local).len(), 1);
         let invalid_name = outputs_dir(&local).join("unrelated.json");
-        fs::copy(outputs_dir(&local).join(format!("{id}.json")), &invalid_name).unwrap();
-        assert_eq!(list_outputs(&local).len(), 1, "mismatched identity is ignored");
+        fs::copy(
+            outputs_dir(&local).join(format!("{id}.json")),
+            &invalid_name,
+        )
+        .unwrap();
+        assert_eq!(
+            list_outputs(&local).len(),
+            1,
+            "mismatched identity is ignored"
+        );
         fs::write(invalid_name, vec![b'x'; 512 * 1024 + 1]).unwrap();
-        assert_eq!(list_outputs(&local).len(), 1, "oversized metadata is skipped");
+        assert_eq!(
+            list_outputs(&local).len(),
+            1,
+            "oversized metadata is skipped"
+        );
         fs::remove_dir_all(local).unwrap();
     }
 
@@ -1034,10 +1058,7 @@ mod tests {
         write_output_pair(&local, &id);
         fs::write(outputs_dir(&local).join(format!("{id}.json")), b"not-json").unwrap();
         assert!(output_png(&local, &id).is_err());
-        assert!(read_output_file(
-            &outputs_dir(&local).join(format!("{id}.png")),
-            1
-        ).is_err());
+        assert!(read_output_file(&outputs_dir(&local).join(format!("{id}.png")), 1).is_err());
         fs::remove_dir_all(local).unwrap();
     }
 
@@ -1069,7 +1090,9 @@ mod tests {
             (a.join().unwrap(), b.join().unwrap())
         });
         assert_eq!(usize::from(a.is_ok()) + usize::from(b.is_ok()), 1);
-        let dest = pictures.join("Optic Rift").join(format!("optic-rift-{id}.png"));
+        let dest = pictures
+            .join("Optic Rift")
+            .join(format!("optic-rift-{id}.png"));
         assert_eq!(fs::read(dest).unwrap(), png);
         fs::remove_dir_all(local).unwrap();
     }
@@ -1090,60 +1113,133 @@ mod tests {
 
     #[test]
     fn image_to_image_reference_must_match_verified_local_history() {
-        let local = std::env::temp_dir().join(format!("optic-rift-img2img-{}", uuid::Uuid::new_v4()));
+        let local =
+            std::env::temp_dir().join(format!("optic-rift-img2img-{}", uuid::Uuid::new_v4()));
         let id = uuid::Uuid::new_v4().to_string();
         let dest = uuid::Uuid::new_v4().to_string();
         let original = write_output_pair_for_size(&local, &id, 512, 512);
         let reference = verified_image_reference(
-            &local, GenerationMode::ImageToImage, Some(&id), Some(0.65), 512, 512, &dest,
+            &local,
+            GenerationMode::ImageToImage,
+            Some(&id),
+            Some(0.65),
+            512,
+            512,
+            &dest,
         )
         .unwrap()
         .unwrap();
         assert_eq!(reference.job_id, id);
-        assert_eq!(reference.path, outputs_dir(&local).join(format!("{id}.png")));
+        assert_eq!(
+            reference.path,
+            outputs_dir(&local).join(format!("{id}.png"))
+        );
         assert_eq!(reference.sha256, format!("{:x}", Sha256::digest(&original)));
         assert!(verified_image_reference(
-            &local, GenerationMode::ImageToImage, Some(&id), Some(0.65), 1024, 1024, &dest,
-        ).is_err());
+            &local,
+            GenerationMode::ImageToImage,
+            Some(&id),
+            Some(0.65),
+            1024,
+            1024,
+            &dest,
+        )
+        .is_err());
         assert!(verified_image_reference(
-            &local, GenerationMode::ImageToImage, Some(&id), Some(0.65), 512, 512, &id,
-        ).is_err());
+            &local,
+            GenerationMode::ImageToImage,
+            Some(&id),
+            Some(0.65),
+            512,
+            512,
+            &id,
+        )
+        .is_err());
         fs::write(&reference.path, b"tampered same-origin local output").unwrap();
         assert!(verified_image_reference(
-            &local, GenerationMode::ImageToImage, Some(&id), Some(0.65), 512, 512, &dest,
-        ).is_err());
+            &local,
+            GenerationMode::ImageToImage,
+            Some(&id),
+            Some(0.65),
+            512,
+            512,
+            &dest,
+        )
+        .is_err());
         fs::remove_dir_all(local).unwrap();
     }
 
     #[test]
     fn image_to_image_rejects_invalid_input_and_preserves_t2i_contract() {
-        let local = std::env::temp_dir().join(format!("optic-rift-img2img-{}", uuid::Uuid::new_v4()));
+        let local =
+            std::env::temp_dir().join(format!("optic-rift-img2img-{}", uuid::Uuid::new_v4()));
         let dest = uuid::Uuid::new_v4().to_string();
         assert!(preflight_image_reference(
-            &local, GenerationMode::TextToImage, None, None, 512, 512,
-        ).is_ok());
+            &local,
+            GenerationMode::TextToImage,
+            None,
+            None,
+            512,
+            512,
+        )
+        .is_ok());
         assert!(preflight_image_reference(
-            &local, GenerationMode::TextToImage, Some("bogus"), None, 512, 512,
-        ).is_err());
+            &local,
+            GenerationMode::TextToImage,
+            Some("bogus"),
+            None,
+            512,
+            512,
+        )
+        .is_err());
         for strength in [None, Some(f32::NAN), Some(0.0), Some(1.0)] {
             assert!(verified_image_reference(
-                &local, GenerationMode::ImageToImage, Some(&dest), strength, 512, 512, "",
-            ).is_err());
+                &local,
+                GenerationMode::ImageToImage,
+                Some(&dest),
+                strength,
+                512,
+                512,
+                "",
+            )
+            .is_err());
         }
         assert!(verified_image_reference(
-            &local, GenerationMode::ImageToImage, Some("../not-a-job"), Some(0.5), 512, 512, "",
-        ).is_err());
+            &local,
+            GenerationMode::ImageToImage,
+            Some("../not-a-job"),
+            Some(0.5),
+            512,
+            512,
+            "",
+        )
+        .is_err());
         assert!(verified_image_reference(
-            &local, GenerationMode::ImageToImage, None, Some(0.5), 512, 512, "",
-        ).is_err());
+            &local,
+            GenerationMode::ImageToImage,
+            None,
+            Some(0.5),
+            512,
+            512,
+            "",
+        )
+        .is_err());
     }
 
     #[test]
     fn img2img_needs_at_least_one_effective_denoising_step() {
-        assert!(validate_image_to_image_steps(GenerationMode::ImageToImage, 1, Some(0.65)).is_err());
-        assert!(validate_image_to_image_steps(GenerationMode::ImageToImage, 10, Some(0.05)).is_err());
-        assert!(validate_image_to_image_steps(GenerationMode::ImageToImage, 20, Some(0.05)).is_ok());
-        assert!(validate_image_to_image_steps(GenerationMode::ImageToImage, 25, Some(0.65)).is_ok());
+        assert!(
+            validate_image_to_image_steps(GenerationMode::ImageToImage, 1, Some(0.65)).is_err()
+        );
+        assert!(
+            validate_image_to_image_steps(GenerationMode::ImageToImage, 10, Some(0.05)).is_err()
+        );
+        assert!(
+            validate_image_to_image_steps(GenerationMode::ImageToImage, 20, Some(0.05)).is_ok()
+        );
+        assert!(
+            validate_image_to_image_steps(GenerationMode::ImageToImage, 25, Some(0.65)).is_ok()
+        );
         assert!(validate_image_to_image_steps(GenerationMode::TextToImage, 1, None).is_ok());
     }
 
@@ -1155,5 +1251,4 @@ mod tests {
         assert_eq!(text, job_need_mb(weights, 1024, 1024));
         assert_eq!(reference, text + 2048);
     }
-
 }

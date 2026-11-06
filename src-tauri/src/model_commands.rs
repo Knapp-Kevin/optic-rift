@@ -218,6 +218,9 @@ pub struct GpuCheck {
 }
 
 /// Read-only check of who else is using the GPU, before the user starts a generation.
+// Each argument is a named IPC field the Studio already sends; bundling them into a struct would
+// change the frontend contract, so the argument count is accepted here.
+#[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub async fn gpu_check<R: tauri::Runtime>(
     app: tauri::AppHandle<R>,
