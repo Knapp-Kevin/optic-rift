@@ -4,6 +4,10 @@
 
 **A local-first creative studio for images and video.**
 
+![Optic Rift approved logo](public/branding/optic-rift-approved-256.webp)
+
+Approved visual identity and Windows icon generation: [branding guide](assets/branding/README.md).
+
 Optic Rift aims to make AI-assisted visual creation approachable: describe an idea, bring in your own media, preview and edit it, discover models by what they can do, and export the result. The interface is the product; individual models are replaceable engines, not the identity of the application.
 
 **Status (2026-11-05):** architecture and first vertical slice are in development. This is not yet a released or validated editor. No video-generation model is currently qualified.
@@ -18,11 +22,10 @@ Optic Rift aims to make AI-assisted visual creation approachable: describe an id
 - **Graceful failures.** Isolate GPU models and their Python dependencies from the editor. If the engine crashes, the project and media remain safe.
 - **Performance is a feature.** Keep playback and UI responsive while generation, transcodes, and heavy decoding run off the UI thread.
 - **Friendly UX.** No workflow graphs, Python packages, model component vocabulary, or terminal commands required for ordinary use.
-- **Clear adult-content choice.** Support lawful adult-oriented models and creation without a blanket pornography ban. Clearly mark adult-focused models **Adult (18+) / Explicit**, keep their discovery behind deliberate opt-in, conceal explicit previews by default, and preserve safeguards for minors, nonconsensual sexual imagery and other illegal or abusive content. Model intent and actual output labels are separate. See [adult-content UX policy](docs/contracts/adult-content-and-preview.md).
 
 ## Architecture direction
 
-Preferred initial stack: **Tauri 2 + React/TypeScript UI + Rust native core + FFmpeg for native media work + isolated Python/PyTorch model runners**. Windows 11 is the initial target. See [ADR-0001](docs/architecture/ADR-0001-windows-desktop.md) for alternatives, caveats, performance acceptance gates, and fallback to Qt.
+Preferred initial stack: **Tauri 2 + React/TypeScript UI + Rust native core + FFmpeg for native media work + isolated Python/PyTorch model runners**. Windows 11 is the initial target. The architecture decision record and acceptance gates are **proposed in [draft PR #1](https://github.com/Knapp-Kevin/optic-rift/pull/1)**, not yet present on `main` or accepted. Qt remains a fallback pending real Windows benchmarks.
 
 The **first implementation is intentionally a controlled, pre-alpha vertical slice**. It must prove smooth video preview, safe media import, project persistence, and a tested model-catalog boundary before expanding to full timeline editing and model execution.
 
