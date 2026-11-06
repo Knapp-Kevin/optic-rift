@@ -98,3 +98,8 @@ test("Cancel is tracked natively before the worker knows the job", () => {
   assert.ok((run.match(/check_not_cancelled\(&req\.job_id\)\?/g) ?? []).length >= 3);
   assert.match(native, /forget_cancel\(&req\.job_id\)/);
 });
+
+test("The progress card is not drawn over the empty-stage welcome copy", () => {
+  const panel = readFileSync(new URL("../src/GeneratePanel.tsx", import.meta.url), "utf8");
+  assert.match(panel, /\{active \? <img src=\{active\.uri\} alt="Generated image" \/> : jobId \? null : <div className="create-welcome">/);
+});

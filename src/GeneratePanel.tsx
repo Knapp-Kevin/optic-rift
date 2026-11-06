@@ -248,7 +248,8 @@ export default function GeneratePanel({ prompt, mode, layout = "inspector", visi
             {active ? <img src={active.uri} alt="Transformed image" /> : <p>{jobId ? "Transforming your image…" : "The transformed image will appear here."}</p>}
           </div>
         </div> : <div className="create-preview create-preview-single">
-          {active ? <img src={active.uri} alt="Generated image" /> : <div className="create-welcome">
+          {/* While a job runs the progress card owns the empty stage; the welcome copy would show through it. */}
+          {active ? <img src={active.uri} alt="Generated image" /> : jobId ? null : <div className="create-welcome">
             <strong>{hasModel ? "Your next image starts here." : "Set up an image model to start creating."}</strong>
             <p>{hasModel ? "Enter a prompt below and generate locally." : "Open Models to install a compatible model and its local runtime."}</p>
             {!hasModel && <button className="secondary" onClick={onOpenModels}>Open Models</button>}
