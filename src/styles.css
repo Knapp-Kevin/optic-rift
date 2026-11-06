@@ -21,3 +21,22 @@
 .project-list-heading{max-width:790px;display:flex;justify-content:space-between;align-items:center;margin-top:26px;color:#dce6fc;font-size:13px}.project-list{list-style:none;padding:0;margin:12px 0 0;max-width:790px}.project-row{border-bottom:1px solid #2f3b53;padding:16px 0;display:flex;justify-content:space-between;gap:20px;align-items:center}.project-row span{display:flex;flex-direction:column;gap:6px;min-width:0}.project-row strong{font-size:13px;color:#dce6fc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.project-row small{font-size:11px;color:#8e9db9}.project-row.active strong{color:#9fbaff}
 .project-problems{max-width:790px;margin-top:22px;border:1px solid #7a5a32;background:#2b2418;border-radius:8px;padding:14px 16px;color:#f1d9b5;font-size:12px}.project-problems ul{margin:8px 0;padding-left:18px;line-height:1.6}.project-problems p{margin:0;color:#c9b393}
 .preview-failed .empty-icon{color:#f0b46b}.preview-failed h1{font-size:20px;overflow-wrap:anywhere}
+
+
+/* Hugging Face credential flow: native-only, no browser token persistence. */
+.hf-access{max-width:850px;border:1px solid #354765;border-radius:12px;background:#172139;padding:22px;margin:24px 0 18px}
+.hf-head{display:flex;justify-content:space-between;gap:15px;align-items:flex-start}
+.hf-head h2{font-size:17px;margin:0 0 9px}
+.hf-head p,.hf-note{font-size:12px;line-height:1.65;color:#a6b7d6;margin:0;max-width:580px}
+.hf-state{border:1px solid #475d89;border-radius:99px;padding:7px 11px;font-size:11px;color:#dbe5ff;white-space:nowrap}
+.hf-steps{display:flex;flex-wrap:wrap;gap:16px;margin:20px 0;color:#d3def5;font-size:12px}
+.hf-steps span{display:flex;align-items:center;gap:7px}.hf-steps b{display:grid;place-items:center;border-radius:50%;background:#344b79;color:#fff;width:21px;height:21px}
+.hf-link{margin:0 0 18px}
+.hf-form{display:flex;flex-direction:column;gap:10px}.hf-form label{color:#cad8f1;font-size:12px;font-weight:700}
+.hf-input-row{display:flex;gap:10px}.hf-input-row input{flex:1;min-width:0;border-radius:8px;border:1px solid #485c81;background:#10192b;color:#eaf0ff;padding:11px;font-size:13px}
+.hf-controls{display:flex;gap:10px;margin-top:15px;flex-wrap:wrap}
+.hf-result,.hf-error{font-size:12px;margin:14px 0 0;line-height:1.6}.hf-result{color:#a5dfbe}.hf-error{color:#ffb3b3}
+.hf-note{margin-top:15px}
+@media(max-width:650px){.hf-head,.hf-input-row{flex-direction:column}.hf-head .hf-state{align-self:flex-start}}
+
+.brand-icon-img{width:34px;height:34px;border-radius:8px;display:block;object-fit:cover;flex-shrink:0}

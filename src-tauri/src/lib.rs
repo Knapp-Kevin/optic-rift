@@ -1,6 +1,7 @@
 use serde::Serialize;
 use tauri::Manager;
 
+mod hf_access;
 mod project_store;
 
 #[derive(Serialize)]
@@ -59,13 +60,18 @@ pub fn with_commands<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Bu
         runtime_status,
         project_create,
         project_list,
-        project_open
+        project_open,
+        hf_access::hf_token_status,
+        hf_access::hf_token_save,
+        hf_access::hf_token_remove,
+        hf_access::hf_token_test,
+        hf_access::hf_open_token_page
     ])
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    with_commands(tauri::Builder::default())
+    with_commands(tauri::Builder::default().plugin(tauri_plugin_opener::init()))
         .run(tauri::generate_context!())
         .expect("error while starting Optic Rift");
 }

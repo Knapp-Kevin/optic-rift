@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import ProjectChooser from "./ProjectChooser";
+import HuggingFaceAccess from "./HuggingFaceAccess";
 import type { ProjectRecord } from "./projects";
 import { formatSize, IMAGE_PREVIEW_FAILED, VIDEO_PREVIEW_FAILED } from "./mediaFormat";
 
@@ -111,7 +112,7 @@ export default function App() {
   return (
     <div className="app">
       <aside className="navigation">
-        <div className="brand"><span className="brand-icon">◉</span><span>OPTIC <b>RIFT</b><small>VISUAL STUDIO</small></span></div>
+        <div className="brand"><img className="brand-icon-img" src="/branding/optic-rift-approved-256.webp" alt="" /><span>OPTIC <b>RIFT</b><small>VISUAL STUDIO</small></span></div>
         <div className="nav-group">
           <div className="group-label">WORKSPACE</div>
           <button className={view === "projects" ? "nav selected" : "nav"} onClick={() => setView("projects")}>▤ <span>Projects</span></button>
@@ -195,6 +196,7 @@ export default function App() {
         </main>}
 
         {view === "models" && <main className="content-page"><div className="page-eyebrow">MODEL LIBRARY</div><h1>Find the right tool for your idea.</h1><p className="lead">Optic Rift will discover image and video models through Hugging Face, then explain what they do, what hardware they need, how their licenses work, and what content they are intended to produce.</p>
+          <HuggingFaceAccess />
           <div className="adult-preference">
             <div className="preference-top"><div><strong>Adult-oriented model discovery</strong><p>Models designed to create explicit sexual content will be labeled <b>Adult-focused (18+) · Explicit</b>. They will be excluded from discovery unless you opt in.</p></div><span className="adult-tag">18+</span></div>
             <label className="adult-toggle">
@@ -208,7 +210,7 @@ export default function App() {
             <p className="preference-caption" role="status">{includeAdultModels ? "Opted in for this session. Explicit previews will still be hidden until opened intentionally." : "Off by default. This does not hide or alter media you've imported yourself."}</p>
             <p className="preference-caption">This pre-alpha control is a session-only preference. Model search, downloads, generation, permanent settings, and age verification are not yet implemented.</p>
           </div>
-          <div className="feature-grid"><div className="feature"><span className="feature-icon">⌕</span><h3>Discover by capability</h3><p>Browse text-to-image, image-to-video, video-to-video, inpainting, restoration, and more.</p><strong>Planned</strong></div><div className="feature"><span className="feature-icon">◈</span><h3>Know before you download</h3><p>Review model audience labels, content warnings, gating, licensing, disk requirements, and hardware compatibility.</p><strong>Planned</strong></div><div className="feature"><span className="feature-icon">▣</span><h3>Install only what you want</h3><p>Separate model dependencies, explicit consent, and measured worker readiness.</p><strong>Planned</strong></div></div><p className="disclosure">Model discovery and execution are not connected in this pre-alpha shell. No Hugging Face token is requested or stored.</p></main>}
+          <div className="feature-grid"><div className="feature"><span className="feature-icon">⌕</span><h3>Discover by capability</h3><p>Browse text-to-image, image-to-video, video-to-video, inpainting, restoration, and more.</p><strong>Planned</strong></div><div className="feature"><span className="feature-icon">◈</span><h3>Know before you download</h3><p>Review model audience labels, content warnings, gating, licensing, disk requirements, and hardware compatibility.</p><strong>Planned</strong></div><div className="feature"><span className="feature-icon">▣</span><h3>Install only what you want</h3><p>Separate model dependencies, explicit consent, and measured worker readiness.</p><strong>Planned</strong></div></div><p className="disclosure">Model discovery and execution are not connected in this pre-alpha shell. Hugging Face access can be stored separately; model downloads and generation remain unavailable.</p></main>}
 
         {view === "settings" && <main className="content-page"><div className="page-eyebrow">PREFERENCES</div><h1>Your studio stays on your computer.</h1><p className="lead">Local files, user-controlled AI models, and clear permission boundaries come first.</p><div className="setting-row"><span><strong>Application shell</strong><small>{status?.stage ?? "Browser preview: native Rust bridge unavailable"}</small></span><strong>{status ? "Tauri / Rust" : "Browser-only preview"}</strong></div><div className="setting-row"><span><strong>Model execution</strong><small>Independent Python engines; none connected yet</small></span><strong>Not ready</strong></div><div className="setting-row"><span><strong>Persistent projects</strong><small>Named projects are saved locally and reopen after restart. Imported media is not saved into projects yet.</small></span><strong>Names only</strong></div><div className="setting-row"><span><strong>Local/cloud policy</strong><small>No cloud generation is enabled or silently selected</small></span><strong>Local first</strong></div></main>}
       </div>
