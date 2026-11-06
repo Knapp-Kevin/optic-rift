@@ -152,6 +152,51 @@ class OpenStdinHealth(unittest.TestCase):
 
 
 
+
+class SavePngSafety(unittest.TestCase):
+    """CPU-only generation-publish collision tests; no CUDA/model required."""
+
+    @staticmethod
+    def image():
+        try:
+            from PIL import Image
+        except ImportError as exc:
+            raise unittest.SkipTest("Pillow not installed in this interpreter") from exc
+        return Image.new("RGB", (256, 256), (23, 51, 97))
+
+    def test_publish_has_matching_digest_and_no_partial(self):
+        import hashlib
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "output.png")
+            sha = w.save_png(self.image(), path)
+            with open(path, "rb") as fh:
+                self.assertEqual(sha, hashlib.sha256(fh.read()).hexdigest())
+            self.assertFalse(os.path.lexists(path + ".partial"))
+
+    def test_existing_destination_is_never_overwritten(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "output.png")
+            with open(path, "wb") as fh:
+                fh.write(b"existing-job-output")
+            with self.assertRaises(FileExistsError):
+                w.save_png(self.image(), path)
+            with open(path, "rb") as fh:
+                self.assertEqual(fh.read(), b"existing-job-output")
+            self.assertFalse(os.path.lexists(path + ".partial"))
+
+    def test_existing_partial_is_not_clobbered_or_deleted(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "output.png")
+            with open(path + ".partial", "wb") as fh:
+                fh.write(b"preexisting-staging-file")
+            with self.assertRaises(FileExistsError):
+                w.save_png(self.image(), path)
+            with open(path + ".partial", "rb") as fh:
+                self.assertEqual(fh.read(), b"preexisting-staging-file")
+            self.assertFalse(os.path.exists(path))
+
+
 class ImageToImageProtocol(unittest.TestCase):
     """Validate new generation mode without touching CUDA or model weights."""
 
