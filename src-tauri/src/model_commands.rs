@@ -225,10 +225,12 @@ pub async fn gpu_check<R: tauri::Runtime>(
     revision: String,
     width: u32,
     height: u32,
+    steps: u32,
     mode: Option<GenerationMode>,
     source_job_id: Option<String>,
     strength: Option<f32>,
 ) -> Result<GpuCheck, String> {
+    generation::validate_image_to_image_steps(mode.unwrap_or_default(), steps, strength)?;
     let (data, local) = model_store::dirs(&app)?;
     let mode = mode.unwrap_or_default();
     let model =
