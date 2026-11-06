@@ -40,5 +40,7 @@ test("History does not render sensitive thumbnails or select source by default",
   assert.match(history, /previewsRevealed\s*\?\s*<GenerationThumbnail/);
   assert.match(history, /useState\(false\)/);
   assert.match(history, /Show previews/);
+  assert.doesNotMatch(history, /item\.prompt/);
+  assert.match(engine, /item\.id\.slice\(0, 8\)\} · \{item\.width\}/);
   assert.match(engine, /layout === "create" \? "" : valid\[0\]/);
 });
