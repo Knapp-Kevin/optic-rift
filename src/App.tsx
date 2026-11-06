@@ -9,6 +9,7 @@ import type { ProjectRecord } from "./projects";
 import { hasQualifiedLocalImageModel, type ModelLibrary } from "./models";
 import { formatSize, IMAGE_PREVIEW_FAILED, VIDEO_PREVIEW_FAILED } from "./mediaFormat";
 import { renderAdjustedPhoto } from "./photoEdits";
+import PhotoCanvasPreview from "./PhotoCanvasPreview";
 
 type View = "projects" | "studio" | "models" | "settings";
 type MediaKind = "image" | "video";
@@ -234,12 +235,10 @@ export default function App() {
             <div className="canvas-header"><div><strong>Preview</strong><span>{selected ? selected.name : "No media selected"}</span></div><span className="preview-label">{selected?.kind ?? "READY"}</span></div>
             <div className="canvas">
               {selected && previewFailed && <div className="empty-canvas preview-failed" role="alert"><div className="empty-icon">⚠</div><h1>Can't preview {selected.name}</h1><p>{selected.kind === "image" ? IMAGE_PREVIEW_FAILED : VIDEO_PREVIEW_FAILED}</p></div>}
-              {selected?.kind === "image" && !previewFailed && <img key={selected.id} onError={() => markFailed(selected.id, IMAGE_PREVIEW_FAILED)} src={selected.url} alt={selected.name}
-                className={rotation % 180 === 90 ? "quarter-turn" : undefined}
-                style={{ filter: "brightness(" + brightness + "%) contrast(" + contrast + "%)",
-                  // Quarter turns: the box takes the frame's swapped size, then rotates about its centre,
-                  // so the preview shows the whole image exactly as the exported PNG does.
-                  transform: (rotation % 180 === 90 ? "translate(-50%, -50%) " : "") + "rotate(" + rotation + "deg)" }} />}
+              {selected?.kind === "image" && !previewFailed && <PhotoCanvasPreview key={selected.id}
+                sourceUrl={selected.url} label={selected.name}
+                brightness={brightness} contrast={contrast} rotation={rotation}
+                onError={(reason) => markFailed(selected.id, reason)} />}
               {selected?.kind === "video" && !previewFailed && <video key={selected.id} ref={videoRef} src={selected.url} controls preload="metadata" playsInline onLoadedMetadata={(event) => { const length = event.currentTarget.duration; setDuration(Number.isFinite(length) ? length : 0); setPlayhead(0); }} onTimeUpdate={(event) => setPlayhead(event.currentTarget.currentTime)} onError={() => markFailed(selected.id, VIDEO_PREVIEW_FAILED)} />}
               {!selected && <div className="empty-canvas"><div className="empty-icon">◉</div><h1>Make something extraordinary.</h1><p>Start with a photo or video, or choose Create to generate an image locally.</p><button className="primary" onClick={() => inputRef.current?.click()}>Import your first clip</button></div>}
             </div>
