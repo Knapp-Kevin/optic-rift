@@ -2430,6 +2430,7 @@ name = "optic-rift"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
+ "png",
  "keyring",
  "reqwest 0.12.28",
  "serde",
