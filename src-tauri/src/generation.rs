@@ -437,7 +437,7 @@ fn run_job<R: tauri::Runtime>(
     let mut load_seconds = Value::Null;
     *w.last_used.lock().unwrap() = Instant::now();
     // Re-checked for every job: a game may have started since the model was loaded.
-    let budget_mb = gpu_budget(model, req)?;
+    let mut budget_mb = gpu_budget(model, req)?;
     if w.loaded.lock().unwrap().as_ref() != Some(&key) {
         let _ = app.emit(
             "generation",
@@ -446,7 +446,7 @@ fn run_job<R: tauri::Runtime>(
         model_store::verify_installed_files(model)?;
         // Verification can read gigabytes. The GPU sharing snapshot taken before
         // that disk I/O may now be stale, so re-check immediately before loading.
-        let budget_mb = gpu_budget(model, req)?;
+        budget_mb = gpu_budget(model, req)?;
         let _ = app.emit(
             "generation",
             json!({"event": "loading", "job_id": req.job_id}),
