@@ -1,8 +1,8 @@
 use serde::Serialize;
 use tauri::Manager;
 
-mod project_store;
 mod hf_access;
+mod project_store;
 
 #[derive(Serialize)]
 struct RuntimeStatus {
