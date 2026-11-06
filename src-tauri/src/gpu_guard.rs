@@ -1,8 +1,9 @@
 //! GPU sharing guard. The GPU belongs to the whole computer: games and other apps may be using it.
 //! Before Optic Rift loads a model or generates, it takes a per-process snapshot of GPU use (Windows
 //! GPU performance counters: dedicated VRAM and 3D engine utilisation per process) and decides:
-//! proceed within a VRAM budget that leaves headroom, ask the user first because another app is
-//! actively using the GPU, or refuse because it would not fit without squeezing other apps.
+//! estimate a VRAM budget that leaves headroom *at snapshot time*, ask first if another app
+//! is active, or refuse when insufficient free memory is observed. GPU use is dynamic: this
+//! advisory guard plus a PyTorch allocator limit is not a hard process/driver-wide VRAM cap.
 
 use serde::Serialize;
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -68,7 +69,8 @@ pub fn reserve_mb(total_mb: u64) -> u64 {
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(tag = "kind", rename_all = "kebab-case")]
 pub enum Decision {
-    /// Go ahead; the worker must stay within `budget_mb` of VRAM.
+    /// Go ahead based on this snapshot; the worker applies a PyTorch caching-allocator limit.
+    /// CUDA allocations outside that allocator and other processes can change available VRAM.
     Proceed { budget_mb: u64 },
     /// Another app is actively using the GPU. Ask the user; proceed only if they acknowledge these PIDs.
     Confirm {
@@ -135,7 +137,7 @@ pub fn evaluate(s: &GpuSnapshot, need_mb: u64, acknowledged: &[u32]) -> Decision
         return Decision::Confirm {
             budget_mb: budget,
             apps: busy,
-            message: format!("Another app is using your GPU right now: {list}. Generating at the same time can slow it down or make it unstable. Optic Rift will stay within {:.1} GB and keep {:.1} GB free.", budget as f64 / 1024.0, reserve as f64 / 1024.0),
+            message: format!("Another app is using your GPU right now: {list}. Generating at the same time can slow it down or make it unstable. Optic Rift will limit its PyTorch allocator to {:.1} GB and try to preserve {:.1} GB free, but GPU use can change during generation.", budget as f64 / 1024.0, reserve as f64 / 1024.0),
         };
     }
     if !s.per_process && s.used_mb.unwrap_or(0) >= BUSY_DEDICATED_MB + own {

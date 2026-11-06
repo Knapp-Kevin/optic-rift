@@ -155,7 +155,11 @@ class Worker:
         emit("loaded", cached=False, seconds=round(time.perf_counter() - started, 2), **self.memory())
 
     def apply_budget(self, req):
-        """Cap this process's GPU memory so it fails inside Optic Rift instead of squeezing other apps."""
+        """Limit the PyTorch CUDA caching allocator, not all process or driver VRAM.
+
+        Host-side GPU snapshots and this allocator guard reduce risk but cannot promise
+        that every CUDA allocation or a competing game stays under a fixed bound.
+        """
         budget = req.get("vram_budget_mb")
         if budget is None:
             raise RequestError("vram_budget_mb is required; the host must check GPU sharing first")
@@ -240,7 +244,7 @@ class Worker:
 
 
 def budget_fraction(budget_mb, total_mb):
-    """Fraction of device memory this process may use; rejects nonsense budgets."""
+    """Fraction allowed to PyTorch's caching allocator; not a system-wide VRAM cap."""
     if not isinstance(budget_mb, int) or isinstance(budget_mb, bool) or budget_mb <= 0:
         raise RequestError("vram_budget_mb must be a positive integer")
     if not isinstance(total_mb, int) or total_mb <= 0:
