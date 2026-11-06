@@ -264,7 +264,7 @@ export default function App() {
                 {photoExportBusy ? "Saving adjusted PNG…" : "Save adjusted PNG copy"}
               </button>
               {photoExportNotice && <p role="status" className="photo-export-notice">{photoExportNotice}</p>}
-              <p>Export to Pictures may sync with OneDrive. The original stays unchanged. PNG export does not preserve the source image's EXIF or ICC profile, and it is not saved into this project's media library.</p>
+              <p>Export to Pictures may sync with OneDrive. The original stays unchanged. Supports PNG, JPEG and WebP sources up to 32 MB and 20 megapixels. PNG export does not preserve source EXIF or ICC metadata, and it does not save an asset into this project.</p>
             </div> : <p className="model-hint">Select an image to adjust its preview, or choose Create to generate a new image.</p>}
             <button className="secondary full" onClick={() => { setStudioMode("create"); setStudioModeChosen(true); }}>Create an image</button>
             <GenerationHistory refreshVersion={historyVersion} onResult={addGenerated} />
