@@ -632,7 +632,6 @@ pub fn save_copy(app_local: &Path, pictures: &Path, job_id: &str) -> Result<Path
     if fs::symlink_metadata(&dest).is_ok() || fs::symlink_metadata(&metadata_dest).is_ok() {
         return Err("An export with this job ID already exists; no files were overwritten.".into());
     }
-    use std::io::Write;
     let mut output = fs::OpenOptions::new()
         .write(true)
         .create_new(true)
@@ -795,5 +794,4 @@ mod tests {
         assert_eq!(fs::read(dest).unwrap(), png);
         fs::remove_dir_all(local).unwrap();
     }
-
 }
