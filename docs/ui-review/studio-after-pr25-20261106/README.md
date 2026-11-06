@@ -34,3 +34,15 @@ QA profile note: the QA profile has no image runtime, so Create shows the honest
 - Keyboard: nav → Studio tabs → prompt → Generate → filmstrip → settings; visible 2 px focus ring. The hidden workspace is not focusable.
 
 Defects found in the first pass and fixed in PR #25 commit `0178749`: clipped filmstrip tiles and labels, cropped thumbnails, Create state lost on Edit media switch, phantom image-to-image source in the dropdown, red error on an untouched prompt, consent focus, a 4 px settings overflow and the editor page overflowing by the tab-bar height.
+
+## GPU smoke test (owner-consented, 2026-11-06, idle GPU)
+
+Owner profile, app built from `af9d9e8`; screen 12 from `14c5748`. Fictional prompts only.
+
+| File | State |
+|---|---|
+| `gpu-smoke/08-t2i-in-progress-BEFORE-overlap-fix` | SSD-1B text to image at step 4 of 25 (welcome copy showing through: fixed in `14c5748`) |
+| `gpu-smoke/09-t2i-result` | Result `94e3a3f9`, 1024×1024, seed 3369929774 |
+| `gpu-smoke/10-i2i-source-and-result` | Image to image from `94e3a3f9`, strength 0.65, 25 steps (16 effective) → `e7cbbd3b` |
+| `gpu-smoke/11-cancelled-mid-denoise` | Cancel at step 6 of 25: stopped in 836 ms, no output |
+| `gpu-smoke/12-progress-overlay-after-fix` | Progress card alone on the stage (job cancelled during verification, no GPU load) |
