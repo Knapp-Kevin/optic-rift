@@ -5,7 +5,7 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fs;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Read};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use tauri::Emitter;
@@ -85,10 +85,60 @@ fn find_uv() -> Option<PathBuf> {
         .find(|p| p.is_file())
 }
 
+/// The selected third-party uv binary is disclosed to the user and pinned to
+/// a SHA-256 approval across the install commands. SHA-256 is identity, not
+/// publisher verification; a local process could still replace it after a check.
+#[derive(Debug, Clone, Serialize)]
+pub struct UvExecutable {
+    pub path: PathBuf,
+    pub sha256: String,
+}
+
+fn sha256_file(path: &Path) -> Option<String> {
+    let mut file = fs::File::open(path).ok()?;
+    let mut sha = Sha256::new();
+    let mut buf = [0u8; 64 * 1024];
+    loop {
+        let n = file.read(&mut buf).ok()?;
+        if n == 0 {
+            break;
+        }
+        sha.update(&buf[..n]);
+    }
+    Some(sha.finalize().iter().map(|b| format!("{b:02x}")).collect())
+}
+
+fn inspect_uv() -> Option<UvExecutable> {
+    let selected = fs::canonicalize(find_uv()?).ok()?;
+    let metadata = fs::metadata(&selected).ok()?;
+    if !metadata.is_file() || metadata.len() > 256 * 1024 * 1024 {
+        return None;
+    }
+    Some(UvExecutable {
+        sha256: sha256_file(&selected)?,
+        path: selected,
+    })
+}
+
+fn verify_uv_checksum(path: &Path, approved_sha256: &str) -> Result<(), String> {
+    if approved_sha256.len() != 64
+        || !approved_sha256
+            .bytes()
+            .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+    {
+        return Err("A valid SHA-256 approval is required before running uv.".into());
+    }
+    if sha256_file(path).as_deref() != Some(approved_sha256) {
+        return Err("The selected uv executable changed since approval. Recheck runtime setup.".into());
+    }
+    Ok(())
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct RuntimeStatus {
     pub installed: Option<RuntimeManifest>,
     pub uv_available: bool,
+    pub uv_executable: Option<UvExecutable>,
     pub root: PathBuf,
     pub torch_index: &'static str,
     pub torch: &'static str,
@@ -97,9 +147,11 @@ pub struct RuntimeStatus {
 
 pub fn status(app_local: &Path) -> RuntimeStatus {
     let root = root(app_local);
+    let uv_executable = inspect_uv();
     RuntimeStatus {
         installed: manifest(&root),
-        uv_available: find_uv().is_some(),
+        uv_available: uv_executable.is_some(),
+        uv_executable,
         root,
         torch_index: TORCH_INDEX,
         torch: TORCH,
@@ -117,8 +169,10 @@ fn run_logged<R: tauri::Runtime>(
     app: &tauri::AppHandle<R>,
     stage: &'static str,
     program: &Path,
+    approved_uv_sha256: &str,
     args: &[&str],
 ) -> Result<(), String> {
+    verify_uv_checksum(program, approved_uv_sha256)?;
     let _ = app.emit("runtime-install", RuntimeEvent { stage, line: None });
     let mut command = Command::new(program);
     command
@@ -173,8 +227,12 @@ fn run_logged<R: tauri::Runtime>(
 pub fn install<R: tauri::Runtime>(
     app: &tauri::AppHandle<R>,
     app_local: &Path,
+    approved_uv_sha256: &str,
 ) -> Result<RuntimeManifest, String> {
-    let uv = find_uv().ok_or("uv was not found. Install uv from https://docs.astral.sh/uv/ (Optic Rift does not bundle a Python runtime yet), then try again.")?;
+    let uv = inspect_uv()
+        .ok_or("uv was not found or could not be fingerprinted. Install uv from https://docs.astral.sh/uv/ and reopen Models.")?;
+    verify_uv_checksum(&uv.path, approved_uv_sha256)?;
+    let uv = uv.path;
     let root = root(app_local);
     fs::create_dir_all(&root).map_err(|e| e.to_string())?;
     let _ = fs::remove_file(manifest_path(&root));
@@ -185,6 +243,7 @@ pub fn install<R: tauri::Runtime>(
             app,
             "Creating Python environment",
             &uv,
+            approved_uv_sha256,
             &["venv", "--python", PYTHON_VERSION, &venv_s],
         )?;
     }
@@ -193,6 +252,7 @@ pub fn install<R: tauri::Runtime>(
         app,
         "Installing PyTorch (CUDA)",
         &uv,
+        approved_uv_sha256,
         &[
             "pip",
             "install",
@@ -214,7 +274,7 @@ pub fn install<R: tauri::Runtime>(
         "https://pypi.org/simple",
     ];
     args.extend(PACKAGES);
-    run_logged(app, "Installing diffusion libraries", &uv, &args)?;
+    run_logged(app, "Installing diffusion libraries", &uv, approved_uv_sha256, &args)?;
     let _ = app.emit(
         "runtime-install",
         RuntimeEvent {
@@ -285,6 +345,21 @@ mod tests {
                 "{p}"
             );
         }
+    }
+
+    #[test]
+    fn uv_fingerprint_detects_changed_binary_before_execution() {
+        let root = std::env::temp_dir().join(format!("optic-rift-uv-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&root).unwrap();
+        let uv = root.join("uv.exe");
+        fs::write(&uv, b"candidate executable v1").unwrap();
+        let approved = sha256_file(&uv).unwrap();
+        assert_eq!(approved.len(), 64);
+        assert!(verify_uv_checksum(&uv, &approved).is_ok());
+        fs::write(&uv, b"candidate executable v2").unwrap();
+        assert!(verify_uv_checksum(&uv, &approved).is_err());
+        assert!(verify_uv_checksum(&uv, "not-a-sha256").is_err());
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
