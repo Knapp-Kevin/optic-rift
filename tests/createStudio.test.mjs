@@ -85,3 +85,16 @@ test("Edit media accounts for the Studio tab bar instead of scrolling the page",
   const css = readFileSync(new URL("../src/styles.css", import.meta.url), "utf8");
   assert.match(css, /\.studio-tabs~\.workspace\{min-height:calc\(100vh - 120px\)\}/);
 });
+
+test("GPU consent dialog scrolls inside a short stage instead of being clipped", () => {
+  const css = readFileSync(new URL("../src/styles.css", import.meta.url), "utf8");
+  assert.match(css, /\.create-gpu-consent\{max-height:calc\(100% - 16px\);overflow-y:auto\}/);
+});
+
+test("Cancel is tracked natively before the worker knows the job", () => {
+  const native = readFileSync(new URL("../src-tauri/src/generation.rs", import.meta.url), "utf8");
+  const run = native.slice(native.indexOf("fn run_job<"), native.indexOf("pub fn cancel("));
+  // Checked before verification, after the multi-GB hash check, and right before the job is sent.
+  assert.ok((run.match(/check_not_cancelled\(&req\.job_id\)\?/g) ?? []).length >= 3);
+  assert.match(native, /forget_cancel\(&req\.job_id\)/);
+});

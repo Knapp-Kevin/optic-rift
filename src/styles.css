@@ -152,3 +152,5 @@
 .create-progress progress{width:100%;height:9px;accent-color:#91a7ff}
 /* The editor now sits under the 52px Studio tab bar; without this the whole page scrolled by that amount. */
 .studio-tabs~.workspace{min-height:calc(100vh - 120px)}
+/* At 1280x720 the stage can be ~200px tall; keep every consent action reachable instead of clipped. */
+.create-gpu-consent{max-height:calc(100% - 16px);overflow-y:auto}

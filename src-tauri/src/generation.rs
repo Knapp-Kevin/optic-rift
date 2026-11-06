@@ -572,6 +572,7 @@ fn generate_blocking<R: tauri::Runtime>(
     }
     let result = run_job(app, &w, &installed, &rt, &local, &req);
     w.busy.store(false, Ordering::SeqCst);
+    forget_cancel(&req.job_id);
     result
 }
 
@@ -589,12 +590,22 @@ fn run_job<R: tauri::Runtime>(
     // Re-checked for every job: a game may have started since the model was loaded. This early
     // check fails closed before any multi-GB verification; each later use re-checks again.
     gpu_budget(model, req)?;
+    check_not_cancelled(&req.job_id)?;
     if w.loaded.lock().unwrap().as_ref() != Some(&key) {
         let _ = app.emit(
             "generation",
             json!({"event": "verifying-model", "job_id": req.job_id}),
         );
-        model_store::verify_installed_files(model)?;
+        model_store::verify_installed_files_until(model, &|| cancel_requested(&req.job_id))
+            .map_err(|e| {
+                if cancel_requested(&req.job_id) {
+                    "Generation cancelled.".to_string()
+                } else {
+                    e
+                }
+            })?;
+        // A Cancel during the multi-GB hash check must stop before anything reaches the GPU.
+        check_not_cancelled(&req.job_id)?;
         // Verification can read gigabytes. The GPU sharing snapshot taken before
         // that disk I/O may now be stale, so re-check immediately before loading.
         let load_budget_mb = gpu_budget(model, req)?;
@@ -630,6 +641,7 @@ fn run_job<R: tauri::Runtime>(
     )?;
     // GPU sharing state may change during the source hash/decode checks.
     let budget_mb = gpu_budget(model, req)?;
+    check_not_cancelled(&req.job_id)?;
     let out_dir = outputs_dir(local);
     fs::create_dir_all(&out_dir).map_err(|e| e.to_string())?;
     let png = out_dir.join(format!("{}.png", req.job_id));
@@ -640,8 +652,18 @@ fn run_job<R: tauri::Runtime>(
         "mode": req.mode.as_str(), "reference": reference.as_ref(), "strength": decimal_f32(req.strength),
     }))?;
     let job = req.job_id.clone();
+    // The worker clears its cancel flag when a job starts and ignores a cancel for a job it has
+    // not started yet. Re-send a pending cancel once the job reports progress, closing that race.
+    let resent = AtomicBool::new(false);
     let end = w.wait_for(
-        move |e| {
+        |e| {
+            if e["job_id"] == job.as_str()
+                && e["event"] == "progress"
+                && cancel_requested(&job)
+                && !resent.swap(true, Ordering::SeqCst)
+            {
+                let _ = w.send(&json!({"op": "cancel", "job_id": job}));
+            }
             e["job_id"] == job.as_str()
                 && matches!(e["event"].as_str(), Some("done" | "error" | "cancelled"))
         },
@@ -712,13 +734,53 @@ fn run_job<R: tauri::Runtime>(
     Ok(provenance)
 }
 
-pub fn cancel(job_id: &str) -> Result<(), String> {
-    let w = slot()
+/// Job ids the user cancelled. The Python worker only knows a job once `generate` is sent, so
+/// without this a Cancel during model verification or loading was dropped and the job then ran
+/// on the GPU anyway. `run_job` checks it before each expensive stage.
+fn cancelled_jobs() -> &'static Mutex<Vec<String>> {
+    static CANCELLED: OnceLock<Mutex<Vec<String>>> = OnceLock::new();
+    CANCELLED.get_or_init(|| Mutex::new(Vec::new()))
+}
+
+fn cancel_requested(job_id: &str) -> bool {
+    cancelled_jobs()
         .lock()
         .unwrap()
-        .clone()
-        .ok_or("No generation is running.")?;
-    w.send(&json!({"op": "cancel", "job_id": job_id}))
+        .iter()
+        .any(|id| id == job_id)
+}
+
+fn forget_cancel(job_id: &str) {
+    cancelled_jobs().lock().unwrap().retain(|id| id != job_id);
+}
+
+fn check_not_cancelled(job_id: &str) -> Result<(), String> {
+    if cancel_requested(job_id) {
+        Err("Generation cancelled.".into())
+    } else {
+        Ok(())
+    }
+}
+
+pub fn cancel(job_id: &str) -> Result<(), String> {
+    if !valid_job_id(job_id) {
+        return Err("Invalid job id.".into());
+    }
+    {
+        let mut ids = cancelled_jobs().lock().unwrap();
+        // Bounded: ids are removed when their job ends; this only drops stale unknown ids.
+        if ids.len() >= 32 {
+            ids.remove(0);
+        }
+        if !ids.iter().any(|id| id == job_id) {
+            ids.push(job_id.to_string());
+        }
+    }
+    // Forward to a running worker too, so an in-progress denoise stops at its next step.
+    if let Some(w) = slot().lock().unwrap().clone() {
+        w.send(&json!({"op": "cancel", "job_id": job_id}))?;
+    }
+    Ok(())
 }
 
 pub fn unload() -> Result<Value, String> {
@@ -1094,6 +1156,34 @@ mod tests {
                 .unwrap();
         }
         assert!(thumbnail_png(&png).unwrap_err().contains("preview limit"));
+    }
+
+    #[test]
+    fn cancel_before_worker_knows_the_job_is_remembered_until_the_job_ends() {
+        let id = uuid::Uuid::new_v4().to_string();
+        assert!(check_not_cancelled(&id).is_ok());
+        assert!(cancel("../not-a-job").is_err());
+        // No worker has to exist: this is the verification/loading window that used to drop Cancel.
+        cancel(&id).unwrap();
+        cancel(&id).unwrap();
+        assert_eq!(
+            check_not_cancelled(&id).unwrap_err(),
+            "Generation cancelled."
+        );
+        let other = uuid::Uuid::new_v4().to_string();
+        assert!(
+            check_not_cancelled(&other).is_ok(),
+            "only the cancelled job stops"
+        );
+        forget_cancel(&id);
+        assert!(check_not_cancelled(&id).is_ok());
+        for _ in 0..40 {
+            cancel(&uuid::Uuid::new_v4().to_string()).unwrap();
+        }
+        assert!(
+            cancelled_jobs().lock().unwrap().len() <= 32,
+            "stale ids stay bounded"
+        );
     }
 
     /// Encode a real PNG with the given layout, so the thumbnail path decodes actual pixels.

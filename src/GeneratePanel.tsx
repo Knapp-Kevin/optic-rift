@@ -49,6 +49,7 @@ export default function GeneratePanel({ prompt, mode, layout = "inspector", visi
   const [preview, setPreview] = useState<{ record: Provenance; uri: string } | null>(null);
   const [sourceUri, setSourceUri] = useState<string | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -179,6 +180,7 @@ export default function GeneratePanel({ prompt, mode, layout = "inspector", visi
     } finally {
       setJobId(null);
       setProgress(null);
+      setCancelling(false);
     }
   }
 
@@ -253,13 +255,16 @@ export default function GeneratePanel({ prompt, mode, layout = "inspector", visi
           </div>}
         </div>}
         {jobId && <div className="create-progress" role="status" aria-live="polite">
-          <strong>{status || "Generating locally…"}</strong>
+          <strong>{cancelling ? "Cancelling…" : status || "Generating locally…"}</strong>
           <progress value={progress?.step ?? 0} max={progress?.total || 1} />
         </div>}
         <div className="create-stage-footer">
           <span role="status">{status || (active ? `Seed ${active.record.parameters.seed} · ${active.record.output.width}×${active.record.output.height}` : "Local generation. No cloud inference.")}</span>
           <div className="model-actions">
-            {jobId && <button className="secondary" onClick={() => void invoke("generation_cancel", { jobId })}>Cancel</button>}
+            {jobId && <button className="secondary" disabled={cancelling} onClick={() => {
+              setCancelling(true);
+              void invoke("generation_cancel", { jobId }).catch((e) => setError(errorText(e)));
+            }}>Cancel</button>}
             {active && <><button className="secondary" onClick={() => void stageEdit()}>Open in Edit media</button>
               <button className="secondary" onClick={() => void stageSave()}>Save copy (may sync)</button></>}
           </div>
