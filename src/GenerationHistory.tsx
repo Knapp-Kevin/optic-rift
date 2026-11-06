@@ -87,7 +87,7 @@ export default function GenerationHistory({ refreshVersion, onResult }: Props) {
       {items.map((item) => <li key={item.job_id}>
         <div className="history-summary">
           <strong title={item.prompt}>{item.prompt || "Untitled generation"}</strong>
-          <small>{item.model.repo} · {item.output.width}×{item.output.height} · {new Date(item.created_unix_ms).toLocaleString()}</small>
+          <small>{item.model.repo} · {item.output.width}×{item.output.height} · {new Date(item.created_unix_ms).toLocaleString()} {item.source?.job_id ? `· transformed from ${item.source.job_id.slice(0, 8)}` : ""}</small>
         </div>
         <div className="model-actions">
           <button className="secondary" type="button" disabled={working !== null} onClick={() => void open(item)}>{working === item.job_id ? "Working…" : "Open"}</button>
