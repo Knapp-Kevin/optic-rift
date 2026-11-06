@@ -26,6 +26,12 @@ Optional read tokens are entered, tested and stored through the [dedicated Huggi
 
 Model workers execute in separate, minimally privileged Python processes or environments. No arbitrary model repository code runs in the desktop process. Never default to trust_remote_code, pickle weights, arbitrary install scripts, or privileged shell activation. The user explicitly approves downloads, terms, compute use, and any network inference. No built-in model is mandatory to view/edit/export ordinary media.
 
+## Third-party runtime installer disclosure and identity
+
+- Before installing a Python runtime, show the absolute resolved path and SHA-256 of the **third-party** `uv.exe` selected by the host. A separate explicit acknowledgment authorizes running that particular executable and downloading the disclosed Python packages.
+- Require the same checksum over native IPC and rehash the selected binary before **each** installer process launch. If it changes, refuse instead of silently invoking another executable. The checksum identifies the selected bytes, **not** their publisher or integrity against any official release; the local executable can also change between the check and process creation.
+- Native installer qualification still requires authentic uv publisher provenance and hash-locked wheel resolution. Version pinning alone is insufficient. Nothing here establishes a general supply-chain GO.
+
 ## Installed weight integrity at use time
 
 - Downloaded model files receive verified SHA-256 values during installation. The cheap `Installed` listing checks file presence and size only; it is **not** a full integrity verification.

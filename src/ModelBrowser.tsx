@@ -213,7 +213,7 @@ function RuntimePanel({ library, onChanged }: { library: ModelLibrary | null; on
   }, [busy]);
   async function install() {
     setBusy(true); setError(""); setLog([]);
-    try { await invoke("image_runtime_install"); onChanged(); } catch (e) { setError(errorText(e)); } finally { setBusy(false); }
+    try { await invoke("image_runtime_install", { uvSha256: runtime?.uv_executable?.sha256 ?? "" }); onChanged(); } catch (e) { setError(errorText(e)); } finally { setBusy(false); }
   }
   if (!runtime) return null;
   return (
@@ -223,9 +223,10 @@ function RuntimePanel({ library, onChanged }: { library: ModelLibrary | null; on
           ? <small>Installed · Python {runtime.installed.python} · PyTorch {runtime.installed.torch} · diffusers {runtime.installed.diffusers} · {runtime.installed.device ?? "GPU"}</small>
           : <small>Needed to generate images. A private Python environment with pinned PyTorch ({runtime.torch}) and diffusion libraries, about 3.2 GB from download.pytorch.org and pypi.org, installed under <code>{runtime.root}</code>.{runtime.uv_available ? "" : " Requires uv (docs.astral.sh/uv), which was not found."}</small>}
       </div>
+      {!runtime.installed && runtime.uv_executable && <p className="model-hint">Selected installer: <code>{runtime.uv_executable.path}</code> · SHA-256 <code>{runtime.uv_executable.sha256}</code>. Review where this executable came from before approving.</p>}
       {!runtime.installed && <div className="runtime-actions">
-        <label><input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} /> Download and install these packages</label>
-        <button className="primary" disabled={!consent || busy || !runtime.uv_available} onClick={() => void install()}>{busy ? "Installing…" : "Install runtime"}</button>
+        <label><input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} /> I approve running the displayed uv executable and downloading these packages. The checksum identifies the file; it does not authenticate the publisher.</label>
+        <button className="primary" disabled={!consent || busy || !runtime.uv_available || !runtime.uv_executable} onClick={() => void install()}>{busy ? "Installing…" : "Install runtime"}</button>
       </div>}
       {busy && <p className="model-hint" role="status">{stage}{log.length ? ` · ${log[log.length - 1]}` : ""}</p>}
       {error && <p className="project-error" role="alert">{error}</p>}

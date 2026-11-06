@@ -150,10 +150,11 @@ pub async fn model_remove<R: tauri::Runtime>(
 #[tauri::command]
 pub async fn image_runtime_install<R: tauri::Runtime>(
     app: tauri::AppHandle<R>,
+    uv_sha256: String,
 ) -> Result<RuntimeManifest, String> {
     let (_, local) = model_store::dirs(&app)?;
     generation::shutdown();
-    tauri::async_runtime::spawn_blocking(move || runtime::install(&app, &local))
+    tauri::async_runtime::spawn_blocking(move || runtime::install(&app, &local, &uv_sha256))
         .await
         .map_err(|e| e.to_string())?
 }
