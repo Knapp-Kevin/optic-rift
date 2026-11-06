@@ -42,6 +42,19 @@ export type Inspection = { detail: ModelDetail; installed: InstalledModel | null
 export type RuntimeManifest = { runtime: string; python: string; torch: string; diffusers: string; cuda_available: boolean; device: string | null };
 export type RuntimeStatus = { installed: RuntimeManifest | null; uv_available: boolean; uv_executable: { path: string; sha256: string } | null; root: string; torch_index: string; torch: string; packages: string[] };
 export type ModelLibrary = { model_dir: string; free_bytes: number | null; installed: InstalledModel[]; loaded: [string, string] | null; runtime: RuntimeStatus; gpu: GpuInfo };
+/** Default to Create only for a locally qualified, executable model.
+ * New validated model families must be added with an exact revision receipt.
+ * This display preference is NOT an inference authorization boundary.
+ */
+export function hasQualifiedLocalImageModel(library: ModelLibrary): boolean {
+  return Boolean(library.runtime.installed && library.gpu.vram_total_mb !== null
+    && library.installed.some((entry) =>
+      entry.files_present
+      && entry.manifest.adapter === "diffusers-sdxl-text-to-image"
+      && entry.manifest.repo === "segmind/SSD-1B"
+      && entry.manifest.revision === "60987f37e94cd59c36b1cba832b9f97b57395a10"));
+}
+
 export type InstallEvent = { install_id: string; repo: string; state: string; file: string | null; file_index: number; file_count: number; bytes_done: number; bytes_total: number; message: string | null };
 export type Provenance = {
   job_id: string; created_unix_ms: number; prompt: string; negative_prompt: string;
