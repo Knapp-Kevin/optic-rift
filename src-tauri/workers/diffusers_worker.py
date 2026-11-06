@@ -200,6 +200,9 @@ class Worker:
                 raise RequestError("Image-to-image requires a locally installed SDXL text-to-image model")
             try:
                 strength = img2img_reference.check_strength(req.get("strength"))
+                # SDXL truncates steps * strength. Avoid a zero-step GPU pipeline run.
+                if int(params["steps"] * strength) < 1:
+                    raise RequestError("Increase Steps or image strength to run at least one denoising step.")
                 reference_image = img2img_reference.prepare_reference(
                     req.get("reference"), params["width"], params["height"])
             except img2img_reference.ReferenceError as exc:
