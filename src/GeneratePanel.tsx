@@ -64,14 +64,14 @@ export default function GeneratePanel({ prompt, mode, layout = "inspector", onPr
       const records = await invoke<Provenance[]>("generation_outputs");
       const valid = localImageSourceChoices(records);
       setSources(valid);
-      setSourceId((current) => valid.some((p) => p.id === current) ? current : valid[0]?.id ?? "");
+      setSourceId((current) => valid.some((p) => p.id === current) ? current : (layout === "create" ? "" : valid[0]?.id ?? ""));
       setSourceError("");
     } catch (e) {
       setSources([]);
       setSourceId("");
       setSourceError(errorText(e));
     }
-  }, []);
+  }, [layout]);
   useEffect(() => { if (mode === "image-to-image") void refreshSources(); }, [mode, historyVersion, refreshSources]);
 
   useEffect(() => {
