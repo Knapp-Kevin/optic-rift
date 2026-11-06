@@ -243,9 +243,26 @@ function VideoMetadataCache({ inspection, onCached }: { inspection: Inspection; 
     }
   }
 
+  async function clear() {
+    if (!cached || !window.confirm("Remove this model's cached configuration JSON? No weights or generated media will be touched.")) return;
+    setBusy(true);
+    setMessage("");
+    try {
+      await invoke("video_cache_clear", {
+        repo: detail.id, revision: detail.revision, accept: true,
+      });
+      setMessage("Cached configuration cleared.");
+      onCached();
+    } catch (e) { setMessage(errorText(e)); }
+    finally { setBusy(false); }
+  }
+
   return <section className="model-consent" aria-label="Video configuration metadata cache">
     <strong>Video model metadata</strong>
-    {cached ? <p className="model-hint">Configuration metadata cached and verified on this computer. The model is not installed and cannot generate video yet.</p>
+    {cached ? <div>
+        <p className="model-hint">Configuration metadata cached and verified on this computer. The model is not installed and cannot generate video yet.</p>
+        <button type="button" className="secondary" disabled={busy} onClick={() => void clear()}>Clear cached configuration</button>
+      </div>
       : !ungated ? <p className="model-hint">This model requires gated access. Optic Rift will not fetch its configuration through the public metadata-only cache.</p>
       : !file ? <p className="model-hint">No small configuration file with a verifiable source hash was found. This model remains discoverable but cannot be cached by this feature.</p>
       : <>
