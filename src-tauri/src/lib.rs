@@ -89,6 +89,7 @@ pub fn with_commands<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Bu
         model_commands::generation_unload,
         model_commands::generation_outputs,
         model_commands::generation_output_image,
+        model_commands::generation_output_thumbnail,
         model_commands::generation_save,
         model_commands::gpu_check
     ])

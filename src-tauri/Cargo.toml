@@ -23,6 +23,7 @@ tauri-plugin-opener = "2"
 sha2 = "0.10"
 sha1 = "0.10"
 base64 = "0.22"
+png = "=0.18.1"
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem", "Win32_System_Performance", "Win32_System_Diagnostics_ToolHelp", "Win32_Foundation", "Win32_System_JobObjects", "Win32_Security"] }

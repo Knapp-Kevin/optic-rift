@@ -6,6 +6,7 @@ import ModelBrowser from "./ModelBrowser";
 import GeneratePanel from "./GeneratePanel";
 import GenerationHistory from "./GenerationHistory";
 import type { ProjectRecord } from "./projects";
+import { hasQualifiedLocalImageModel, type ModelLibrary } from "./models";
 import { formatSize, IMAGE_PREVIEW_FAILED, VIDEO_PREVIEW_FAILED } from "./mediaFormat";
 
 type View = "projects" | "studio" | "models" | "settings";
@@ -26,7 +27,10 @@ export default function App() {
   const [items, setItems] = useState<MediaItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [prompt, setPrompt] = useState("");
-  const [capability, setCapability] = useState("Text to image");
+  const [studioMode, setStudioMode] = useState<"create" | "edit">("edit");
+  const [studioModeChosen, setStudioModeChosen] = useState(false);
+  const [createOpened, setCreateOpened] = useState(false);
+  const [creationMode, setCreationMode] = useState<"text-to-image" | "image-to-image">("text-to-image");
   const [libraryVersion, setLibraryVersion] = useState(0);
   const [historyVersion, setHistoryVersion] = useState(0);
   const [message, setMessage] = useState("");
@@ -60,6 +64,17 @@ export default function App() {
       objectUrls.current = [];
     };
   }, []);
+
+  useEffect(() => {
+    if (view !== "studio" || studioModeChosen) return;
+    let active = true;
+    void invoke<ModelLibrary>("models_library")
+      .then((lib) => { if (active) setStudioMode(hasQualifiedLocalImageModel(lib) ? "create" : "edit"); })
+      .catch(() => { if (active) setStudioMode("edit"); });
+    return () => { active = false; };
+  }, [view, libraryVersion, studioModeChosen]);
+
+  useEffect(() => { if (view === "studio" && studioMode === "create") setCreateOpened(true); }, [view, studioMode]);
 
   function selectItem(id: string) {
     setSelectedId(id);
@@ -147,7 +162,27 @@ export default function App() {
 
         {view === "projects" && <ProjectChooser current={project} onOpened={(opened) => { setProject(opened); setView("studio"); }} />}
 
-        {view === "studio" && <main className="workspace">
+        {view === "studio" && <>
+          <nav className="studio-tabs" aria-label="Studio workspace">
+            <div className="studio-tab-switch" role="group" aria-label="Choose Studio activity">
+              <button type="button" className={studioMode === "create" ? "selected" : ""} aria-pressed={studioMode === "create"}
+                onClick={() => { setStudioMode("create"); setStudioModeChosen(true); }}>Create</button>
+              <button type="button" className={studioMode === "edit" ? "selected" : ""} aria-pressed={studioMode === "edit"}
+                onClick={() => { setStudioMode("edit"); setStudioModeChosen(true); }}>Edit media</button>
+            </div>
+            <span>{studioMode === "create" ? "Generate local images. Video generation models are discoverable in Models." : "Edit the media you have opened."}</span>
+          </nav>
+        </>}
+        {/* Create stays mounted once opened, so a running job, its progress/Cancel and the current result
+            survive a switch to Edit media or another page. Hidden content is not rendered visibly. */}
+        {createOpened && <main className="create-workspace" hidden={!(view === "studio" && studioMode === "create")}>
+            <GeneratePanel layout="create" visible={view === "studio" && studioMode === "create"} prompt={prompt} onPromptChange={setPrompt} mode={creationMode}
+              onModeChange={setCreationMode} historyVersion={historyVersion} projectId={project?.id ?? null}
+              libraryVersion={libraryVersion} onOpenModels={() => setView("models")}
+              onResult={(media) => { addGenerated(media); setStudioMode("edit"); setStudioModeChosen(true); }}
+              onGenerated={() => setHistoryVersion((v) => v + 1)} />
+          </main>}
+        {view === "studio" && studioMode === "edit" && <main className="workspace">
           <section className="media-panel">
             <div className="section-title"><div><h2>Media library</h2><p>Your images and clips</p></div><span className="count">{items.length}</span></div>
             <input ref={inputRef} type="file" accept="image/*,video/*" multiple hidden onChange={addMedia} aria-label="Select image and video files" />
@@ -170,7 +205,7 @@ export default function App() {
               {selected && previewFailed && <div className="empty-canvas preview-failed" role="alert"><div className="empty-icon">⚠</div><h1>Can't preview {selected.name}</h1><p>{selected.kind === "image" ? IMAGE_PREVIEW_FAILED : VIDEO_PREVIEW_FAILED}</p></div>}
               {selected?.kind === "image" && !previewFailed && <img key={selected.id} onError={() => markFailed(selected.id, IMAGE_PREVIEW_FAILED)} src={selected.url} alt={selected.name} style={{ filter: "brightness(" + brightness + "%) contrast(" + contrast + "%)", transform: "rotate(" + rotation + "deg)" }} />}
               {selected?.kind === "video" && !previewFailed && <video key={selected.id} ref={videoRef} src={selected.url} controls preload="metadata" playsInline onLoadedMetadata={(event) => { const length = event.currentTarget.duration; setDuration(Number.isFinite(length) ? length : 0); setPlayhead(0); }} onTimeUpdate={(event) => setPlayhead(event.currentTarget.currentTime)} onError={() => markFailed(selected.id, VIDEO_PREVIEW_FAILED)} />}
-              {!selected && <div className="empty-canvas"><div className="empty-icon">◉</div><h1>Make something extraordinary.</h1><p>Start with a photo or video. Explore AI generation as compatible models become available.</p><button className="primary" onClick={() => inputRef.current?.click()}>Import your first clip</button></div>}
+              {!selected && <div className="empty-canvas"><div className="empty-icon">◉</div><h1>Make something extraordinary.</h1><p>Start with a photo or video, or choose Create to generate an image locally.</p><button className="primary" onClick={() => inputRef.current?.click()}>Import your first clip</button></div>}
             </div>
             <div className="player-controls">
               {isVideo ? <><button className="control" onClick={() => seek(playhead - 0.1)} title="Step back 0.1 seconds">↶ 0.1s</button><button className="control" onClick={() => seek(playhead + 0.1)} title="Step forward 0.1 seconds">0.1s ↷</button><span className="time">{formatTime(playhead)} / {formatTime(duration)}</span></> :
@@ -186,26 +221,17 @@ export default function App() {
             </div>
           </section>
 
-          <aside className="inspector">
-            <div className="section-title"><div><h2>Creation tools</h2><p>Ideas to visuals</p></div></div>
-            <label className="field-label" htmlFor="capability">What would you like to make?</label>
-            <select id="capability" value={capability} onChange={(event) => setCapability(event.target.value)}>
-              <option>Text to video</option><option>Image to video</option><option>Text to image</option><option>Image to image</option><option>Inpainting</option><option>Upscaling</option>
-            </select>
-            <label className="field-label" htmlFor="prompt">Describe your idea</label>
-            <textarea id="prompt" value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="A quiet mountain lake at sunrise, soft golden light and a gentle breeze..." rows={6} />
-            {(capability === "Text to image" || capability === "Image to image")
-              ? <GeneratePanel prompt={prompt} mode={capability === "Image to image" ? "image-to-image" : "text-to-image"} historyVersion={historyVersion} projectId={project?.id ?? null} libraryVersion={libraryVersion} onOpenModels={() => setView("models")} onResult={addGenerated} onGenerated={() => setHistoryVersion(v => v + 1)} />
-              : <><div className="model-info"><strong>No adapter for {capability.toLowerCase()} yet</strong><p>You can discover these models on the Models page. Only SDXL text-to-image and its local-output transformation path have experimental execution code.</p></div>
-                <button className="secondary full" onClick={() => setView("models")}>Browse models</button></>}
-            <GenerationHistory refreshVersion={historyVersion} onResult={addGenerated} />
-            {selected?.kind === "image" && !previewFailed && <div className="adjustments">
-              <h3>Image preview adjustments</h3>
+          <aside className="inspector editor-inspector">
+            <div className="section-title"><div><h2>Media adjustments</h2><p>Preview changes without altering originals</p></div></div>
+            {selected?.kind === "image" && !previewFailed ? <div className="adjustments">
+              <h3>Image preview</h3>
               <label>Brightness <output>{brightness}%</output><input type="range" min="25" max="175" value={brightness} onChange={(event) => setBrightness(Number(event.target.value))} /></label>
               <label>Contrast <output>{contrast}%</output><input type="range" min="25" max="175" value={contrast} onChange={(event) => setContrast(Number(event.target.value))} /></label>
               <button className="secondary full" onClick={() => setRotation((value) => (value + 90) % 360)}>Rotate preview 90°</button>
-              <p>Preview only. Saving adjusted images will require a native export pipeline.</p>
-            </div>}
+              <p>Preview only. Exporting adjusted images is not implemented yet.</p>
+            </div> : <p className="model-hint">Select an image to adjust its preview, or choose Create to generate a new image.</p>}
+            <button className="secondary full" onClick={() => { setStudioMode("create"); setStudioModeChosen(true); }}>Create an image</button>
+            <GenerationHistory refreshVersion={historyVersion} onResult={addGenerated} />
           </aside>
           {message && <div className="notice" role="status"><span>{message}</span><button onClick={() => setMessage("")} aria-label="Dismiss notification">×</button></div>}
         </main>}

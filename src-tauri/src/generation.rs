@@ -572,6 +572,7 @@ fn generate_blocking<R: tauri::Runtime>(
     }
     let result = run_job(app, &w, &installed, &rt, &local, &req);
     w.busy.store(false, Ordering::SeqCst);
+    forget_cancel(&req.job_id);
     result
 }
 
@@ -589,12 +590,22 @@ fn run_job<R: tauri::Runtime>(
     // Re-checked for every job: a game may have started since the model was loaded. This early
     // check fails closed before any multi-GB verification; each later use re-checks again.
     gpu_budget(model, req)?;
+    check_not_cancelled(&req.job_id)?;
     if w.loaded.lock().unwrap().as_ref() != Some(&key) {
         let _ = app.emit(
             "generation",
             json!({"event": "verifying-model", "job_id": req.job_id}),
         );
-        model_store::verify_installed_files(model)?;
+        model_store::verify_installed_files_until(model, &|| cancel_requested(&req.job_id))
+            .map_err(|e| {
+                if cancel_requested(&req.job_id) {
+                    "Generation cancelled.".to_string()
+                } else {
+                    e
+                }
+            })?;
+        // A Cancel during the multi-GB hash check must stop before anything reaches the GPU.
+        check_not_cancelled(&req.job_id)?;
         // Verification can read gigabytes. The GPU sharing snapshot taken before
         // that disk I/O may now be stale, so re-check immediately before loading.
         let load_budget_mb = gpu_budget(model, req)?;
@@ -630,6 +641,7 @@ fn run_job<R: tauri::Runtime>(
     )?;
     // GPU sharing state may change during the source hash/decode checks.
     let budget_mb = gpu_budget(model, req)?;
+    check_not_cancelled(&req.job_id)?;
     let out_dir = outputs_dir(local);
     fs::create_dir_all(&out_dir).map_err(|e| e.to_string())?;
     let png = out_dir.join(format!("{}.png", req.job_id));
@@ -640,8 +652,18 @@ fn run_job<R: tauri::Runtime>(
         "mode": req.mode.as_str(), "reference": reference.as_ref(), "strength": decimal_f32(req.strength),
     }))?;
     let job = req.job_id.clone();
+    // The worker clears its cancel flag when a job starts and ignores a cancel for a job it has
+    // not started yet. Re-send a pending cancel once the job reports progress, closing that race.
+    let resent = AtomicBool::new(false);
     let end = w.wait_for(
-        move |e| {
+        |e| {
+            if e["job_id"] == job.as_str()
+                && e["event"] == "progress"
+                && cancel_requested(&job)
+                && !resent.swap(true, Ordering::SeqCst)
+            {
+                let _ = w.send(&json!({"op": "cancel", "job_id": job}));
+            }
             e["job_id"] == job.as_str()
                 && matches!(e["event"].as_str(), Some("done" | "error" | "cancelled"))
         },
@@ -712,13 +734,53 @@ fn run_job<R: tauri::Runtime>(
     Ok(provenance)
 }
 
-pub fn cancel(job_id: &str) -> Result<(), String> {
-    let w = slot()
+/// Job ids the user cancelled. The Python worker only knows a job once `generate` is sent, so
+/// without this a Cancel during model verification or loading was dropped and the job then ran
+/// on the GPU anyway. `run_job` checks it before each expensive stage.
+fn cancelled_jobs() -> &'static Mutex<Vec<String>> {
+    static CANCELLED: OnceLock<Mutex<Vec<String>>> = OnceLock::new();
+    CANCELLED.get_or_init(|| Mutex::new(Vec::new()))
+}
+
+fn cancel_requested(job_id: &str) -> bool {
+    cancelled_jobs()
         .lock()
         .unwrap()
-        .clone()
-        .ok_or("No generation is running.")?;
-    w.send(&json!({"op": "cancel", "job_id": job_id}))
+        .iter()
+        .any(|id| id == job_id)
+}
+
+fn forget_cancel(job_id: &str) {
+    cancelled_jobs().lock().unwrap().retain(|id| id != job_id);
+}
+
+fn check_not_cancelled(job_id: &str) -> Result<(), String> {
+    if cancel_requested(job_id) {
+        Err("Generation cancelled.".into())
+    } else {
+        Ok(())
+    }
+}
+
+pub fn cancel(job_id: &str) -> Result<(), String> {
+    if !valid_job_id(job_id) {
+        return Err("Invalid job id.".into());
+    }
+    {
+        let mut ids = cancelled_jobs().lock().unwrap();
+        // Bounded: ids are removed when their job ends; this only drops stale unknown ids.
+        if ids.len() >= 32 {
+            ids.remove(0);
+        }
+        if !ids.iter().any(|id| id == job_id) {
+            ids.push(job_id.to_string());
+        }
+    }
+    // Forward to a running worker too, so an in-progress denoise stops at its next step.
+    if let Some(w) = slot().lock().unwrap().clone() {
+        w.send(&json!({"op": "cancel", "job_id": job_id}))?;
+    }
+    Ok(())
 }
 
 pub fn unload() -> Result<Value, String> {
@@ -854,6 +916,113 @@ pub fn output_png(app_local: &Path, job_id: &str) -> Result<Vec<u8>, String> {
     verified_output(app_local, job_id).map(|(png, _)| png)
 }
 
+/// Return a bounded, freshly decoded thumbnail of a verified local generation.
+///
+/// No derivative is written to disk: this avoids creating an unprotected cache
+/// as future private-output modes are added. A caller can cache only the data URI
+/// in its current WebView session. Every request revalidates the original pair.
+pub fn output_thumbnail_png(app_local: &Path, job_id: &str) -> Result<Vec<u8>, String> {
+    let original = output_png(app_local, job_id)?;
+    thumbnail_png(&original)
+}
+
+/// Pure, CPU-only PNG decoder and downsampler. The source must be an app-verified
+/// output before this is called in production. No untrusted arbitrary paths.
+fn thumbnail_png(source: &[u8]) -> Result<Vec<u8>, String> {
+    const EDGE: u32 = 256;
+    const MAX_DIM: u32 = 1536;
+    const MAX_DECODED_BYTES: usize = MAX_DIM as usize * MAX_DIM as usize * 4;
+    let mut decoder = png::Decoder::new(std::io::Cursor::new(source));
+    decoder.set_transformations(png::Transformations::EXPAND | png::Transformations::STRIP_16);
+    decoder.set_ignore_text_chunk(true);
+    decoder.set_ignore_iccp_chunk(true);
+    let mut reader = decoder
+        .read_info()
+        .map_err(|_| "Could not decode this verified PNG for preview.".to_string())?;
+    let (width, height) = (reader.info().width, reader.info().height);
+    if width == 0 || height == 0 || width > MAX_DIM || height > MAX_DIM {
+        return Err("Image dimensions exceed the preview limit.".into());
+    }
+    let allocation = reader
+        .output_buffer_size()
+        .ok_or("Preview dimensions would overflow memory.")?;
+    if allocation > MAX_DECODED_BYTES {
+        return Err("Image preview exceeds its memory limit.".into());
+    }
+    let mut decoded = vec![0u8; allocation];
+    let frame = reader
+        .next_frame(&mut decoded)
+        .map_err(|_| "The PNG pixel data could not be decoded.".to_string())?;
+    if frame.width != width || frame.height != height || frame.bit_depth != png::BitDepth::Eight {
+        return Err("Unsupported PNG frame layout for thumbnail.".into());
+    }
+    let channels = match frame.color_type {
+        png::ColorType::Rgb => 3,
+        png::ColorType::Rgba => 4,
+        png::ColorType::Grayscale => 1,
+        png::ColorType::GrayscaleAlpha => 2,
+        _ => return Err("Unsupported PNG color layout for thumbnail.".into()),
+    };
+    let line = frame.line_size;
+    if line < width as usize * channels || frame.buffer_size() > decoded.len() {
+        return Err("Invalid PNG row size for thumbnail.".into());
+    }
+    // Downscale only: a source smaller than the preview edge keeps its own size.
+    let scale = width.max(height) as u64;
+    let edge = (EDGE as u64).min(scale);
+    let thumb_w = ((width as u64 * edge + scale / 2) / scale).max(1) as u32;
+    let thumb_h = ((height as u64 * edge + scale / 2) / scale).max(1) as u32;
+    let mut pixels = vec![0u8; thumb_w as usize * thumb_h as usize * 3];
+    for y in 0..thumb_h {
+        let from_y = (y as u64 * height as u64 / thumb_h as u64) as usize;
+        for x in 0..thumb_w {
+            let from_x = (x as u64 * width as u64 / thumb_w as u64) as usize;
+            let from = from_y * line + from_x * channels;
+            if from + channels > frame.buffer_size() {
+                return Err("Invalid PNG pixel offset.".into());
+            }
+            let (r, g, b, alpha) = match channels {
+                1 => (decoded[from], decoded[from], decoded[from], 255u16),
+                2 => (
+                    decoded[from],
+                    decoded[from],
+                    decoded[from],
+                    decoded[from + 1] as u16,
+                ),
+                3 => (decoded[from], decoded[from + 1], decoded[from + 2], 255u16),
+                _ => (
+                    decoded[from],
+                    decoded[from + 1],
+                    decoded[from + 2],
+                    decoded[from + 3] as u16,
+                ),
+            };
+            let dest = (y as usize * thumb_w as usize + x as usize) * 3;
+            for (i, v) in [r, g, b].into_iter().enumerate() {
+                // Composite alpha against the Stage's dark canvas.
+                pixels[dest + i] =
+                    ((v as u16 * alpha + [17u16, 22, 36][i] * (255 - alpha)) / 255) as u8;
+            }
+        }
+    }
+    let mut result = Vec::new();
+    {
+        let mut encoder = png::Encoder::new(&mut result, thumb_w, thumb_h);
+        encoder.set_color(png::ColorType::Rgb);
+        encoder.set_depth(png::BitDepth::Eight);
+        let mut writer = encoder
+            .write_header()
+            .map_err(|_| "Could not start thumbnail encoding.".to_string())?;
+        writer
+            .write_image_data(&pixels)
+            .map_err(|_| "Could not encode thumbnail pixels.".to_string())?;
+    }
+    if result.len() > 512 * 1024 {
+        return Err("Encoded thumbnail exceeded its size limit.".into());
+    }
+    Ok(result)
+}
+
 /// Export a validated image and its matching provenance to Pictures\Optic Rift.
 /// Destination filenames use the full UUID, not just an eight-character prefix.
 /// Create-new prevents races from silently overwriting another application's file.
@@ -946,6 +1115,356 @@ mod tests {
             json!(0.65),
             "documents the widening this avoids"
         );
+    }
+
+    #[test]
+    fn thumbnail_is_bounded_and_does_not_copy_original_full_size() {
+        let mut source = Vec::new();
+        {
+            let mut encoder = png::Encoder::new(&mut source, 512, 256);
+            encoder.set_color(png::ColorType::Rgb);
+            encoder.set_depth(png::BitDepth::Eight);
+            let mut writer = encoder.write_header().unwrap();
+            writer
+                .write_image_data(&vec![138u8; 512 * 256 * 3])
+                .unwrap();
+        }
+        let resized = thumbnail_png(&source).unwrap();
+        assert!(resized.len() < 512 * 1024);
+        let mut reader = png::Decoder::new(std::io::Cursor::new(resized))
+            .read_info()
+            .unwrap();
+        assert_eq!((reader.info().width, reader.info().height), (256, 128));
+        let mut buffer = vec![0u8; reader.output_buffer_size().unwrap()];
+        let result = reader.next_frame(&mut buffer).unwrap();
+        assert_eq!(result.color_type, png::ColorType::Rgb);
+        assert_eq!(buffer[0..3], [138, 138, 138]);
+        assert!(thumbnail_png(b"not a PNG").is_err());
+    }
+
+    #[test]
+    fn thumbnail_rejects_oversize_before_pixel_decode() {
+        let mut png = Vec::new();
+        {
+            let mut encoder = png::Encoder::new(&mut png, 1537, 1537);
+            encoder.set_color(png::ColorType::Rgb);
+            encoder.set_depth(png::BitDepth::Eight);
+            let mut writer = encoder.write_header().unwrap();
+            // Only a valid header is needed: dimensions are rejected before reading pixel data.
+            writer
+                .write_image_data(&vec![0u8; 1537 * 1537 * 3])
+                .unwrap();
+        }
+        assert!(thumbnail_png(&png).unwrap_err().contains("preview limit"));
+    }
+
+    #[test]
+    fn cancel_before_worker_knows_the_job_is_remembered_until_the_job_ends() {
+        let id = uuid::Uuid::new_v4().to_string();
+        assert!(check_not_cancelled(&id).is_ok());
+        assert!(cancel("../not-a-job").is_err());
+        // No worker has to exist: this is the verification/loading window that used to drop Cancel.
+        cancel(&id).unwrap();
+        cancel(&id).unwrap();
+        assert_eq!(
+            check_not_cancelled(&id).unwrap_err(),
+            "Generation cancelled."
+        );
+        let other = uuid::Uuid::new_v4().to_string();
+        assert!(
+            check_not_cancelled(&other).is_ok(),
+            "only the cancelled job stops"
+        );
+        forget_cancel(&id);
+        assert!(check_not_cancelled(&id).is_ok());
+        for _ in 0..40 {
+            cancel(&uuid::Uuid::new_v4().to_string()).unwrap();
+        }
+        assert!(
+            cancelled_jobs().lock().unwrap().len() <= 32,
+            "stale ids stay bounded"
+        );
+    }
+
+    /// Encode a real PNG with the given layout, so the thumbnail path decodes actual pixels.
+    fn encode_png(width: u32, height: u32, color: png::ColorType, depth: png::BitDepth) -> Vec<u8> {
+        let samples = match color {
+            png::ColorType::Grayscale | png::ColorType::Indexed => 1,
+            png::ColorType::GrayscaleAlpha => 2,
+            png::ColorType::Rgb => 3,
+            png::ColorType::Rgba => 4,
+        };
+        let row_bytes = (width as usize * samples * depth as usize).div_ceil(8);
+        let data: Vec<u8> = (0..row_bytes * height as usize)
+            .map(|i| {
+                if color == png::ColorType::Indexed {
+                    (i % 2) as u8
+                } else {
+                    (i % 251) as u8
+                }
+            })
+            .collect();
+        let mut out = Vec::new();
+        {
+            let mut encoder = png::Encoder::new(&mut out, width, height);
+            encoder.set_color(color);
+            encoder.set_depth(depth);
+            if color == png::ColorType::Indexed {
+                encoder.set_palette(vec![10, 20, 30, 200, 210, 220]);
+            }
+            let mut writer = encoder.write_header().unwrap();
+            writer.write_image_data(&data).unwrap();
+        }
+        out
+    }
+
+    /// Write `png` and a provenance record that matches it exactly.
+    fn write_real_output(local: &Path, id: &str, png: &[u8]) {
+        let (width, height) = png_size(png).unwrap_or((0, 0));
+        let sha = Sha256::digest(png)
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect::<String>();
+        fs::create_dir_all(outputs_dir(local)).unwrap();
+        fs::write(outputs_dir(local).join(format!("{id}.png")), png).unwrap();
+        let record = json!({
+            "record_version": 1, "job_id": id, "created_unix_ms": 0,
+            "prompt": "test", "negative_prompt": "", "parameters": {},
+            "model": {}, "runtime": {}, "metrics": {},
+            "output": {"sha256": sha, "width": width, "height": height, "bytes": png.len()},
+            "project_id": null, "lineage_note": "test"
+        });
+        fs::write(
+            outputs_dir(local).join(format!("{id}.json")),
+            serde_json::to_vec(&record).unwrap(),
+        )
+        .unwrap();
+    }
+
+    /// Every file name and its bytes, to prove a call wrote, renamed or deleted nothing.
+    fn snapshot(dir: &Path) -> Vec<(String, Vec<u8>)> {
+        let mut entries: Vec<_> = fs::read_dir(dir)
+            .unwrap()
+            .map(|e| e.unwrap().path())
+            .filter(|p| p.is_file())
+            .map(|p| {
+                (
+                    p.file_name().unwrap().to_string_lossy().into_owned(),
+                    fs::read(&p).unwrap(),
+                )
+            })
+            .collect();
+        entries.sort();
+        entries
+    }
+
+    fn decoded_size(thumb: &[u8]) -> (u32, u32, png::ColorType) {
+        let mut reader = png::Decoder::new(std::io::Cursor::new(thumb))
+            .read_info()
+            .unwrap();
+        let mut buffer = vec![0u8; reader.output_buffer_size().unwrap()];
+        let frame = reader.next_frame(&mut buffer).unwrap();
+        (frame.width, frame.height, frame.color_type)
+    }
+
+    #[test]
+    fn verified_thumbnail_keeps_aspect_and_writes_nothing() {
+        let local = std::env::temp_dir().join(format!("optic-rift-gen-{}", uuid::Uuid::new_v4()));
+        // (source width, height) -> expected thumbnail; never cropped, stretched or upscaled.
+        let cases = [
+            ((768, 1344), (146, 256)),
+            ((1344, 768), (256, 146)),
+            ((1024, 1024), (256, 256)),
+            ((1536, 256), (256, 43)),
+            ((256, 1536), (43, 256)),
+            ((64, 32), (64, 32)),
+        ];
+        for ((w, h), expected) in cases {
+            let id = uuid::Uuid::new_v4().to_string();
+            write_real_output(
+                &local,
+                &id,
+                &encode_png(w, h, png::ColorType::Rgb, png::BitDepth::Eight),
+            );
+            let before = snapshot(&outputs_dir(&local));
+            let thumb = output_thumbnail_png(&local, &id).unwrap();
+            assert!(thumb.len() <= 512 * 1024);
+            let (tw, th, color) = decoded_size(&thumb);
+            assert_eq!((tw, th), expected, "source {w}x{h}");
+            assert!(tw.max(th) <= 256);
+            assert_eq!(
+                color,
+                png::ColorType::Rgb,
+                "metadata and alpha are not carried over"
+            );
+            assert_eq!(
+                snapshot(&outputs_dir(&local)),
+                before,
+                "no cache, sidecar or source change"
+            );
+        }
+        fs::remove_dir_all(local).unwrap();
+    }
+
+    #[test]
+    fn verified_thumbnail_handles_every_png_color_layout() {
+        let local = std::env::temp_dir().join(format!("optic-rift-gen-{}", uuid::Uuid::new_v4()));
+        for (color, depth) in [
+            (png::ColorType::Grayscale, png::BitDepth::Eight),
+            (png::ColorType::Grayscale, png::BitDepth::Four),
+            (png::ColorType::GrayscaleAlpha, png::BitDepth::Eight),
+            (png::ColorType::Rgba, png::BitDepth::Eight),
+            (png::ColorType::Rgb, png::BitDepth::Sixteen),
+            (png::ColorType::Rgba, png::BitDepth::Sixteen),
+            (png::ColorType::Indexed, png::BitDepth::Eight),
+        ] {
+            let id = uuid::Uuid::new_v4().to_string();
+            write_real_output(&local, &id, &encode_png(640, 480, color, depth));
+            let thumb = output_thumbnail_png(&local, &id)
+                .unwrap_or_else(|e| panic!("{color:?}/{depth:?}: {e}"));
+            assert_eq!(decoded_size(&thumb), (256, 192, png::ColorType::Rgb));
+        }
+        fs::remove_dir_all(local).unwrap();
+    }
+
+    #[test]
+    fn thumbnail_refuses_unverified_sources_without_changing_them() {
+        let local = std::env::temp_dir().join(format!("optic-rift-gen-{}", uuid::Uuid::new_v4()));
+        let source = encode_png(512, 512, png::ColorType::Rgb, png::BitDepth::Eight);
+        let id = uuid::Uuid::new_v4().to_string();
+        write_real_output(&local, &id, &source);
+        assert!(output_thumbnail_png(&local, &id).is_ok());
+
+        for bad in [
+            "../../secret",
+            "not-a-uuid",
+            "",
+            &id.to_uppercase(),
+            &id.replace('-', ""),
+        ] {
+            assert!(output_thumbnail_png(&local, bad)
+                .unwrap_err()
+                .contains("Invalid output id"));
+        }
+        let missing = uuid::Uuid::new_v4().to_string();
+        assert!(output_thumbnail_png(&local, &missing).is_err());
+
+        let png_path = outputs_dir(&local).join(format!("{id}.png"));
+        let record_path = outputs_dir(&local).join(format!("{id}.json"));
+        let record = fs::read(&record_path).unwrap();
+
+        // Altered pixels: hash no longer matches provenance.
+        let mut altered = source.clone();
+        let mid = altered.len() / 2;
+        altered[mid] ^= 0xff;
+        fs::write(&png_path, &altered).unwrap();
+        let before = snapshot(&outputs_dir(&local));
+        assert!(output_thumbnail_png(&local, &id)
+            .unwrap_err()
+            .contains("does not match"));
+        assert_eq!(
+            snapshot(&outputs_dir(&local)),
+            before,
+            "a failed check repairs nothing"
+        );
+        fs::write(&png_path, &source).unwrap();
+
+        // Invalid, missing or misleading provenance.
+        fs::write(&record_path, b"not-json").unwrap();
+        assert!(output_thumbnail_png(&local, &id).is_err());
+        fs::remove_file(&record_path).unwrap();
+        assert!(output_thumbnail_png(&local, &id).is_err());
+        let mut wrong: Value = serde_json::from_slice(&record).unwrap();
+        wrong["output"]["width"] = json!(256);
+        fs::write(&record_path, serde_json::to_vec(&wrong).unwrap()).unwrap();
+        assert!(output_thumbnail_png(&local, &id)
+            .unwrap_err()
+            .contains("does not match"));
+        let mut other: Value = serde_json::from_slice(&record).unwrap();
+        other["job_id"] = json!(missing);
+        fs::write(&record_path, serde_json::to_vec(&other).unwrap()).unwrap();
+        assert!(output_thumbnail_png(&local, &id).is_err());
+        fs::write(&record_path, &record).unwrap();
+
+        // Missing PNG with a record still present.
+        fs::remove_file(&png_path).unwrap();
+        assert!(output_thumbnail_png(&local, &id)
+            .unwrap_err()
+            .contains("missing"));
+
+        // Non-PNG bytes and a PNG whose header verifies but whose pixel data is corrupt.
+        let not_png = uuid::Uuid::new_v4().to_string();
+        write_real_output(&local, &not_png, b"GIF89a not a png at all");
+        assert!(output_thumbnail_png(&local, &not_png).is_err());
+        let corrupt = uuid::Uuid::new_v4().to_string();
+        let mut truncated = encode_png(512, 512, png::ColorType::Rgb, png::BitDepth::Eight);
+        truncated.truncate(64);
+        write_real_output(&local, &corrupt, &truncated);
+        assert!(output_thumbnail_png(&local, &corrupt).is_err());
+        assert_eq!(
+            fs::read(outputs_dir(&local).join(format!("{corrupt}.png"))).unwrap(),
+            truncated
+        );
+        fs::remove_dir_all(local).unwrap();
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn thumbnail_refuses_junctioned_outputs_folder_and_linked_png() {
+        let local = std::env::temp_dir().join(format!("optic-rift-gen-{}", uuid::Uuid::new_v4()));
+        let elsewhere =
+            std::env::temp_dir().join(format!("optic-rift-gen-{}", uuid::Uuid::new_v4()));
+        let id = uuid::Uuid::new_v4().to_string();
+        write_real_output(
+            &elsewhere,
+            &id,
+            &encode_png(300, 200, png::ColorType::Rgb, png::BitDepth::Eight),
+        );
+        assert!(output_thumbnail_png(&elsewhere, &id).is_ok());
+        fs::create_dir_all(&local).unwrap();
+        // Directory junctions need no elevation, unlike symbolic links.
+        let status = std::process::Command::new("cmd")
+            .args(["/C", "mklink", "/J"])
+            .arg(outputs_dir(&local))
+            .arg(outputs_dir(&elsewhere))
+            .output()
+            .unwrap();
+        assert!(status.status.success(), "mklink /J failed: {status:?}");
+        assert!(
+            outputs_dir(&local).join(format!("{id}.png")).exists(),
+            "junction resolves"
+        );
+        assert!(output_thumbnail_png(&local, &id)
+            .unwrap_err()
+            .contains("redirected"));
+        fs::remove_dir(outputs_dir(&local)).unwrap();
+
+        // A linked PNG inside a genuine outputs folder (needs symlink privilege).
+        let linked = std::env::temp_dir().join(format!("optic-rift-gen-{}", uuid::Uuid::new_v4()));
+        write_real_output(
+            &linked,
+            &id,
+            &fs::read(outputs_dir(&elsewhere).join(format!("{id}.png"))).unwrap(),
+        );
+        let png_path = outputs_dir(&linked).join(format!("{id}.png"));
+        fs::remove_file(&png_path).unwrap();
+        if std::os::windows::fs::symlink_file(
+            outputs_dir(&elsewhere).join(format!("{id}.png")),
+            &png_path,
+        )
+        .is_ok()
+        {
+            assert!(output_thumbnail_png(&linked, &id)
+                .unwrap_err()
+                .contains("link"));
+        } else {
+            eprintln!(
+                "symlink creation needs Developer Mode or elevation; linked-PNG case skipped"
+            );
+        }
+        for dir in [local, elsewhere, linked] {
+            fs::remove_dir_all(dir).unwrap();
+        }
     }
 
     #[test]

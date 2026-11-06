@@ -41,7 +41,16 @@ export type InstalledModel = { manifest: Manifest; dir: string; files_present: b
 export type Inspection = { detail: ModelDetail; installed: InstalledModel | null; gpu: GpuInfo; runtime_installed: boolean; model_dir: string; free_bytes: number | null };
 export type RuntimeManifest = { runtime: string; python: string; torch: string; diffusers: string; cuda_available: boolean; device: string | null };
 export type RuntimeStatus = { installed: RuntimeManifest | null; uv_available: boolean; uv_executable: { path: string; sha256: string } | null; root: string; torch_index: string; torch: string; packages: string[] };
-export type ModelLibrary = { model_dir: string; free_bytes: number | null; installed: InstalledModel[]; loaded: [string, string] | null; runtime: RuntimeStatus; gpu: GpuInfo };
+export type ModelLibrary = { qualified_image_ready: boolean; model_dir: string; free_bytes: number | null; installed: InstalledModel[]; loaded: [string, string] | null; runtime: RuntimeStatus; gpu: GpuInfo };
+/** Default to Create only for a locally qualified, executable model.
+ * New validated model families must be added with an exact revision receipt.
+ * This display preference is NOT an inference authorization boundary.
+ */
+export function hasQualifiedLocalImageModel(library: ModelLibrary): boolean {
+  // Native registry decides which exact revisions have earned a qualification receipt.
+  return library.qualified_image_ready === true;
+}
+
 export type InstallEvent = { install_id: string; repo: string; state: string; file: string | null; file_index: number; file_count: number; bytes_done: number; bytes_total: number; message: string | null };
 export type Provenance = {
   job_id: string; created_unix_ms: number; prompt: string; negative_prompt: string;
