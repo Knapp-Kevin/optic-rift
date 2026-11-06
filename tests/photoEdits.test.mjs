@@ -61,6 +61,6 @@ test("Photo Studio offers a real save action but honestly labels current limits"
   assert.match(app, /invoke<\{ path: string; sha256: string; width: number; height: number \}>\("photo_export_copy"/);
   assert.match(app, /Save adjusted PNG copy/);
   assert.match(app, /OneDrive/);
-  assert.match(app, /not saved into this project's media library/);
+  assert.match(app, /not save an asset into this project/);
   assert.doesNotMatch(app, /Exporting adjusted images is not implemented yet/);
 });
