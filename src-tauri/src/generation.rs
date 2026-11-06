@@ -826,7 +826,8 @@ mod tests {
         assert_eq!(output_png(&local, &id).unwrap(), png);
         let path = outputs_dir(&local).join(format!("{id}.png"));
         let mut corrupted = png.clone();
-        corrupted[corrupted.len() - 1] ^= 1;
+        let tail = corrupted.len() - 1;
+        corrupted[tail] ^= 1;
         fs::write(&path, &corrupted).unwrap();
         assert!(output_png(&local, &id)
             .unwrap_err()
