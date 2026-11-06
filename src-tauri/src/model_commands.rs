@@ -3,7 +3,7 @@
 //! setting, and none returns credentials.
 
 use crate::adapters::{self, Capability};
-use crate::generation::{self, GenerateRequest, GpuInfo, Provenance};
+use crate::generation::{self, GenerateRequest, GenerationMode, GpuInfo, Provenance};
 use crate::hf_catalog::{self, ModelDetail, SearchResult};
 use crate::model_store::{self, InstallRequest, InstalledModel, Manifest};
 use crate::runtime::{self, RuntimeManifest, RuntimeStatus};
@@ -225,14 +225,31 @@ pub async fn gpu_check<R: tauri::Runtime>(
     revision: String,
     width: u32,
     height: u32,
+    mode: Option<GenerationMode>,
+    source_job_id: Option<String>,
+    strength: Option<f32>,
 ) -> Result<GpuCheck, String> {
     let (data, local) = model_store::dirs(&app)?;
+    let mode = mode.unwrap_or_default();
+    generation::preflight_image_reference(
+        &local,
+        mode,
+        source_job_id.as_deref(),
+        strength,
+        width,
+        height,
+    )?;
     let model =
         model_store::find_installed(&model_store::model_dir(&data, &local), &repo, &revision)
             .ok_or("That model is not installed.")?;
+    if mode == GenerationMode::ImageToImage
+        && model.manifest.adapter != "diffusers-sdxl-text-to-image"
+    {
+        return Err("Image-to-image currently requires an installed SDXL model.".into());
+    }
     tauri::async_runtime::spawn_blocking(move || {
         let (snapshot, decision, need_mb) =
-            generation::gpu_decision(model.manifest.total_bytes, width, height, &[]);
+            generation::gpu_decision(model.manifest.total_bytes, width, height, mode, &[]);
         GpuCheck {
             snapshot,
             decision,
