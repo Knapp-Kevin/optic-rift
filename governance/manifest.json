@@ -148,6 +148,11 @@
       "pattern": "tests/**",
       "reason": "Automated regression and security gate definitions",
       "review": "maintainer_required"
+    },
+    {
+      "pattern": "src/GenerationHistory.tsx",
+      "reason": "Local generation history, prompt visibility and user-controlled export consent",
+      "review": "human_required"
     }
   ],
   "sensitiveSurfaces": [
