@@ -164,6 +164,13 @@ pub fn model_install_cancel(install_id: String) -> bool {
     model_store::cancel(&install_id)
 }
 
+/// Read-only: the one active native model download, if any, so the UI can reconcile after a
+/// remount or reload. In-memory only; nothing is persisted.
+#[tauri::command]
+pub fn model_install_status() -> Option<model_store::InstallStatus> {
+    model_store::status()
+}
+
 #[tauri::command]
 pub async fn model_remove<R: tauri::Runtime>(
     app: tauri::AppHandle<R>,

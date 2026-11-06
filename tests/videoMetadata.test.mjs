@@ -77,14 +77,31 @@ test("Switching adult discovery clears flagged results without stopping native d
   assert.doesNotMatch(app, /<ModelBrowser key=/);
 });
 
-test("Install progress and Cancel live in ModelBrowser, not the hideable detail view", () => {
+test("Model downloads are owned app-wide, not by the Models page (issue #27)", () => {
+  const app = source("src/App.tsx");
   const browser = source("src/ModelBrowser.tsx");
-  // Owned by the component that survives opt-out, so the detail can be hidden without losing the session.
-  assert.match(browser, /const \[installSession, setInstallSession\] = useState<InstallSession \| null>\(null\);/);
-  assert.match(browser, /listen<InstallEvent>\("model-install"/);
-  assert.doesNotMatch(browser.slice(browser.indexOf("function ModelDetailView")), /listen<InstallEvent>/);
-  // When the detail is hidden, a status card keeps progress and Cancel, without a flagged model's name.
-  assert.match(browser, /\{installSession && !sessionShownInDetail && <div className="model-progress" role="status"/);
-  assert.match(browser, /installSession\.flagged && !includeAdult \? "a model" : installSession\.repo/);
-  assert.match(browser, /model_install_cancel", \{ installId: session\.installId \}/);
+  const downloads = source("src/downloads.tsx");
+  const native = source("src-tauri/src/model_store.rs");
+  // Ownership above the route-scoped browser; the browser only renders it.
+  assert.match(app, /<DownloadProvider onInstalled=/);
+  assert.ok(app.indexOf("<DownloadProvider") < app.indexOf('{view === "models"'), "provider wraps every page");
+  assert.match(browser, /const \{ session: installSession, error: installError, start \} = useDownloads\(\);/);
+  assert.doesNotMatch(browser, /listen<InstallEvent>|model_install"|useState<InstallSession/);
+  // Exactly one native progress subscription, filtered to the live install id.
+  assert.equal((downloads.match(/listen<InstallEvent>\("model-install"/g) ?? []).length, 1);
+  assert.match(downloads, /e\.payload\.install_id !== s\.installId\) return s;/);
+  // Cancel uses the exact live id from a ref, and an unaccepted cancel triggers native reconciliation.
+  assert.match(downloads, /invoke<boolean>\("model_install_cancel", \{ installId: s\.installId \}\)/);
+  assert.match(downloads, /if \(!accepted\) void reconcile\(\);/);
+  assert.match(downloads, /invoke<NativeStatus \| null>\("model_install_status"\)/);
+  // One status display per page; a flagged name is hidden while discovery is off.
+  assert.match(app, /\{view !== "models" && <DownloadStatus includeAdult=\{includeAdultModels\} compact \/>\}/);
+  assert.match(browser, /\{!statusInDetail && <DownloadStatus includeAdult=\{includeAdult\} \/>\}/);
+  assert.match(downloads, /item\.flagged && !includeAdult \? "a model" : item\.repo/);
+  // No persisted download history.
+  assert.doesNotMatch(downloads, /localStorage|sessionStorage|indexedDB/);
+  // Native: one download at a time, claimed before inspection, exact-id cancel, released by a guard.
+  assert.match(native, /let \(_guard, flag\) = claim\(&req\)\?;/);
+  assert.ok(native.indexOf("claim(&req)?") < native.indexOf("hf_catalog::inspect(&req.repo"), "slot claimed before network work");
+  assert.match(native, /\.filter\(\|a\| a\.install_id == install_id\)/);
 });

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { DownloadProgress, DownloadStatus, useDownloads, type DownloadError, type DownloadSession } from "./downloads";
 import {
   compatibilityText, formatBytes, licenseAcknowledgement, licenseText, modelStates,
   type Capability, type CapabilityInfo, type InstallEvent, type Inspection, type ModelLibrary, type ModelSummary, type SearchResult,
@@ -10,10 +11,6 @@ const errorText = (e: unknown) => (typeof e === "string" ? e : e instanceof Erro
 
 type Props = { includeAdult: boolean; onLibraryChanged: () => void };
 
-/** One native model download. Owned by ModelBrowser (which stays mounted) rather than by the
- * detail view, so hiding or replacing the inspected model never loses progress or Cancel. */
-type InstallSession = { installId: string; repo: string; revision: string; flagged: boolean; progress: InstallEvent | null };
-type InstallError = { repo: string; revision: string; message: string };
 
 export default function ModelBrowser({ includeAdult, onLibraryChanged }: Props) {
   const [capabilities, setCapabilities] = useState<CapabilityInfo[]>([]);
@@ -29,19 +26,8 @@ export default function ModelBrowser({ includeAdult, onLibraryChanged }: Props) 
   const searchVersion = useRef(0);
   const inspectVersion = useRef(0);
   const [inspectionFromLocalLibrary, setInspectionFromLocalLibrary] = useState(false);
-  const [installSession, setInstallSession] = useState<InstallSession | null>(null);
-  const [installError, setInstallError] = useState<InstallError | null>(null);
-  const installSessionId = installSession?.installId ?? null;
-
-  useEffect(() => {
-    if (!installSessionId) return;
-    const stop = listen<InstallEvent>("model-install", (e) => {
-      if (e.payload.install_id === installSessionId) {
-        setInstallSession((s) => (s && s.installId === installSessionId ? { ...s, progress: e.payload } : s));
-      }
-    });
-    return () => { void stop.then((f) => f()); };
-  }, [installSessionId]);
+  // Download ownership is app-lifetime (issue #27); this page only renders it.
+  const { session: installSession, error: installError, start } = useDownloads();
 
   // Scope consent to discovery. Disabling it must stop displaying an earlier
   // source-flagged result without unmounting live install/progress components.
@@ -101,27 +87,6 @@ export default function ModelBrowser({ includeAdult, onLibraryChanged }: Props) 
     }
   }
 
-  async function startInstall(inspected: Inspection, accept: boolean) {
-    const { detail } = inspected;
-    const plan = detail.plans[0];
-    if (!plan || installSession) return;
-    const id = crypto.randomUUID();
-    setInstallError(null);
-    setInstallSession({ installId: id, repo: detail.id, revision: detail.revision, flagged: detail.audience === "not-for-all-audiences", progress: null });
-    try {
-      await invoke("model_install", { request: { install_id: id, repo: detail.id, revision: detail.revision, adapter: plan.plan.adapter, license_acknowledged: licenseAcknowledgement(detail), accept } });
-      void refreshLibrary();
-      onLibraryChanged();
-      // Refresh the detail only if the user is still looking at this exact model.
-      if (inspectionRef.current?.detail.id === detail.id && inspectionRef.current.detail.revision === detail.revision) {
-        void inspect({ id: detail.id }, detail.revision, inspectionFromLocalRef.current);
-      }
-    } catch (e) {
-      setInstallError({ repo: detail.id, revision: detail.revision, message: errorText(e) });
-    } finally {
-      setInstallSession(null);
-    }
-  }
 
   const inspectionRef = useRef<Inspection | null>(null);
   inspectionRef.current = inspection;
@@ -134,20 +99,29 @@ export default function ModelBrowser({ includeAdult, onLibraryChanged }: Props) 
     || inspection.detail.audience !== "not-for-all-audiences") ? inspection : null;
 
   const adaptersFor = capabilities.find((c) => c.id === capability)?.adapters ?? [];
-  const sessionShownInDetail = Boolean(installSession && visibleInspection && !inspecting
-    && visibleInspection.detail.id === installSession.repo && visibleInspection.detail.revision === installSession.revision);
-  // A source-flagged model's name is not shown while adult discovery is off.
-  const sessionLabel = installSession && (installSession.flagged && !includeAdult ? "a model" : installSession.repo);
+  const shownInDetail = (item: { repo: string; revision: string } | null) => Boolean(item && visibleInspection && !inspecting
+    && visibleInspection.detail.id === item.repo && visibleInspection.detail.revision === item.revision);
+  // One status display: the detail shows its own download/error; otherwise the shared card does.
+  const statusInDetail = installSession ? shownInDetail(installSession) : shownInDetail(installError);
+
+  async function installFromDetail(inspected: Inspection, accept: boolean) {
+    if (await start(inspected, accept)) {
+      void refreshLibrary();
+      onLibraryChanged();
+      // Refresh the detail only if the user is still looking at this exact model.
+      const now = inspectionRef.current;
+      if (now?.detail.id === inspected.detail.id && now.detail.revision === inspected.detail.revision) {
+        void inspect({ id: inspected.detail.id }, inspected.detail.revision, inspectionFromLocalRef.current);
+      }
+    }
+  }
 
   return (
     <section className="model-browser" aria-label="Hugging Face model browser">
       <RuntimePanel library={library} onChanged={() => { void refreshLibrary(); onLibraryChanged(); }} />
       <InstalledPanel library={library} onChanged={() => { void refreshLibrary(); onLibraryChanged(); }} onInspect={(repo, revision) => void inspect({ id: repo }, revision, true)} />
 
-      {installSession && !sessionShownInDetail && <div className="model-progress" role="status" aria-label="Model download in progress">
-        <strong>Downloading {sessionLabel}</strong>
-        <InstallProgress session={installSession} />
-      </div>}
+      {!statusInDetail && <DownloadStatus includeAdult={includeAdult} />}
 
       <h2 className="model-section-title">Discover models on Hugging Face</h2>
       <form className="model-search" onSubmit={search}>
@@ -199,7 +173,7 @@ export default function ModelBrowser({ includeAdult, onLibraryChanged }: Props) 
           {inspectError && <p className="project-error" role="alert">{inspectError}</p>}
           {visibleInspection && !inspecting && <ModelDetailView inspection={visibleInspection} library={library}
             installSession={installSession} installError={installError}
-            onInstall={(accept) => void startInstall(visibleInspection, accept)}
+            onInstall={(accept) => void installFromDetail(visibleInspection, accept)}
             onInstalled={() => { void refreshLibrary(); onLibraryChanged(); void inspect({ id: visibleInspection.detail.id }, visibleInspection.detail.revision, inspectionFromLocalLibrary); }} />}
           {!visibleInspection && !inspecting && !inspectError && <p className="model-hint">Select a model to see its license, files, hardware needs and whether Optic Rift can run it.</p>}
         </div>
@@ -218,18 +192,8 @@ function StateRow({ inspection, loaded }: { inspection: Inspection; loaded: [str
   );
 }
 
-function InstallProgress({ session }: { session: InstallSession }) {
-  const p = session.progress;
-  return <>
-    {p && <><progress max={p.bytes_total || 1} value={p.bytes_done} />
-      <span>{p.state} {p.file ? `· ${p.file} (${p.file_index + 1}/${p.file_count})` : ""} · {formatBytes(p.bytes_done)} of {formatBytes(p.bytes_total)}{p.message ? ` · ${p.message}` : ""}</span></>}
-    {!p && <span>Starting download…</span>}
-    <button className="secondary" onClick={() => void invoke("model_install_cancel", { installId: session.installId })}>Cancel download</button>
-  </>;
-}
-
 function ModelDetailView({ inspection, library, installSession, installError, onInstall, onInstalled }: {
-  inspection: Inspection; library: ModelLibrary | null; installSession: InstallSession | null; installError: InstallError | null;
+  inspection: Inspection; library: ModelLibrary | null; installSession: DownloadSession | null; installError: DownloadError | null;
   onInstall: (accept: boolean) => void; onInstalled: () => void;
 }) {
   const { detail, installed, gpu, free_bytes, model_dir } = inspection;
@@ -278,7 +242,7 @@ function ModelDetailView({ inspection, library, installSession, installError, on
       )}
       {session && (
         <div className="model-progress" role="status">
-          <InstallProgress session={session} />
+          <DownloadProgress session={session} />
         </div>
       )}
       {error && <p className="project-error" role="alert">{error}</p>}

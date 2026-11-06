@@ -85,6 +85,7 @@ pub fn with_commands<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Bu
         model_commands::models_set_dir,
         model_commands::model_install,
         model_commands::model_install_cancel,
+        model_commands::model_install_status,
         model_commands::model_remove,
         model_commands::image_runtime_install,
         model_commands::generation_generate,
