@@ -49,3 +49,16 @@ test("Video metadata controls never claim model weights or video inference", () 
   assert.match(types, /cache_metadata_file: RepoFile \| null/);
   assert.match(types, /cached_metadata: boolean/);
 });
+
+test("Video cache UI does not offer caching when the source's declared task differs", () => {
+  const browser = readFileSync(new URL("../src/ModelBrowser.tsx", import.meta.url), "utf8");
+  assert.match(browser, /const taskMatches = detail\.pipeline_tag === detail\.capability;/);
+  assert.match(browser, /const canCache = Boolean\(file && ungated && taskMatches && !cached\);/);
+});
+
+test("Config download follows only the Hub's own resolve-cache redirect", () => {
+  const native = readFileSync(new URL("../src-tauri/src/video_metadata_cache.rs", import.meta.url), "utf8");
+  assert.match(native, /redirect\(reqwest::redirect::Policy::none\(\)\)/);
+  assert.match(native, /let expected = format!\("\/api\/resolve-cache\/models\/\{repo\}\/\{revision\}\/\{file\}"\);/);
+  assert.match(native, /target\.host_str\(\) == base\.host_str\(\)/);
+});

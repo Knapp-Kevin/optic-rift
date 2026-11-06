@@ -169,6 +169,22 @@ async fn read_public_config(
         .send()
         .await
         .map_err(|_| "Could not reach the public metadata file.".to_string())?;
+    // The Hub now answers `resolve` for small Git-stored files with a same-host 307 to
+    // `/api/resolve-cache/models/<repo>/<sha>/<file>`. Follow exactly that one hop; any
+    // other target (another host, CDN, path, scheme or a second redirect) is refused.
+    if matches!(response.status().as_u16(), 301 | 302 | 303 | 307 | 308) {
+        let target = response
+            .headers()
+            .get(reqwest::header::LOCATION)
+            .and_then(|v| v.to_str().ok())
+            .and_then(|loc| resolve_cache_redirect(loc, repo, revision, &file.path))
+            .ok_or("Public metadata redirected somewhere other than the Hub's own file cache; nothing was downloaded.")?;
+        response = client
+            .get(target)
+            .send()
+            .await
+            .map_err(|_| "Could not reach the public metadata file.".to_string())?;
+    }
     if !response.status().is_success() {
         return Err(format!(
             "Public metadata request was not approved (HTTP {}). Redirects or gated access are not followed.",
@@ -194,6 +210,28 @@ async fn read_public_config(
     }
     verify_download(&data, file)?;
     Ok(data)
+}
+
+/// Accept a redirect only to `https://huggingface.co/api/resolve-cache/models/<repo>/<revision>/<file>`
+/// (query allowed), with no credentials, port or alternative host. Relative locations are resolved
+/// against the Hub. Integrity is still enforced afterwards by the source Git/LFS hash.
+fn resolve_cache_redirect(
+    location: &str,
+    repo: &str,
+    revision: &str,
+    file: &str,
+) -> Option<reqwest::Url> {
+    let base = reqwest::Url::parse(hf_catalog::HUB).ok()?;
+    let target = base.join(location).ok()?;
+    let expected = format!("/api/resolve-cache/models/{repo}/{revision}/{file}");
+    (target.scheme() == "https"
+        && target.host_str() == base.host_str()
+        && target.port().is_none()
+        && target.username().is_empty()
+        && target.password().is_none()
+        && target.fragment().is_none()
+        && target.path() == expected)
+        .then_some(target)
 }
 
 #[cfg(windows)]
@@ -528,6 +566,47 @@ mod tests {
     }
 
     const FIXTURE: &[u8] = b"{\"_class_name\":\"LTXPipeline\"}";
+
+    #[test]
+    fn only_the_hubs_own_resolve_cache_redirect_is_followed() {
+        let (repo, rev, file) = (
+            "Wan-AI/Wan2.1-T2V-1.3B-Diffusers",
+            "0fad780a534b6463e45facd96134c9f345acfa5b",
+            "model_index.json",
+        );
+        // Observed live from the Hub on 2026-11-06.
+        let live = "/api/resolve-cache/models/Wan-AI/Wan2.1-T2V-1.3B-Diffusers/0fad780a534b6463e45facd96134c9f345acfa5b/model_index.json?%2FWan-AI%2FWan2.1-T2V-1.3B-Diffusers%2Fresolve%2F0fad780a534b6463e45facd96134c9f345acfa5b%2Fmodel_index.json=&etag=%225939d0bf16bfab26f95f149dc29abf898ed5056c%22";
+        let url = resolve_cache_redirect(live, repo, rev, file).unwrap();
+        assert_eq!(url.host_str(), Some("huggingface.co"));
+        assert!(
+            resolve_cache_redirect(&format!("https://huggingface.co{live}"), repo, rev, file)
+                .is_some()
+        );
+        let expected = format!("/api/resolve-cache/models/{repo}/{rev}/{file}");
+        for bad in [
+            format!("https://cdn-lfs.huggingface.co{expected}"),
+            format!("https://evil.example{expected}"),
+            format!("//evil.example{expected}"),
+            format!("http://huggingface.co{expected}"),
+            format!("https://huggingface.co:8443{expected}"),
+            format!("https://user:pw@huggingface.co{expected}"),
+            format!("https://huggingface.co.evil.example{expected}"),
+            format!("/api/resolve-cache/models/{repo}/{}/{file}", "1".repeat(40)),
+            format!("/api/resolve-cache/models/other/repo/{rev}/{file}"),
+            format!(
+                "/api/resolve-cache/models/{repo}/{rev}/unet/diffusion_pytorch_model.safetensors"
+            ),
+            format!("/api/resolve-cache/models/{repo}/{rev}/../{file}"),
+            format!("/{repo}/resolve/{rev}/{file}"),
+            format!("{expected}#frag"),
+            String::new(),
+        ] {
+            assert!(
+                resolve_cache_redirect(&bad, repo, rev, file).is_none(),
+                "{bad}"
+            );
+        }
+    }
 
     #[test]
     fn refused_top_level_requests_fail_before_any_network_or_disk_access() {

@@ -218,7 +218,10 @@ function VideoMetadataCache({ inspection, onCached }: { inspection: Inspection; 
   const file = detail.cache_metadata_file;
   const flagged = detail.audience === "not-for-all-audiences";
   const ungated = detail.gated === "no";
-  const canCache = Boolean(file && ungated && !cached);
+  // Native admission refuses a repository whose declared task differs from the selected one
+  // (e.g. LTX-Video declares image-to-video), so don't offer a button that can only fail.
+  const taskMatches = detail.pipeline_tag === detail.capability;
+  const canCache = Boolean(file && ungated && taskMatches && !cached);
   const ready = canCache && licenseChecked && transferChecked && (!flagged || adultChecked);
 
   async function cache() {
@@ -264,6 +267,7 @@ function VideoMetadataCache({ inspection, onCached }: { inspection: Inspection; 
         <button type="button" className="secondary" disabled={busy} onClick={() => void clear()}>Clear cached configuration</button>
       </div>
       : !ungated ? <p className="model-hint">This model requires gated access. Optic Rift will not fetch its configuration through the public metadata-only cache.</p>
+      : !taskMatches ? <p className="model-hint">The source lists this model as {detail.pipeline_tag ? <code>{detail.pipeline_tag}</code> : "no task"}, not the capability you searched. Choose that capability to cache its configuration.</p>
       : !file ? <p className="model-hint">No small configuration file with a verifiable source hash was found. This model remains discoverable but cannot be cached by this feature.</p>
       : <>
         <p className="model-hint">Optional: cache <code>{file.path}</code> ({formatBytes(file.size)}) from this exact revision. This transfers only JSON configuration metadata, not model weights or code. Video generation remains unsupported.</p>
