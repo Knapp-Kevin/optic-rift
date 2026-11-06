@@ -581,9 +581,7 @@ pub fn list_outputs(app_local: &Path) -> Vec<Provenance> {
     let Ok(metadata) = fs::symlink_metadata(&root) else {
         return Vec::new();
     };
-    if !metadata.is_dir()
-        || metadata.file_type().is_symlink()
-        || output_is_reparse_point(&metadata)
+    if !metadata.is_dir() || metadata.file_type().is_symlink() || output_is_reparse_point(&metadata)
     {
         return Vec::new();
     }
@@ -659,7 +657,10 @@ fn verified_output(app_local: &Path, job_id: &str) -> Result<(Vec<u8>, Vec<u8>),
         return Err("The local output folder is redirected or invalid.".into());
     }
     let png = read_output_file(&root.join(format!("{job_id}.png")), MAX_OUTPUT_PNG_BYTES)?;
-    let record = read_output_file(&root.join(format!("{job_id}.json")), MAX_OUTPUT_RECORD_BYTES)?;
+    let record = read_output_file(
+        &root.join(format!("{job_id}.json")),
+        MAX_OUTPUT_RECORD_BYTES,
+    )?;
     let provenance: Provenance = serde_json::from_slice(&record)
         .map_err(|_| "The output's provenance record is invalid.".to_string())?;
     let actual_digest: String = Sha256::digest(&png)
@@ -708,7 +709,9 @@ pub fn save_copy(app_local: &Path, pictures: &Path, job_id: &str) -> Result<Path
         .write(true)
         .create_new(true)
         .open(&dest)
-        .map_err(|e| format!("Cannot create the image without overwriting an existing file: {e}"))?;
+        .map_err(|e| {
+            format!("Cannot create the image without overwriting an existing file: {e}")
+        })?;
     let result = output.write_all(&png).and_then(|_| output.sync_all());
     drop(output);
     if let Err(e) = result {
@@ -724,7 +727,9 @@ pub fn save_copy(app_local: &Path, pictures: &Path, job_id: &str) -> Result<Path
         Ok(file) => file,
         Err(e) => {
             let _ = fs::remove_file(&dest);
-            return Err(format!("Cannot create the provenance record without overwriting an existing file: {e}"));
+            return Err(format!(
+                "Cannot create the provenance record without overwriting an existing file: {e}"
+            ));
         }
     };
     let result = sidecar.write_all(&record).and_then(|_| sidecar.sync_all());
@@ -792,7 +797,8 @@ mod tests {
         fs::write(
             outputs_dir(local).join(format!("{id}.json")),
             serde_json::to_vec(&record).unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
         png
     }
 
@@ -806,9 +812,13 @@ mod tests {
         let png = write_output_pair(&local, &id);
         let saved = save_copy(&local, &pictures, &id).unwrap();
         assert_eq!(fs::read(&saved).unwrap(), png);
-        assert!(saved.to_string_lossy().contains(&id), "full UUID is retained");
+        assert!(
+            saved.to_string_lossy().contains(&id),
+            "full UUID is retained"
+        );
         let provenance = saved.with_file_name(format!("optic-rift-{id}.provenance.json"));
-        let saved_meta: Provenance = serde_json::from_slice(&fs::read(provenance).unwrap()).unwrap();
+        let saved_meta: Provenance =
+            serde_json::from_slice(&fs::read(provenance).unwrap()).unwrap();
         assert_eq!(saved_meta.job_id, id);
         assert!(save_copy(&local, &pictures, &id).is_err());
         assert_eq!(fs::read(&saved).unwrap(), png);
@@ -841,10 +851,22 @@ mod tests {
         write_output_pair(&local, &id);
         assert_eq!(list_outputs(&local).len(), 1);
         let invalid_name = outputs_dir(&local).join("unrelated.json");
-        fs::copy(outputs_dir(&local).join(format!("{id}.json")), &invalid_name).unwrap();
-        assert_eq!(list_outputs(&local).len(), 1, "mismatched identity is ignored");
+        fs::copy(
+            outputs_dir(&local).join(format!("{id}.json")),
+            &invalid_name,
+        )
+        .unwrap();
+        assert_eq!(
+            list_outputs(&local).len(),
+            1,
+            "mismatched identity is ignored"
+        );
         fs::write(invalid_name, vec![b'x'; 512 * 1024 + 1]).unwrap();
-        assert_eq!(list_outputs(&local).len(), 1, "oversized metadata is skipped");
+        assert_eq!(
+            list_outputs(&local).len(),
+            1,
+            "oversized metadata is skipped"
+        );
         fs::remove_dir_all(local).unwrap();
     }
 
@@ -872,10 +894,7 @@ mod tests {
         write_output_pair(&local, &id);
         fs::write(outputs_dir(&local).join(format!("{id}.json")), b"not-json").unwrap();
         assert!(output_png(&local, &id).is_err());
-        assert!(read_output_file(
-            &outputs_dir(&local).join(format!("{id}.png")),
-            1
-        ).is_err());
+        assert!(read_output_file(&outputs_dir(&local).join(format!("{id}.png")), 1).is_err());
         fs::remove_dir_all(local).unwrap();
     }
 
@@ -907,7 +926,9 @@ mod tests {
             (a.join().unwrap(), b.join().unwrap())
         });
         assert_eq!(usize::from(a.is_ok()) + usize::from(b.is_ok()), 1);
-        let dest = pictures.join("Optic Rift").join(format!("optic-rift-{id}.png"));
+        let dest = pictures
+            .join("Optic Rift")
+            .join(format!("optic-rift-{id}.png"));
         assert_eq!(fs::read(dest).unwrap(), png);
         fs::remove_dir_all(local).unwrap();
     }
