@@ -87,6 +87,8 @@ pub fn open_model_page<R: tauri::Runtime>(
 #[derive(Serialize)]
 pub struct ModelLibrary {
     model_dir: PathBuf,
+    /// UI default only: execution is still gated separately at each native request.
+    qualified_image_ready: bool,
     free_bytes: Option<u64>,
     installed: Vec<InstalledModel>,
     loaded: Option<(String, String)>,
@@ -100,12 +102,28 @@ pub async fn models_library<R: tauri::Runtime>(
 ) -> Result<ModelLibrary, String> {
     let (data, local) = model_store::dirs(&app)?;
     let models = model_store::model_dir(&data, &local);
+    let installed = model_store::list_installed(&models);
+    let image_runtime = runtime::status(&local);
+    let gpu = generation::gpu_info();
+    let qualified_image_ready = image_runtime.installed.is_some()
+        && gpu.vram_total_mb.is_some()
+        && installed.iter().any(|model| {
+            model.files_present
+                && model.manifest.adapter == "diffusers-sdxl-text-to-image"
+                && adapters::verified_receipt(
+                    &model.manifest.repo,
+                    &model.manifest.revision,
+                    &model.manifest.adapter,
+                )
+                .is_some()
+        });
     Ok(ModelLibrary {
         free_bytes: model_store::free_bytes(&models).or_else(|| model_store::free_bytes(&local)),
-        installed: model_store::list_installed(&models),
+        installed,
         loaded: generation::loaded_model(),
-        runtime: runtime::status(&local),
-        gpu: generation::gpu_info(),
+        runtime: image_runtime,
+        gpu,
+        qualified_image_ready,
         model_dir: models,
     })
 }
