@@ -32,3 +32,15 @@ export function localImageSourceChoices(records: unknown): LocalImageSource[] {
   }
   return choices;
 }
+
+/** Client-side guidance only; the native host and worker enforce the same floor. */
+export function imageToImageStepError(
+  mode: "text-to-image" | "image-to-image",
+  steps: number,
+  strength: number,
+): string | null {
+  if (mode !== "image-to-image" || !Number.isFinite(steps) || !Number.isFinite(strength)) return null;
+  return steps * strength < 1
+    ? "Increase Steps or change strength to run at least one denoising step."
+    : null;
+}
