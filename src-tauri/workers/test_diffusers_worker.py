@@ -151,5 +151,63 @@ class OpenStdinHealth(unittest.TestCase):
             proc.kill()
 
 
+
+class ImageToImageProtocol(unittest.TestCase):
+    """Validate new generation mode without touching CUDA or model weights."""
+
+    @staticmethod
+    def base_request(**overrides):
+        req = {
+            "job_id": "job-cpu-only", "prompt": "a blue garden",
+            "negative_prompt": "", "width": 512, "height": 512,
+            "steps": 12, "guidance": 7.0, "seed": 8,
+            "output_path": os.path.join(tempfile.mkdtemp(), "new.png"),
+            "mode": "image-to-image", "strength": 0.65,
+        }
+        req.update(overrides)
+        return req
+
+    @staticmethod
+    def loaded_worker():
+        worker = w.Worker()
+        worker.pipe = object()
+        worker.loaded = ("C:/approved-local-model", "diffusers-sdxl-text-to-image")
+        return worker
+
+    def test_bad_image_to_image_input_fails_before_gpu_budget(self):
+        from unittest import mock
+        worker = self.loaded_worker()
+        with mock.patch.object(worker, "apply_budget", side_effect=AssertionError("GPU invoked")):
+            for invalid in (
+                self.base_request(reference=None),
+                self.base_request(reference={"job_id": "../escape"}),
+                self.base_request(strength=0.0),
+                self.base_request(strength=float("nan")),
+                self.base_request(mode="video-to-video"),
+            ):
+                with self.subTest(request=invalid), self.assertRaises(w.RequestError):
+                    worker.generate(invalid)
+
+    def test_verified_reference_reaches_budget_boundary_without_cuda(self):
+        from unittest import mock
+        import hashlib
+        import uuid
+        from PIL import Image
+
+        worker = self.loaded_worker()
+        with tempfile.TemporaryDirectory() as folder:
+            outputs = os.path.join(folder, "outputs")
+            os.makedirs(outputs)
+            job = str(uuid.uuid4())
+            path = os.path.join(outputs, job + ".png")
+            Image.new("RGB", (512, 512), (80, 140, 200)).save(path)
+            with open(path, "rb") as handle:
+                sha = hashlib.sha256(handle.read()).hexdigest()
+            req = self.base_request(reference={"job_id": job, "path": path, "sha256": sha})
+            with mock.patch.object(worker, "apply_budget", side_effect=RuntimeError("budget boundary reached")):
+                with self.assertRaisesRegex(RuntimeError, "budget boundary reached"):
+                    worker.generate(req)
+
+
 if __name__ == "__main__":
     unittest.main()
