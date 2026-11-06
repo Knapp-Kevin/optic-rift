@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { SIZE_PRESETS, settingsError, type GpuCheck, type GpuDecision, type ModelLibrary, type Provenance } from "./models";
+import { saveWithPicturesConsent } from "./exportPrivacy";
 
 const errorText = (e: unknown) => (typeof e === "string" ? e : e instanceof Error ? e.message : "The desktop bridge is unavailable.");
 
@@ -106,8 +107,16 @@ export default function GeneratePanel({ prompt, projectId, libraryVersion, onOpe
 
   async function save() {
     if (!result) return;
-    try { setSaved(`Saved to ${await invoke<string>("generation_save", { jobId: result.provenance.job_id })}`); }
-    catch (e) { setSaved(errorText(e)); }
+    try {
+      const path = await saveWithPicturesConsent(
+        result.provenance.job_id,
+        (warning) => window.confirm(warning),
+        (jobId) => invoke<string>("generation_save", { jobId }),
+      );
+      if (path !== null) setSaved(`Saved to ${path}`);
+    } catch (e) {
+      setSaved(errorText(e));
+    }
   }
 
   async function addToMedia() {
@@ -158,7 +167,8 @@ export default function GeneratePanel({ prompt, projectId, libraryVersion, onOpe
         <div className="gen-result">
           <img src={result.url} alt={`Generated: ${result.provenance.prompt}`} />
           <small>{result.provenance.model.repo} · {result.provenance.parameters.width}×{result.provenance.parameters.height} · {result.provenance.parameters.steps} steps · seed {result.provenance.parameters.seed} · {result.provenance.metrics.generation_seconds}s · peak {result.provenance.metrics.peak_vram_allocated_mb} MB VRAM · sha256 {result.provenance.output.sha256.slice(0, 12)}…</small>
-          <div className="model-actions"><button className="secondary" onClick={() => void save()}>Save to Pictures</button><button className="secondary" onClick={() => void addToMedia()}>Open in studio</button></div>
+          <div className="model-actions"><button className="secondary" onClick={() => void save()}>Save to Pictures (may sync)</button><button className="secondary" onClick={() => void addToMedia()}>Open in studio</button></div>
+          <small>Saving to Pictures may upload your image and prompt metadata if that folder is synced to OneDrive or another cloud service. You will be asked first.</small>
           {saved && <small role="status">{saved}</small>}
           <small>{result.provenance.lineage_note}</small>
         </div>

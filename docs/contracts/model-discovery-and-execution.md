@@ -26,6 +26,13 @@ Optional read tokens are entered, tested and stored through the [dedicated Huggi
 
 Model workers execute in separate, minimally privileged Python processes or environments. No arbitrary model repository code runs in the desktop process. Never default to trust_remote_code, pickle weights, arbitrary install scripts, or privileged shell activation. The user explicitly approves downloads, terms, compute use, and any network inference. No built-in model is mandatory to view/edit/export ordinary media.
 
+## Generated-output export privacy
+
+- In-app outputs remain under the app-owned local directory until the user explicitly chooses an export destination.
+- Windows Pictures can be redirected or synced by OneDrive or another provider. **Before** a Save to Pictures action, disclose that the generated image and its provenance record (including the prompt and model/settings details) may be uploaded through the user’s folder-sync settings. Require confirmation or do not copy.
+- This confirmation is a user notice, not a guarantee that local or synced folders will remain private. Never call an untested save path cloud-free, and do not infer sync state only from a path string.
+- Save/Copy success and project asset-lineage registration are different states; project persistence remains pending the owner decision in issue #5.
+
 ## Failure UX
 
 Explain plainly: "We found this model, but Optic Rift doesn't yet know how to run it"; "This model requires more graphics memory than currently available"; "This model allows personal use only"; or "Sign in to Hugging Face and accept the model's access terms."
