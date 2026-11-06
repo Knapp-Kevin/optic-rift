@@ -331,6 +331,52 @@ pub async fn cache_public_metadata(
     .map_err(|_| "Metadata cache task could not complete.".to_string())?
 }
 
+/// Remove only our two cache files after checking exact identity and layout.
+/// No recursive deletion: unexpected files or links stop cleanup, protecting
+/// user-owned data even if the cache directory was redirected or modified.
+pub fn remove_metadata(app_local: &Path, repo: &str, revision: &str, accept: bool) -> Result<(), String> {
+    if !accept {
+        return Err("Clearing cached configuration requires approval.".into());
+    }
+    let dir = existing_cache_folder(app_local, repo, revision)
+        .ok_or("No ordinary metadata cache folder exists for this model.")?;
+    let receipt_path = dir.join(RECEIPT_NAME);
+    let bytes = safe_read_file(&receipt_path, 16 * 1024)?;
+    let receipt: CacheReceipt = serde_json::from_slice(&bytes)
+        .map_err(|_| "Cached configuration receipt is invalid; manual inspection required.".to_string())?;
+    if receipt.repo != repo
+        || receipt.revision != revision
+        || receipt.status != "metadata-only"
+        || !matches!(receipt.filename.as_str(), "model_index.json" | "config.json")
+    {
+        return Err("Cache receipt is inconsistent; refusing to delete unknown files.".into());
+    }
+    let config_path = dir.join(&receipt.filename);
+    let config = safe_read_file(&config_path, MAX_JSON_BYTES as u64)?;
+    if config.len() as u64 != receipt.bytes || digest_sha256(&config) != receipt.sha256 {
+        return Err("Cached configuration has changed; refusing to delete unknown files.".into());
+    }
+    // Refuse directory contents beyond this precise pair, including partials.
+    let entries = fs::read_dir(&dir)
+        .map_err(|_| "Could not inspect the metadata cache folder.".to_string())?;
+    let mut names = Vec::new();
+    for item in entries {
+        let entry = item.map_err(|_| "Could not inspect the metadata cache folder.".to_string())?;
+        names.push(entry.file_name());
+    }
+    if names.len() != 2
+        || !names.iter().any(|v| v == RECEIPT_NAME)
+        || !names.iter().any(|v| v == receipt.filename.as_str())
+    {
+        return Err("Cache folder contains other files; nothing was removed.".into());
+    }
+    fs::remove_file(&receipt_path).map_err(|_| "Could not clear the metadata receipt.".to_string())?;
+    fs::remove_file(&config_path).map_err(|_| "Could not clear the configuration metadata.".to_string())?;
+    // Removing a directory is non-recursive and only succeeds when empty.
+    let _ = fs::remove_dir(&dir);
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -414,6 +460,33 @@ mod tests {
         f.lfs_sha256 = Some(digest_sha256(source));
         f.size = source.len() as u64;
         assert!(verify_download(source, &f).is_ok());
+    }
+
+    #[test]
+    fn metadata_clear_is_explicit_and_never_recursive() {
+        let root = std::env::temp_dir().join(format!("optic-video-clear-test-{}", uuid::Uuid::new_v4()));
+        fs::create_dir(&root).unwrap();
+        let repo = "example/video-model";
+        let revision = "a".repeat(40);
+        let folder = cache_folder(&root, repo, &revision).unwrap();
+        let data = br#"{"pipeline":"demo"}"#;
+        let receipt = CacheReceipt {
+            repo: repo.into(), revision: revision.clone(), capability: Capability::TextToVideo,
+            source_license: "unknown".into(), source_audience: "unverified".into(),
+            filename: "model_index.json".into(), sha256: digest_sha256(data),
+            bytes: data.len() as u64, cached_unix_ms: 1, status: "metadata-only".into(),
+        };
+        publish_new_file(&folder, "model_index.json", data).unwrap();
+        publish_new_file(&folder, RECEIPT_NAME, &serde_json::to_vec(&receipt).unwrap()).unwrap();
+        assert!(remove_metadata(&root, repo, &revision, false).is_err());
+        fs::write(folder.join("other-user-file.txt"), b"keep").unwrap();
+        assert!(remove_metadata(&root, repo, &revision, true).is_err());
+        assert_eq!(fs::read(folder.join("other-user-file.txt")).unwrap(), b"keep");
+        fs::remove_file(folder.join("other-user-file.txt")).unwrap();
+        remove_metadata(&root, repo, &revision, true).unwrap();
+        assert!(!folder.join("model_index.json").exists());
+        assert!(!folder.join(RECEIPT_NAME).exists());
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]
