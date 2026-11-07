@@ -14,11 +14,12 @@ import SessionMediaLibrary from "./SessionMediaLibrary";
 
 type RuntimeStatus = { application: string; stage: string; generation_ready: boolean; project_storage_ready: boolean };
 
+// Seeking moves in 0.1 s steps, so labels show tenths; rounding first absorbs float drift (20 x 0.1 = 1.9999...).
 const formatTime = (seconds: number) => {
-  const safe = Math.max(0, Number.isFinite(seconds) ? seconds : 0);
-  const m = Math.floor(safe / 60);
-  const s = Math.floor(safe % 60);
-  return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+  const tenths = Math.round(Math.max(0, Number.isFinite(seconds) ? seconds : 0) * 10);
+  const m = Math.floor(tenths / 600);
+  const s = (tenths % 600) / 10;
+  return String(m).padStart(2, "0") + ":" + s.toFixed(1).padStart(4, "0");
 };
 
 export default function App() {
@@ -105,7 +106,8 @@ export default function App() {
     if (!selected || selected.kind !== "image") return;
     setPhotoAdjustments((previous) => ({
       ...previous,
-      [selected.id]: { brightness: 100, contrast: 100, rotation: 0, ...previous[selected.id], ...changes },
+      // Defaults apply only to a photo that has no edits yet (the Record type hides the undefined case).
+      [selected.id]: { ...(previous[selected.id] ?? { brightness: 100, contrast: 100, rotation: 0 }), ...changes },
     }));
   }
 
@@ -211,7 +213,7 @@ export default function App() {
             {section.items.map((item) => <button key={item.view} type="button"
               className={view === item.view ? "nav selected" : "nav"}
               aria-current={view === item.view ? "page" : undefined}
-              title={item.description} onClick={() => setView(item.view)}>
+              aria-label={item.label} title={item.description} onClick={() => setView(item.view)}>
               <span className="nav-symbol" aria-hidden="true">{item.symbol}</span><span className="nav-label">{item.label}</span>
             </button>)}
           </div>)}

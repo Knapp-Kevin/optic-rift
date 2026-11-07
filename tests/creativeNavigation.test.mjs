@@ -37,6 +37,8 @@ test("Sidebar navigation renders each destination as a real route, not a dead li
   assert.match(app, /navigation\.map\(\(section\)/);
   assert.match(app, /onClick=\{\(\) => setView\(item\.view\)\}/);
   assert.match(app, /aria-current=\{view === item\.view \? "page" : undefined\}/);
+  // Below 1200 px the visible label is hidden, so the accessible name must not fall back to the tooltip.
+  assert.match(app, /aria-label=\{item\.label\} title=\{item\.description\}/);
   assert.match(app, /\{routeTitle\[view\]\}/);
   assert.match(css, /\.primary-navigation\{flex:1;min-height:0;overflow-y:auto/);
   assert.match(css, /\.navigation \.nav \.nav-symbol\{display:inline-flex\}/);
@@ -73,7 +75,7 @@ test("Editor navigation preserves per-asset photo edits and separate video selec
   assert.match(app, /const \[selectedPhotoId, setSelectedPhotoId\]/);
   assert.match(app, /const \[selectedVideoId, setSelectedVideoId\]/);
   assert.match(app, /const \[photoAdjustments, setPhotoAdjustments\]/);
-  assert.match(app, /\[selected\.id\]: \{ brightness: 100, contrast: 100, rotation: 0, \.\.\.previous\[selected\.id\], \.\.\.changes \}/);
+  assert.match(app, /\[selected\.id\]: \{ \.\.\.\(previous\[selected\.id\] \?\? \{ brightness: 100, contrast: 100, rotation: 0 \}\), \.\.\.changes \}/);
   assert.match(app, /editorItems\.map\(\(item\)/);
   assert.match(app, /mediaForEditor\(items, view\)/);
 });
@@ -82,6 +84,9 @@ test("Video Studio is a real preview but never promises editing, clip export or 
   const app = source("../src/App.tsx");
   assert.match(app, /view === "video" && <div className="timeline-panel"/);
   assert.match(app, /Markers are preview-only/);
+  // Marks set in 0.1 s steps must be distinguishable: labels show tenths after rounding away float drift.
+  assert.match(app, /const tenths = Math\.round\(/);
+  assert.match(app, /s\.toFixed\(1\)\.padStart\(4, "0"\)/);
   assert.match(app, /Video editing is not yet available/);
   assert.match(app, /Clip assembly, transitions and video export still need qualified native implementation/);
   assert.match(app, /view === "photo" && editablePhoto && !previewFailed/);
