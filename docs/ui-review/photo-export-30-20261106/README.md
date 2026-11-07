@@ -12,3 +12,14 @@ App: PR #30 (`feature/photo-adjusted-png-export-20261106-no-ci`), isolated QA pr
 | `04-E2-preview-b150-c130-rot90` | Edited preview (brightness 150 %, contrast 130 %, 90°) |
 | `05-E2-exported-png-reopened` | The exported PNG reopened unedited in the same preview |
 | `06-layout--1280x720/1440x900/1920x1080` | Edit media with a rotated photo: page equals the viewport, inspector scrolls, Save visible |
+
+## PR #31 shared canvas preview (2026-11-06)
+
+PR #31 (`feature/photo-canvas-preview-parity-20261106-no-ci`). Parity captures at `6f6649b`; layout and read-only captures at `3b9abce`. Same fixtures, display and settings as above.
+
+| File | State |
+|---|---|
+| `pr31-canvas-parity/07-E2-canvas-preview-b150-c130-rot90` | Edited preview through the shared canvas painter |
+| `pr31-canvas-parity/08-E2-exported-png-reopened` | The exported PNG reopened unedited: identical pixels on this display |
+| `pr31-canvas-parity/09-svg-read-only--1440x900` | SVG: read-only, no adjustments or Save |
+| `pr31-canvas-parity/10-layout--*` | Edit media with a rotated portrait at 1280×720 / 1440×900 / 1920×1080 |
