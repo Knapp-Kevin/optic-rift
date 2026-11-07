@@ -13,7 +13,7 @@ import PhotoCanvasPreview from "./PhotoCanvasPreview";
 
 type View = "projects" | "studio" | "models" | "settings";
 type MediaKind = "image" | "video";
-type MediaItem = { id: string; name: string; kind: MediaKind; url: string; size: number };
+type MediaItem = { id: string; name: string; kind: MediaKind; url: string; size: number; mimeType: string };
 type RuntimeStatus = { application: string; stage: string; generation_ready: boolean; project_storage_ready: boolean };
 
 const formatTime = (seconds: number) => {
@@ -53,6 +53,8 @@ export default function App() {
   const objectUrls = useRef<string[]>([]);
   const selected = items.find((item) => item.id === selectedId) ?? null;
   const previewFailed = selected ? failedIds.has(selected.id) : false;
+  const editablePhoto = selected?.kind === "image" &&
+    ["image/png", "image/jpeg", "image/webp"].includes(selected.mimeType);
   const isVideo = selected?.kind === "video" && !previewFailed;
   function markFailed(id: string, text: string) {
     setFailedIds((previous) => new Set(previous).add(id));
@@ -102,7 +104,7 @@ export default function App() {
       if (!kind) continue;
       const url = URL.createObjectURL(file);
       objectUrls.current.push(url);
-      accepted.push({ id: crypto.randomUUID(), name: file.name, kind, url, size: file.size });
+      accepted.push({ id: crypto.randomUUID(), name: file.name, kind, url, size: file.size, mimeType: file.type });
     }
     if (accepted.length > 0) {
       setItems((previous) => [...previous, ...accepted]);
@@ -115,14 +117,14 @@ export default function App() {
 
   function addGenerated(result: { name: string; url: string; size: number }) {
     objectUrls.current.push(result.url);
-    const item: MediaItem = { id: crypto.randomUUID(), name: result.name, kind: "image", url: result.url, size: result.size };
+    const item: MediaItem = { id: crypto.randomUUID(), name: result.name, kind: "image", url: result.url, size: result.size, mimeType: "image/png" };
     setItems((previous) => [...previous, item]);
     selectItem(item.id);
     setMessage("Generated image opened in this session. Its file and provenance stay in Optic Rift's output folder; use Save to Pictures to keep a copy elsewhere.");
   }
 
   async function exportAdjustedPhoto() {
-    if (!selected || selected.kind !== "image" || previewFailed || photoExportBusy) return;
+    if (!selected || !editablePhoto || previewFailed || photoExportBusy) return;
     // Pictures can be redirected to OneDrive. Deliberately ask before even
     // preparing the copy; no silent export or photo upload from this workflow.
     const allowed = window.confirm(
@@ -235,10 +237,15 @@ export default function App() {
             <div className="canvas-header"><div><strong>Preview</strong><span>{selected ? selected.name : "No media selected"}</span></div><span className="preview-label">{selected?.kind ?? "READY"}</span></div>
             <div className="canvas">
               {selected && previewFailed && <div className="empty-canvas preview-failed" role="alert"><div className="empty-icon">⚠</div><h1>Can't preview {selected.name}</h1><p>{selected.kind === "image" ? IMAGE_PREVIEW_FAILED : VIDEO_PREVIEW_FAILED}</p></div>}
-              {selected?.kind === "image" && !previewFailed && <PhotoCanvasPreview key={selected.id}
+              {editablePhoto && !previewFailed && <PhotoCanvasPreview key={selected.id}
                 sourceUrl={selected.url} label={selected.name}
                 brightness={brightness} contrast={contrast} rotation={rotation}
                 onError={(reason) => markFailed(selected.id, reason)} />}
+              {selected?.kind === "image" && !editablePhoto && !previewFailed &&
+                <img key={selected.id} onError={() => markFailed(selected.id, IMAGE_PREVIEW_FAILED)}
+                  src={selected.url} alt={selected.name} />}
+              {selected?.kind === "image" && !editablePhoto && !previewFailed &&
+                <p className="photo-readonly-note">Preview only. PNG, JPEG and WebP are supported for editing and export.</p>}
               {selected?.kind === "video" && !previewFailed && <video key={selected.id} ref={videoRef} src={selected.url} controls preload="metadata" playsInline onLoadedMetadata={(event) => { const length = event.currentTarget.duration; setDuration(Number.isFinite(length) ? length : 0); setPlayhead(0); }} onTimeUpdate={(event) => setPlayhead(event.currentTarget.currentTime)} onError={() => markFailed(selected.id, VIDEO_PREVIEW_FAILED)} />}
               {!selected && <div className="empty-canvas"><div className="empty-icon">◉</div><h1>Make something extraordinary.</h1><p>Start with a photo or video, or choose Create to generate an image locally.</p><button className="primary" onClick={() => inputRef.current?.click()}>Import your first clip</button></div>}
             </div>
@@ -258,7 +265,7 @@ export default function App() {
 
           <aside className="inspector editor-inspector">
             <div className="section-title"><div><h2>Media adjustments</h2><p>Preview changes without altering originals</p></div></div>
-            {selected?.kind === "image" && !previewFailed ? <div className="adjustments">
+            {editablePhoto && !previewFailed ? <div className="adjustments">
               <h3>Image preview</h3>
               <label>Brightness <output>{brightness}%</output><input type="range" min="25" max="175" value={brightness} onChange={(event) => setBrightness(Number(event.target.value))} /></label>
               <label>Contrast <output>{contrast}%</output><input type="range" min="25" max="175" value={contrast} onChange={(event) => setContrast(Number(event.target.value))} /></label>
