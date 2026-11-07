@@ -129,3 +129,19 @@ test("Edit media stays within the viewport on desktop; its columns scroll on the
   assert.match(css, /@media\(min-width:1201px\)\{\s*\.studio-tabs~\.workspace\{flex:none;height:calc\(100vh - 120px\);min-height:0\}/);
   assert.match(css, /\.studio-tabs~\.workspace>\.editor-inspector\{min-height:0;overflow-y:auto;overscroll-behavior:contain\}/);
 });
+
+test("Photo preview decodes once per asset and never persists private derivatives", () => {
+  const component = readFileSync(new URL("../src/PhotoCanvasPreview.tsx", import.meta.url), "utf8");
+  const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8");
+  assert.match(component, /loadPhotoBitmap\(sourceUrl\)/);
+  assert.match(component, /\}, \[sourceUrl\]\)/);
+  assert.match(component, /setTimeout\(\(\) => \{/);
+  assert.match(component, /paintAdjustedPhoto\(decoded\.bitmap/);
+  assert.match(component, /ownedBitmap\?\.close\(\)/);
+  assert.match(component, /if \(!active\) \{\s*bitmap\.close\(\)/);
+  assert.doesNotMatch(component, /toBlob|createObjectURL|localStorage|sessionStorage|invoke\(/);
+  assert.match(app, /mimeType: file\.type/);
+  assert.match(app, /mimeType: "image\/png"/);
+  assert.match(app, /selected\?\.kind === "image" && !editablePhoto && !previewFailed/);
+  assert.match(app, /Preview only\. PNG, JPEG and WebP are supported for editing and export/);
+});
