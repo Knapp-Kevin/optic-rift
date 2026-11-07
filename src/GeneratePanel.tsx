@@ -271,7 +271,7 @@ export default function GeneratePanel({ prompt, mode, layout = "inspector", visi
               setCancelling(true);
               void invoke("generation_cancel", { jobId }).catch((e) => setError(errorText(e)));
             }}>Cancel</button>}
-            {active && <><button className="secondary" onClick={() => void stageEdit()}>Open in Edit media</button>
+            {active && <><button className="secondary" onClick={() => void stageEdit()}>Open in Photo Studio</button>
               <button className="secondary" onClick={() => void stageSave()}>Save copy (may sync)</button></>}
           </div>
         </div>

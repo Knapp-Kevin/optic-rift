@@ -17,7 +17,7 @@ Primary left sidebar, grouped by intention, with keyboard navigation and `aria-c
 
 **Video Studio** has only genuinely implemented local clip playback, seek in 0.1s increments, and non-exportable in/out markers. Clip assembly, transitions, frame extraction, video-to-image, mature-scene generation and exported trim/timeline are **NOT IMPLEMENTED**, and should be labeled rather than represented as working buttons. Switching between photo and video does not display the wrong media type or reset the photo adjustment state. **No audio workspace or sound production**.
 
-**Models and Settings** retain the existing functionality. This PR does not integrate app-lifetime download provider PR #28; reconcile in the combined branch.
+**Models and Settings** retain the existing functionality. PR #28's app-lifetime download provider (with its PR #26 and PR #18 bases, `100f2ce`) is merged into this branch: the compact download status and Cancel sit under the navigation on every destination except Models, which shows its own. Below 1200 px the rail is icon-only, so the card floats beside it above the page.
 
 ## CPU-only Windows acceptance, record exact tested head
 

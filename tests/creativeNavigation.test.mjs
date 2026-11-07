@@ -76,6 +76,9 @@ test("Create stays alive while changing pages; generation and history open Photo
   assert.match(app, /onResult=\{addGenerated\}/);
   assert.match(app, /function addGenerated\([\s\S]*?setSelectedPhotoId\(item\.id\);\s*setView\("photo"\)/);
   assert.match(app, /setView\("library"\);\s*\}\} \/>/);
+  // The result action names the destination that exists in this navigation.
+  assert.match(source("../src/GeneratePanel.tsx"), />Open in Photo Studio<\/button>/);
+  assert.doesNotMatch(source("../src/GeneratePanel.tsx"), /Open in Edit media/);
   assert.doesNotMatch(app, /setStudioMode|studioModeChosen/);
 });
 

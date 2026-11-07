@@ -247,7 +247,7 @@ export default function App() {
           onOpen={openMedia} onRemove={removeItem} onGeneratedResult={addGenerated} />}
 
         {/* Create stays mounted once opened, so a running job, its progress/Cancel and the current result
-            survive a switch to Edit media or another page. Hidden content is not rendered visibly. */}
+            survive a switch to Photo Studio or another page. Hidden content is not rendered visibly. */}
         {createOpened && <main className="create-workspace" hidden={view !== "create"}>
             <GeneratePanel layout="create" visible={view === "create"} prompt={prompt} onPromptChange={setPrompt} mode={creationMode}
               onModeChange={setCreationMode} historyVersion={historyVersion} projectId={project?.id ?? null}
