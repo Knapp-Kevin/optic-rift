@@ -205,13 +205,17 @@ export default function App() {
     <div className="app">
       <aside className="navigation">
         <div className="brand"><img className="brand-icon-img" src="/branding/optic-rift-approved-256.webp" alt="" /><span>OPTIC <b>RIFT</b><small>VISUAL STUDIO</small></span></div>
-        <div className="nav-group">
-          <div className="group-label">WORKSPACE</div>
-          <button className={view === "projects" ? "nav selected" : "nav"} onClick={() => setView("projects")}>▤ <span>Projects</span></button>
-          <button className={view === "studio" ? "nav selected" : "nav"} onClick={() => setView("studio")}>▣ <span>Studio</span></button>
-          <button className={view === "models" ? "nav selected" : "nav"} onClick={() => setView("models")}>◈ <span>Models</span></button>
-          <button className={view === "settings" ? "nav selected" : "nav"} onClick={() => setView("settings")}>⚙ <span>Settings</span></button>
-        </div>
+        <nav className="primary-navigation" aria-label="Primary navigation">
+          {navigation.map((section) => <div className="nav-group" key={section.group}>
+            <div className="group-label">{section.group}</div>
+            {section.items.map((item) => <button key={item.view} type="button"
+              className={view === item.view ? "nav selected" : "nav"}
+              aria-current={view === item.view ? "page" : undefined}
+              title={item.description} onClick={() => setView(item.view)}>
+              <span className="nav-symbol" aria-hidden="true">{item.symbol}</span><span className="nav-label">{item.label}</span>
+            </button>)}
+          </div>)}
+        </nav>
         <div className="nav-footer">
           <span className="status-dot" /> Local-first
           <small>Pre-alpha architecture preview</small>
@@ -220,51 +224,47 @@ export default function App() {
 
       <div className="shell">
         <header className="topbar">
-          <div className="breadcrumbs">OPTIC RIFT <span>/</span> {view === "projects" ? "Projects" : view === "studio" ? "Creative studio" : view === "models" ? "Model library" : "Preferences"}</div>
+          <div className="breadcrumbs">OPTIC RIFT <span>/</span> {routeTitle[view]}</div>
           <div className="top-actions"><button className="project-pill" onClick={() => setView("projects")} title="Choose a project">{project ? "Project: " + project.name : "No project open"}</button><span className="pill">PRE-ALPHA</span><button className="top-button" onClick={() => setView("models")}>Model manager</button></div>
         </header>
 
-        {view === "projects" && <ProjectChooser current={project} onOpened={(opened) => { setProject(opened); setView("studio"); }} />}
+        {view === "projects" && <ProjectChooser current={project} onOpened={(opened) => { setProject(opened); setView("library"); }} />}
 
-        {view === "studio" && <>
-          <nav className="studio-tabs" aria-label="Studio workspace">
-            <div className="studio-tab-switch" role="group" aria-label="Choose Studio activity">
-              <button type="button" className={studioMode === "create" ? "selected" : ""} aria-pressed={studioMode === "create"}
-                onClick={() => { setStudioMode("create"); setStudioModeChosen(true); }}>Create</button>
-              <button type="button" className={studioMode === "edit" ? "selected" : ""} aria-pressed={studioMode === "edit"}
-                onClick={() => { setStudioMode("edit"); setStudioModeChosen(true); }}>Edit media</button>
-            </div>
-            <span>{studioMode === "create" ? "Generate local images. Video generation models are discoverable in Models." : "Edit the media you have opened."}</span>
-          </nav>
-        </>}
+        <input ref={inputRef} type="file"
+          accept={view === "photo" ? "image/*" : view === "video" ? "video/*" : "image/*,video/*"}
+          multiple hidden onChange={addMedia} aria-label="Select image and video files" />
+
+        {view === "library" && <SessionMediaLibrary items={items} projectName={project?.name ?? null}
+          historyVersion={historyVersion} onImport={() => inputRef.current?.click()}
+          onOpen={openMedia} onRemove={removeItem} onGeneratedResult={addGenerated} />}
+
         {/* Create stays mounted once opened, so a running job, its progress/Cancel and the current result
             survive a switch to Edit media or another page. Hidden content is not rendered visibly. */}
-        {createOpened && <main className="create-workspace" hidden={!(view === "studio" && studioMode === "create")}>
-            <GeneratePanel layout="create" visible={view === "studio" && studioMode === "create"} prompt={prompt} onPromptChange={setPrompt} mode={creationMode}
+        {createOpened && <main className="create-workspace" hidden={view !== "create"}>
+            <GeneratePanel layout="create" visible={view === "create"} prompt={prompt} onPromptChange={setPrompt} mode={creationMode}
               onModeChange={setCreationMode} historyVersion={historyVersion} projectId={project?.id ?? null}
               libraryVersion={libraryVersion} onOpenModels={() => setView("models")}
-              onResult={(media) => { addGenerated(media); setStudioMode("edit"); setStudioModeChosen(true); }}
+              onResult={addGenerated}
               onGenerated={() => setHistoryVersion((v) => v + 1)} />
           </main>}
-        {view === "studio" && studioMode === "edit" && <main className="workspace">
+        {(view === "photo" || view === "video") && <main className={`workspace ${view}-workspace`}>
           <section className="media-panel">
-            <div className="section-title"><div><h2>Media library</h2><p>Your images and clips</p></div><span className="count">{items.length}</span></div>
-            <input ref={inputRef} type="file" accept="image/*,video/*" multiple hidden onChange={addMedia} aria-label="Select image and video files" />
-            <button className="import-button" onClick={() => inputRef.current?.click()}>＋ Import media</button>
+            <div className="section-title"><div><h2>{view === "photo" ? "Photos" : "Video clips"}</h2><p>Opened this session</p></div><span className="count">{editorItems.length}</span></div>
+<button className="import-button" onClick={() => inputRef.current?.click()}>＋ Import {view === "photo" ? "photos" : "video"}</button>
             <div className="media-list">
-              {items.length === 0 && <div className="empty-library">Your canvas starts here.<br /><span>Import a video or image to preview it.</span></div>}
-              {items.map((item) => <div className={selectedId === item.id ? "media-row active" : "media-row"} key={item.id}>
-                <button onClick={() => selectItem(item.id)} className="media-pick">
+              {editorItems.length === 0 && <div className="empty-library">No {view === "photo" ? "photos" : "videos"} opened this session.<br /><span>Import media or open it from the Media Library.</span></div>}
+              {editorItems.map((item) => <div className={selectedId === item.id ? "media-row active" : "media-row"} key={item.id}>
+                <button onClick={() => selectItem(item)} className="media-pick">
                   <span className="media-kind">{item.kind === "video" ? "▶" : "▧"}</span><span className="media-label"><strong title={item.name}>{item.name}</strong><small>{item.kind} · {formatSize(item.size)}{failedIds.has(item.id) ? " · can't preview" : ""}</small></span>
                 </button>
                 <button className="remove-item" aria-label={"Remove " + item.name} title="Remove from this session" onClick={() => removeItem(item.id)}>×</button>
               </div>)}
             </div>
-            <div className="sidebar-note">Imported files stay on your computer. Imported media is open for this session only and is not saved into projects yet.</div>
+            <div className="sidebar-note">Session media is not saved into projects yet. <button type="button" className="inline-link" onClick={() => setView("library")}>Open Media Library</button></div>
           </section>
 
           <section className="studio-center">
-            <div className="canvas-header"><div><strong>Preview</strong><span>{selected ? selected.name : "No media selected"}</span></div><span className="preview-label">{selected?.kind ?? "READY"}</span></div>
+            <div className="canvas-header"><div><strong>{view === "photo" ? "Photo Studio" : "Video Studio"}</strong><span>{selected ? selected.name : "No media selected"}</span></div><span className="preview-label">{selected?.kind ?? "READY"}</span></div>
             <div className="canvas">
               {selected && previewFailed && <div className="empty-canvas preview-failed" role="alert"><div className="empty-icon">⚠</div><h1>Can't preview {selected.name}</h1><p>{selected.kind === "image" ? IMAGE_PREVIEW_FAILED : VIDEO_PREVIEW_FAILED}</p></div>}
               {editablePhoto && !previewFailed && <PhotoCanvasPreview key={selected.id}
@@ -277,7 +277,7 @@ export default function App() {
               {selected?.kind === "image" && !editablePhoto && !previewFailed &&
                 <p className="photo-readonly-note">{readOnlyReason ? `Preview only: ${readOnlyReason}` : "Preview only. PNG, JPEG and WebP are supported for editing and export."}</p>}
               {selected?.kind === "video" && !previewFailed && <video key={selected.id} ref={videoRef} src={selected.url} controls preload="metadata" playsInline onLoadedMetadata={(event) => { const length = event.currentTarget.duration; setDuration(Number.isFinite(length) ? length : 0); setPlayhead(0); }} onTimeUpdate={(event) => setPlayhead(event.currentTarget.currentTime)} onError={() => markFailed(selected.id, VIDEO_PREVIEW_FAILED)} />}
-              {!selected && <div className="empty-canvas"><div className="empty-icon">◉</div><h1>Make something extraordinary.</h1><p>Start with a photo or video, or choose Create to generate an image locally.</p><button className="primary" onClick={() => inputRef.current?.click()}>Import your first clip</button></div>}
+              {!selected && <div className="empty-canvas"><div className="empty-icon">◉</div><h1>{view === "photo" ? "Edit a photo." : "Preview a video."}</h1><p>{view === "photo" ? "Open a photo to adjust and export a new PNG copy." : "Open a clip to play, seek, and mark in/out points. Timeline export is not yet available."}</p><button className="primary" onClick={() => inputRef.current?.click()}>Import {view === "photo" ? "a photo" : "a video"}</button></div>}
             </div>
             <div className="player-controls">
               {isVideo ? <><button className="control" onClick={() => seek(playhead - 0.1)} title="Step back 0.1 seconds">↶ 0.1s</button><button className="control" onClick={() => seek(playhead + 0.1)} title="Step forward 0.1 seconds">0.1s ↷</button><span className="time">{formatTime(playhead)} / {formatTime(duration)}</span></> :
