@@ -163,6 +163,7 @@
    Its bitmap is scaled to a max 1400px proxy, then aspect-contained in the stage. */
 .canvas canvas.photo-preview-canvas{width:100%;height:100%;max-width:100%;max-height:100%;min-width:0;min-height:0;object-fit:contain;grid-area:1 / 1}
 .canvas .photo-preview-status{grid-area:1 / 1;place-self:center;max-width:420px;padding:12px 18px;border-radius:8px;background:#10192bcf;color:#d9e4fa;font-size:13px;line-height:1.5;text-align:center}
+.canvas .photo-readonly-note{grid-area:1 / 1;align-self:end;justify-self:center;z-index:1;margin:0 12px 14px;padding:8px 12px;border-radius:8px;background:#0c152bd9;color:#dce7fa;font-size:12px;text-align:center;max-width:calc(100% - 24px)}
 /* Edit media: with an image selected the inspector (adjustments, export, history) grew the whole page
    to ~1300px at every size. Keep the editor within the viewport and let each column scroll on its own. */
 @media(min-width:1201px){
