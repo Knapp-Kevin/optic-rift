@@ -235,6 +235,7 @@ export default function App() {
           multiple hidden onChange={addMedia} aria-label="Select image and video files" />
 
         {view === "library" && <SessionMediaLibrary items={items} projectName={project?.name ?? null}
+          notification={message} onDismissNotification={() => setMessage("")}
           historyVersion={historyVersion} onImport={() => inputRef.current?.click()}
           onOpen={openMedia} onRemove={removeItem} onGeneratedResult={addGenerated} />}
 
