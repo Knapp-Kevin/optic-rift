@@ -153,3 +153,10 @@ test("Photos the canvas editor refuses stay viewable read-only instead of becomi
   assert.doesNotMatch(app, /<PhotoCanvasPreview[^>]*onError=\{\(reason\) => markFailed/);
   assert.match(app, /Preview only: \$\{readOnlyReason\}/);
 });
+
+test("A generated result is shown only when the native reader returns a PNG", () => {
+  const panel = readFileSync(new URL("../src/GeneratePanel.tsx", import.meta.url), "utf8");
+  const read = panel.indexOf("const url = await invoke<string>(\"generation_output_image\", { jobId: id });");
+  const check = panel.indexOf("if (!url.startsWith(\"data:image/png;base64,\")) {", read);
+  assert.ok(read > 0 && check > read && check < panel.indexOf("setResult({ provenance, url });", read), "PNG check precedes setResult");
+});
