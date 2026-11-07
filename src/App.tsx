@@ -250,7 +250,7 @@ export default function App() {
         {(view === "photo" || view === "video") && <main className={`workspace ${view}-workspace`}>
           <section className="media-panel">
             <div className="section-title"><div><h2>{view === "photo" ? "Photos" : "Video clips"}</h2><p>Opened this session</p></div><span className="count">{editorItems.length}</span></div>
-<button className="import-button" onClick={() => inputRef.current?.click()}>＋ Import {view === "photo" ? "photos" : "video"}</button>
+            <button className="import-button" onClick={() => inputRef.current?.click()}>＋ Import {view === "photo" ? "photos" : "video"}</button>
             <div className="media-list">
               {editorItems.length === 0 && <div className="empty-library">No {view === "photo" ? "photos" : "videos"} opened this session.<br /><span>Import media or open it from the Media Library.</span></div>}
               {editorItems.map((item) => <div className={selectedId === item.id ? "media-row active" : "media-row"} key={item.id}>
@@ -309,7 +309,7 @@ export default function App() {
             </div> : view === "photo" ? <p className="model-hint">Choose a photo to adjust and export, or use Create Images for AI generation.</p> :
               <div className="video-capability-note" role="status">
                 <strong>Video editing is not yet available.</strong>
-                <p>You can play a local clip, seek frame by frame, and mark an in/out range. Markers are preview-only. Clip assembly, transitions and video export still need qualified native implementation.</p>
+                <p>You can play a local clip, seek in 0.1-second steps, and mark an in/out range. Markers are preview-only. Clip assembly, transitions and video export still need qualified native implementation.</p>
                 {isVideo && <p>Current preview range: {formatTime(trimIn)} to {formatTime(trimOut ?? duration)}.</p>}
               </div>}
             {view === "photo" && <>
