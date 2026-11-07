@@ -23,3 +23,16 @@ PR #31 (`feature/photo-canvas-preview-parity-20261106-no-ci`). Parity captures a
 | `pr31-canvas-parity/08-E2-exported-png-reopened` | The exported PNG reopened unedited: identical pixels on this display |
 | `pr31-canvas-parity/09-svg-read-only--1440x900` | SVG: read-only, no adjustments or Save |
 | `pr31-canvas-parity/10-layout--*` | Edit media with a rotated portrait at 1280×720 / 1440×900 / 1920×1080 |
+
+## End-to-end photo journeys (2026-11-06)
+
+QA profile; synthetic fixtures only (no inference, no personal outputs). Create and image-to-image use **simulated** generation IPC; history, export and reopen use the **real** native code. Captures from `3b9abce` (J1-J3) and `71642e3` (J5, restart).
+
+| File | State |
+|---|---|
+| `journeys/j1-create-result` | Create result (simulated generation) on the stage |
+| `journeys/j1-edit-exported` | Opened in Edit media, adjusted 130/120/90 deg and exported |
+| `journeys/j2-history-edit-exported` | Stored output opened from Recent generations, adjusted 80/150/180 deg and exported |
+| `journeys/j3-i2i-source-result` | Image to image: real stored source beside the simulated result |
+| `journeys/j5-wrong-mime-refused` | Non-PNG result refused at the stage (fix `71642e3`) |
+| `journeys/j-restart-reopened` | After an app restart, the three exports re-imported into Edit media |
