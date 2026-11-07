@@ -49,6 +49,9 @@ test("Media Library works without claiming persisted project assets or silently 
   assert.match(library, /Project media persistence is not implemented|project does not yet\s*store imported media/);
   assert.match(library, /Opened media matches|No opened media matches/);
   assert.match(library, /onImport\}/);
+  assert.match(app, /notification=\{message\} onDismissNotification=\{\(\) => setMessage\(""\)\}/);
+  assert.match(library, /role="status"/);
+  assert.match(library, /aria-label="Dismiss media notification"/);
   assert.match(library, /onOpen\(item\)/);
   assert.match(library, /onRemove\(item\.id\)/);
   assert.match(library, /<GenerationHistory refreshVersion=\{historyVersion\}/);
