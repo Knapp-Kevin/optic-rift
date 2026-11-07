@@ -284,31 +284,38 @@ export default function App() {
                 <span className="time">{previewFailed ? "Preview unavailable" : selected ? "Image preview" : "Import media to begin"}</span>}
               <span className="control-hint">Originals never modified</span>
             </div>
-            <div className="timeline-panel"><div className="timeline-heading"><strong>Timeline preview</strong><span>Non-destructive markers only</span></div>
+            {view === "video" && <div className="timeline-panel"><div className="timeline-heading"><strong>Timeline preview</strong><span>Non-destructive markers only</span></div>
               {isVideo ? <>
                 <input className="scrubber" type="range" aria-label="Scrub video" min={0} max={Math.max(duration, 0.01)} step={0.01} value={Math.min(playhead, duration || 0)} onChange={(e) => seek(Number(e.target.value))} />
                 <div className="trim-tools"><button onClick={setInPoint}>Mark in: {formatTime(trimIn)}</button><button onClick={setOutPoint}>Mark out: {trimOut === null ? "end" : formatTime(trimOut)}</button><span>Preview markers only; exporting trims is not available yet.</span></div>
                 <div className="timeline-clip"><span>▶</span><strong>{selected?.name}</strong></div>
               </> : <div className="timeline-empty">Select a video to see its clip timeline.</div>}
-            </div>
+            </div>}
           </section>
 
           <aside className="inspector editor-inspector">
-            <div className="section-title"><div><h2>Media adjustments</h2><p>Preview changes without altering originals</p></div></div>
-            {editablePhoto && !previewFailed ? <div className="adjustments">
+            <div className="section-title"><div><h2>{view === "photo" ? "Photo adjustments" : "Video tools"}</h2><p>{view === "photo" ? "Original preserved; export creates a copy" : "Playback and non-destructive markers"}</p></div></div>
+            {view === "photo" && editablePhoto && !previewFailed ? <div className="adjustments">
               <h3>Image preview</h3>
-              <label>Brightness <output>{brightness}%</output><input type="range" min="25" max="175" value={brightness} onChange={(event) => setBrightness(Number(event.target.value))} /></label>
-              <label>Contrast <output>{contrast}%</output><input type="range" min="25" max="175" value={contrast} onChange={(event) => setContrast(Number(event.target.value))} /></label>
-              <button className="secondary full" onClick={() => setRotation((value) => (value + 90) % 360)}>Rotate preview 90°</button>
+              <label>Brightness <output>{brightness}%</output><input type="range" min="25" max="175" value={brightness} onChange={(event) => updatePhotoAdjustments({ brightness: Number(event.target.value) })} /></label>
+              <label>Contrast <output>{contrast}%</output><input type="range" min="25" max="175" value={contrast} onChange={(event) => updatePhotoAdjustments({ contrast: Number(event.target.value) })} /></label>
+              <button className="secondary full" onClick={() => updatePhotoAdjustments({ rotation: (rotation + 90) % 360 })}>Rotate preview 90°</button>
               <button className="primary full" type="button" disabled={photoExportBusy}
                 onClick={() => void exportAdjustedPhoto()}>
                 {photoExportBusy ? "Saving adjusted PNG…" : "Save adjusted PNG copy"}
               </button>
               {photoExportNotice && <p role="status" className="photo-export-notice">{photoExportNotice}</p>}
               <p>Export to Pictures may sync with OneDrive. The original stays unchanged. Supports PNG, JPEG and WebP sources up to 32 MB and 20 megapixels. PNG export does not preserve source EXIF or ICC metadata, and it does not save an asset into this project.</p>
-            </div> : <p className="model-hint">Select an image to adjust its preview, or choose Create to generate a new image.</p>}
-            <button className="secondary full" onClick={() => { setStudioMode("create"); setStudioModeChosen(true); }}>Create an image</button>
-            <GenerationHistory refreshVersion={historyVersion} onResult={addGenerated} />
+            </div> : view === "photo" ? <p className="model-hint">Choose a photo to adjust and export, or use Create Images for AI generation.</p> :
+              <div className="video-capability-note" role="status">
+                <strong>Video editing is not yet available.</strong>
+                <p>You can play a local clip, seek frame by frame, and mark an in/out range. Markers are preview-only. Clip assembly, transitions and video export still need qualified native implementation.</p>
+                {isVideo && <p>Current preview range: {formatTime(trimIn)} to {formatTime(trimOut ?? duration)}.</p>}
+              </div>}
+            {view === "photo" && <>
+              <button className="secondary full" onClick={() => setView("create")}>Create an image</button>
+              <GenerationHistory refreshVersion={historyVersion} onResult={addGenerated} />
+            </>}
           </aside>
           {message && <div className="notice" role="status"><span>{message}</span><button onClick={() => setMessage("")} aria-label="Dismiss notification">×</button></div>}
         </main>}
