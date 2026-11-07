@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
-  MAX_PHOTO_EDGE, MAX_PHOTO_PIXELS, photoExportDimensions, probePhotoDimensions, validatePhotoAdjustments,
+  MAX_PHOTO_EDGE, MAX_PHOTO_PIXELS, photoExportDimensions, photoPaintDimensions, probePhotoDimensions, validatePhotoAdjustments,
 } from "../src/photoEdits.ts";
 
 const here = (file) => readFileSync(new URL(file, import.meta.url), "utf8");
@@ -97,20 +97,66 @@ test("Photo Studio offers a real save action but honestly labels current limits"
   assert.doesNotMatch(app, /Exporting adjusted images is not implemented yet/);
 });
 
-test("Quarter-turn preview fits the frame like the export, and type errors are not reported as size errors", () => {
+test("Photo preview and export share the same renderer, not separate CSS filters", () => {
   const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8");
   const css = readFileSync(new URL("../src/styles.css", import.meta.url), "utf8");
   const edits = readFileSync(new URL("../src/photoEdits.ts", import.meta.url), "utf8");
-  // A 90/270 turn swaps the box to the frame's height x width before rotating, so nothing is clipped.
-  assert.match(app, /className=\{rotation % 180 === 90 \? "quarter-turn" : undefined\}/);
-  assert.match(app, /\(rotation % 180 === 90 \? "translate\(-50%, -50%\) " : ""\) \+ "rotate\("/);
-  assert.match(css, /\.canvas\{container-type:size\}/);
-  assert.match(css, /\.canvas img\.quarter-turn\{position:absolute;left:50%;top:50%;width:100cqh;height:100cqw;max-width:none;max-height:none\}/);
+  const component = readFileSync(new URL("../src/PhotoCanvasPreview.tsx", import.meta.url), "utf8");
+  assert.match(app, /<PhotoCanvasPreview/);
+  assert.match(component, /paintAdjustedPhoto\(decoded\.bitmap/);
+  assert.match(edits, /paintAdjustedPhoto\(bitmap, edits, canvas\)/);
+  assert.match(css, /\.canvas canvas\.photo-preview-canvas\{[^}]*object-fit:contain/);
+  assert.doesNotMatch(app, /style=\{\{ filter: "brightness\("/);
   assert.match(edits, /Only PNG, JPEG and WebP photos can be exported\. This file type is not supported\./);
+});
+
+test("Photo preview proxy is bounded, preserves the correct orientation and never upscales", () => {
+  assert.deepEqual(photoPaintDimensions(4000, 3000, 90, 1400),
+    { width: 1050, height: 1400, drawWidth: 1400, drawHeight: 1050 });
+  assert.deepEqual(photoPaintDimensions(4000, 3000, 270, 1400),
+    { width: 1050, height: 1400, drawWidth: 1400, drawHeight: 1050 });
+  assert.deepEqual(photoPaintDimensions(800, 600, 180, 1400),
+    { width: 800, height: 600, drawWidth: 800, drawHeight: 600 });
+  assert.deepEqual(photoPaintDimensions(3000, 4000, 0),
+    { width: 3000, height: 4000, drawWidth: 3000, drawHeight: 4000 });
+  assert.throws(() => photoPaintDimensions(4000, 3000, 0, 3000));
+  assert.throws(() => photoPaintDimensions(4000, 3000, 0, 50));
+  assert.throws(() => photoPaintDimensions(5000, 5000, 0, 1400));
 });
 
 test("Edit media stays within the viewport on desktop; its columns scroll on their own", () => {
   const css = readFileSync(new URL("../src/styles.css", import.meta.url), "utf8");
   assert.match(css, /@media\(min-width:1201px\)\{\s*\.studio-tabs~\.workspace\{flex:none;height:calc\(100vh - 120px\);min-height:0\}/);
   assert.match(css, /\.studio-tabs~\.workspace>\.editor-inspector\{min-height:0;overflow-y:auto;overscroll-behavior:contain\}/);
+});
+
+test("Photo preview decodes once per asset and never persists private derivatives", () => {
+  const component = readFileSync(new URL("../src/PhotoCanvasPreview.tsx", import.meta.url), "utf8");
+  const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8");
+  assert.match(component, /loadPhotoBitmap\(sourceUrl\)/);
+  assert.match(component, /\}, \[sourceUrl\]\)/);
+  assert.match(component, /setTimeout\(\(\) => \{/);
+  assert.match(component, /paintAdjustedPhoto\(decoded\.bitmap/);
+  assert.match(component, /ownedBitmap\?\.close\(\)/);
+  assert.match(component, /if \(!active\) \{\s*bitmap\.close\(\)/);
+  assert.doesNotMatch(component, /toBlob|createObjectURL|localStorage|sessionStorage|invoke\(/);
+  assert.match(app, /mimeType: file\.type/);
+  assert.match(app, /mimeType: "image\/png"/);
+  assert.match(app, /selected\?\.kind === "image" && !editablePhoto && !previewFailed/);
+  assert.match(app, /Preview only\. PNG, JPEG and WebP are supported for editing and export/);
+});
+
+test("Photos the canvas editor refuses stay viewable read-only instead of becoming unpreviewable", () => {
+  const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8");
+  assert.match(app, /onError=\{\(reason\) => setReadOnlyPhotos\(\(previous\) => new Map\(previous\)\.set\(selected\.id, reason\)\)\}/);
+  assert.match(app, /const editablePhoto = selected\?\.kind === "image" && !readOnlyReason &&/);
+  assert.doesNotMatch(app, /<PhotoCanvasPreview[^>]*onError=\{\(reason\) => markFailed/);
+  assert.match(app, /Preview only: \$\{readOnlyReason\}/);
+});
+
+test("A generated result is shown only when the native reader returns a PNG", () => {
+  const panel = readFileSync(new URL("../src/GeneratePanel.tsx", import.meta.url), "utf8");
+  const read = panel.indexOf("const url = await invoke<string>(\"generation_output_image\", { jobId: id });");
+  const check = panel.indexOf("if (!url.startsWith(\"data:image/png;base64,\")) {", read);
+  assert.ok(read > 0 && check > read && check < panel.indexOf("setResult({ provenance, url });", read), "PNG check precedes setResult");
 });

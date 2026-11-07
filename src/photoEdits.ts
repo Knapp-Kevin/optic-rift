@@ -124,51 +124,91 @@ function pngBase64(blob: Blob): Promise<string> {
   });
 }
 
-export async function renderAdjustedPhoto(
-  sourceUrl: string, edits: PhotoAdjustments,
-): Promise<{ png_base64: string; source_sha256: string; width: number; height: number }> {
-  const settings = validatePhotoAdjustments(edits);
-  // Only browser-owned imported/generated media can be exported. Never fetch a
-  // remote URL, local filesystem URL, or a model-card preview.
+/**
+ * Shared raster pipeline for display and export. The only difference is the
+ * preview's bounded output resolution; canvas color/filter order is identical.
+ * The source ImageBitmap is owned by the caller and must be closed by it.
+ */
+export function photoPaintDimensions(
+  originalWidth: number, originalHeight: number, rotation: number, maxPreviewEdge?: number,
+): { width: number; height: number; drawWidth: number; drawHeight: number } {
+  photoExportDimensions(originalWidth, originalHeight, rotation);
+  if (maxPreviewEdge !== undefined &&
+      (!Number.isInteger(maxPreviewEdge) || maxPreviewEdge < 128 || maxPreviewEdge > 2048)) {
+    throw new Error("The requested photo preview dimensions are invalid.");
+  }
+  const scale = maxPreviewEdge === undefined ? 1 :
+    Math.min(1, maxPreviewEdge / Math.max(originalWidth, originalHeight));
+  const drawWidth = Math.max(1, Math.round(originalWidth * scale));
+  const drawHeight = Math.max(1, Math.round(originalHeight * scale));
+  return { ...photoExportDimensions(drawWidth, drawHeight, rotation), drawWidth, drawHeight };
+}
+
+export function paintAdjustedPhoto(
+  bitmap: ImageBitmap, edits: PhotoAdjustments,
+  canvas: HTMLCanvasElement, maxPreviewEdge?: number,
+): { width: number; height: number } {
+  const { brightness, contrast, rotation } = validatePhotoAdjustments(edits);
+  const { width, height, drawWidth, drawHeight } =
+    photoPaintDimensions(bitmap.width, bitmap.height, rotation, maxPreviewEdge);
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d", { alpha: true });
+  if (!ctx) throw new Error("The photo rendering canvas is unavailable.");
+  ctx.save();
+  try {
+    ctx.clearRect(0, 0, width, height);
+    ctx.translate(width / 2, height / 2);
+    ctx.rotate(rotation * Math.PI / 180);
+    ctx.filter = `brightness(${brightness}%) contrast(${contrast}%)`;
+    ctx.drawImage(bitmap, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
+  } finally {
+    ctx.restore();
+  }
+  return { width, height };
+}
+
+export async function loadPhotoBitmap(
+  sourceUrl: string,
+): Promise<{ bitmap: ImageBitmap; source_sha256: string }> {
+  // Source fetch is limited to the app-owned, same-session blob URL.
   if (!sourceUrl.startsWith("blob:")) {
-    throw new Error("Only a photo opened in this Studio session can be exported.");
+    throw new Error("Only photos opened in this Studio session can be edited.");
   }
   const response = await fetch(sourceUrl);
   if (!response.ok) throw new Error("The source photo is no longer available.");
   const source = await response.blob();
-  // Separate messages: an SVG or other type previously reported a misleading size error.
   if (!["image/png", "image/jpeg", "image/webp"].includes(source.type)) {
     throw new Error("Only PNG, JPEG and WebP photos can be exported. This file type is not supported.");
   }
   if (!source.size || source.size > MAX_PHOTO_SOURCE_BYTES) {
     throw new Error("The source photo exceeds the supported 32 MB export limit.");
   }
-  // Source hash is a browser-observed lineage hint, not a native-authenticated
-  // signature. Never claim this export is a project-owned revision.
   const bytes = await source.arrayBuffer();
   const expected = probePhotoDimensions(new Uint8Array(bytes), source.type);
   const source_sha256 = hex(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)));
   const bitmap = await createImageBitmap(source);
+  // JPEG EXIF orientation can legitimately swap dimensions; reject any other
+  // discrepancy. Never keep a decoded image above the bounded pixel budget.
+  const expectedExact = bitmap.width === expected.width && bitmap.height === expected.height;
+  const expectedSwapped = bitmap.width === expected.height && bitmap.height === expected.width;
+  if (!(expectedExact || expectedSwapped)) {
+    bitmap.close();
+    throw new Error("Decoded photo dimensions do not match its checked source header.");
+  }
+  return { bitmap, source_sha256 };
+}
+
+export async function renderAdjustedPhoto(
+  sourceUrl: string, edits: PhotoAdjustments,
+): Promise<{ png_base64: string; source_sha256: string; width: number; height: number }> {
+  const { bitmap, source_sha256 } = await loadPhotoBitmap(sourceUrl);
   try {
-    if (bitmap.width * bitmap.height !== expected.width * expected.height) {
-      throw new Error("Image dimensions changed between header inspection and browser decoding.");
-    }
-    const dims = photoExportDimensions(bitmap.width, bitmap.height, settings.rotation);
     const canvas = document.createElement("canvas");
-    canvas.width = dims.width;
-    canvas.height = dims.height;
-    const ctx = canvas.getContext("2d", { alpha: true });
-    if (!ctx) throw new Error("The photo export canvas is unavailable.");
-    ctx.save();
-    ctx.translate(dims.width / 2, dims.height / 2);
-    ctx.rotate(settings.rotation * Math.PI / 180);
-    ctx.filter = `brightness(${settings.brightness}%) contrast(${settings.contrast}%)`;
-    ctx.drawImage(bitmap, -bitmap.width / 2, -bitmap.height / 2);
-    ctx.restore();
+    const dims = paintAdjustedPhoto(bitmap, edits, canvas);
     const output = await new Promise<Blob>((resolve, reject) =>
       canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("Photo encoding failed.")), "image/png"),
     );
-    // Keep the UI and native byte limits consistent; no partial export.
     if (output.type !== "image/png" || !output.size || output.size > MAX_PHOTO_PNG_BYTES) {
       throw new Error("The adjusted PNG exceeds the supported 32 MB export limit.");
     }

@@ -165,6 +165,11 @@ export default function GeneratePanel({ prompt, mode, layout = "inspector", visi
         strength: mode === "image-to-image" ? strength : null,
       } });
       const url = await invoke<string>("generation_output_image", { jobId: id });
+      // Same check as the history, filmstrip and source paths: never show (or hand to Edit/Save) a
+      // result the native reader did not return as a PNG.
+      if (!url.startsWith("data:image/png;base64,")) {
+        throw new Error("The generated image could not be read back as a PNG. Nothing was opened.");
+      }
       setResult({ provenance, url });
       setPreview(null);
       onGenerated();
