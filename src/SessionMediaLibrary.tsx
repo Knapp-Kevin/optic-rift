@@ -7,6 +7,8 @@ type KindFilter = "all" | "image" | "video";
 type Props = {
   items: readonly MediaItem[];
   projectName: string | null;
+  notification: string;
+  onDismissNotification: () => void;
   historyVersion: number;
   onImport: () => void;
   onOpen: (item: MediaItem) => void;
@@ -18,7 +20,7 @@ type Props = {
  * pretend project persistence or unqualified timeline/AI operations.
  */
 export default function SessionMediaLibrary({
-  items, projectName, historyVersion, onImport, onOpen, onRemove, onGeneratedResult,
+  items, projectName, notification, onDismissNotification, historyVersion, onImport, onOpen, onRemove, onGeneratedResult,
 }: Props) {
   const [filter, setFilter] = useState<KindFilter>("all");
   const [query, setQuery] = useState("");
@@ -38,6 +40,10 @@ export default function SessionMediaLibrary({
       These opened files are available only during this session. A project does not yet
       store imported media.
     </p>
+    {notification && <div className="session-library-notice" role="status">
+      <span>{notification}</span><button type="button" onClick={onDismissNotification}
+        aria-label="Dismiss media notification">×</button>
+    </div>}
     {projectName && <p className="session-project-note">Current project: <strong>{projectName}</strong>. Media below is not yet attached to this project.</p>}
     <div className="session-media-toolbar">
       <button type="button" className="primary" onClick={onImport}>＋ Import photos or videos</button>
