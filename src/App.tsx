@@ -3,43 +3,42 @@ import { invoke } from "@tauri-apps/api/core";
 import ProjectChooser from "./ProjectChooser";
 import HuggingFaceAccess from "./HuggingFaceAccess";
 import ModelBrowser from "./ModelBrowser";
+import { DownloadProvider, DownloadStatus } from "./downloads";
 import GeneratePanel from "./GeneratePanel";
 import GenerationHistory from "./GenerationHistory";
 import type { ProjectRecord } from "./projects";
-import { hasQualifiedLocalImageModel, type ModelLibrary } from "./models";
+import { navigation, routeTitle, editorFor, mediaForEditor, type View, type MediaItem } from "./creativeNavigation";
 import { formatSize, IMAGE_PREVIEW_FAILED, VIDEO_PREVIEW_FAILED } from "./mediaFormat";
 import { renderAdjustedPhoto } from "./photoEdits";
 import PhotoCanvasPreview from "./PhotoCanvasPreview";
+import SessionMediaLibrary from "./SessionMediaLibrary";
 
-type View = "projects" | "studio" | "models" | "settings";
-type MediaKind = "image" | "video";
-type MediaItem = { id: string; name: string; kind: MediaKind; url: string; size: number; mimeType: string };
 type RuntimeStatus = { application: string; stage: string; generation_ready: boolean; project_storage_ready: boolean };
 
+// Seeking moves in 0.1 s steps, so labels show tenths; rounding first absorbs float drift (20 x 0.1 = 1.9999...).
 const formatTime = (seconds: number) => {
-  const safe = Math.max(0, Number.isFinite(seconds) ? seconds : 0);
-  const m = Math.floor(safe / 60);
-  const s = Math.floor(safe % 60);
-  return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+  const tenths = Math.round(Math.max(0, Number.isFinite(seconds) ? seconds : 0) * 10);
+  const m = Math.floor(tenths / 600);
+  const s = (tenths % 600) / 10;
+  return String(m).padStart(2, "0") + ":" + s.toFixed(1).padStart(4, "0");
 };
 
 export default function App() {
   const [view, setView] = useState<View>("projects");
   const [project, setProject] = useState<ProjectRecord | null>(null);
   const [items, setItems] = useState<MediaItem[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
+  const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
+  const [photoAdjustments, setPhotoAdjustments] = useState<Record<string, {
+    brightness: number; contrast: number; rotation: number;
+  }>>({});
   const [prompt, setPrompt] = useState("");
-  const [studioMode, setStudioMode] = useState<"create" | "edit">("edit");
-  const [studioModeChosen, setStudioModeChosen] = useState(false);
   const [createOpened, setCreateOpened] = useState(false);
   const [creationMode, setCreationMode] = useState<"text-to-image" | "image-to-image">("text-to-image");
   const [libraryVersion, setLibraryVersion] = useState(0);
   const [historyVersion, setHistoryVersion] = useState(0);
   const [message, setMessage] = useState("");
   const [includeAdultModels, setIncludeAdultModels] = useState(false);
-  const [brightness, setBrightness] = useState(100);
-  const [contrast, setContrast] = useState(100);
-  const [rotation, setRotation] = useState(0);
   const [photoExportBusy, setPhotoExportBusy] = useState(false);
   const [photoExportNotice, setPhotoExportNotice] = useState("");
   const [duration, setDuration] = useState(0);
@@ -54,7 +53,13 @@ export default function App() {
   const inputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const objectUrls = useRef<string[]>([]);
-  const selected = items.find((item) => item.id === selectedId) ?? null;
+  const editorItems = mediaForEditor(items, view);
+  const selectedId = view === "video" ? selectedVideoId : selectedPhotoId;
+  const selected = editorItems.find((item) => item.id === selectedId) ?? null;
+  const edits = selected?.kind === "image" ? photoAdjustments[selected.id] : undefined;
+  const brightness = edits?.brightness ?? 100;
+  const contrast = edits?.contrast ?? 100;
+  const rotation = edits?.rotation ?? 0;
   const previewFailed = selected ? failedIds.has(selected.id) : false;
   const readOnlyReason = selected ? readOnlyPhotos.get(selected.id) : undefined;
   const editablePhoto = selected?.kind === "image" && !readOnlyReason &&
@@ -75,28 +80,36 @@ export default function App() {
     };
   }, []);
 
-  useEffect(() => {
-    if (view !== "studio" || studioModeChosen) return;
-    let active = true;
-    void invoke<ModelLibrary>("models_library")
-      .then((lib) => { if (active) setStudioMode(hasQualifiedLocalImageModel(lib) ? "create" : "edit"); })
-      .catch(() => { if (active) setStudioMode("edit"); });
-    return () => { active = false; };
-  }, [view, libraryVersion, studioModeChosen]);
+  useEffect(() => { if (view === "create") setCreateOpened(true); }, [view]);
 
-  useEffect(() => { if (view === "studio" && studioMode === "create") setCreateOpened(true); }, [view, studioMode]);
-
-  function selectItem(id: string) {
-    setSelectedId(id);
-    setDuration(0);
-    setPlayhead(0);
-    setTrimIn(0);
-    setTrimOut(null);
-    setBrightness(100);
-    setContrast(100);
-    setRotation(0);
+  function selectItem(item: MediaItem) {
+    if (item.kind === "image") {
+      setSelectedPhotoId(item.id);
+    } else {
+      if (selectedVideoId !== item.id) {
+        setDuration(0);
+        setPlayhead(0);
+        setTrimIn(0);
+        setTrimOut(null);
+      }
+      setSelectedVideoId(item.id);
+    }
     setPhotoExportNotice("");
     setMessage("");
+  }
+
+  function openMedia(item: MediaItem) {
+    selectItem(item);
+    setView(editorFor(item.kind));
+  }
+
+  function updatePhotoAdjustments(changes: Partial<{ brightness: number; contrast: number; rotation: number }>) {
+    if (!selected || selected.kind !== "image") return;
+    setPhotoAdjustments((previous) => ({
+      ...previous,
+      // Defaults apply only to a photo that has no edits yet (the Record type hides the undefined case).
+      [selected.id]: { ...(previous[selected.id] ?? { brightness: 100, contrast: 100, rotation: 0 }), ...changes },
+    }));
   }
 
   function addMedia(event: ChangeEvent<HTMLInputElement>) {
@@ -112,8 +125,14 @@ export default function App() {
     }
     if (accepted.length > 0) {
       setItems((previous) => [...previous, ...accepted]);
-      if (!selectedId) selectItem(accepted[0].id);
-      setMessage("Media is open for this session only. Durable project saving is not implemented yet.");
+      const firstPhoto = accepted.find((item) => item.kind === "image");
+      const firstVideo = accepted.find((item) => item.kind === "video");
+      if (firstPhoto && (!selectedPhotoId || view === "photo")) setSelectedPhotoId(firstPhoto.id);
+      if (firstVideo && (!selectedVideoId || view === "video")) {
+        setSelectedVideoId(firstVideo.id);
+        setDuration(0); setPlayhead(0); setTrimIn(0); setTrimOut(null);
+      }
+      setMessage("Media is available this session only. Project media persistence is not implemented yet.");
     } else {
       setMessage("No supported image or video files were selected.");
     }
@@ -123,7 +142,8 @@ export default function App() {
     objectUrls.current.push(result.url);
     const item: MediaItem = { id: crypto.randomUUID(), name: result.name, kind: "image", url: result.url, size: result.size, mimeType: "image/png" };
     setItems((previous) => [...previous, item]);
-    selectItem(item.id);
+    setSelectedPhotoId(item.id);
+    setView("photo");
     setMessage("Generated image opened in this session. Its file and provenance stay in Optic Rift's output folder; use Save to Pictures to keep a copy elsewhere.");
   }
 
@@ -170,22 +190,39 @@ export default function App() {
     const entry = items.find((item) => item.id === id);
     if (!entry) return;
     setItems((previous) => previous.filter((item) => item.id !== id));
-    if (selectedId === id) selectItem(items.find((item) => item.id !== id)?.id ?? "");
+    if (selectedPhotoId === id) setSelectedPhotoId(items.find((item) => item.id !== id && item.kind === "image")?.id ?? null);
+    if (selectedVideoId === id) {
+      setSelectedVideoId(items.find((item) => item.id !== id && item.kind === "video")?.id ?? null);
+      setDuration(0); setPlayhead(0); setTrimIn(0); setTrimOut(null);
+    }
+    setPhotoAdjustments((previous) => {
+      const next = { ...previous };
+      delete next[id];
+      return next;
+    });
     URL.revokeObjectURL(entry.url);
     objectUrls.current = objectUrls.current.filter((url) => url !== entry.url);
   }
 
   return (
+    <DownloadProvider onInstalled={() => setLibraryVersion((v) => v + 1)}>
     <div className="app">
       <aside className="navigation">
         <div className="brand"><img className="brand-icon-img" src="/branding/optic-rift-approved-256.webp" alt="" /><span>OPTIC <b>RIFT</b><small>VISUAL STUDIO</small></span></div>
-        <div className="nav-group">
-          <div className="group-label">WORKSPACE</div>
-          <button className={view === "projects" ? "nav selected" : "nav"} onClick={() => setView("projects")}>▤ <span>Projects</span></button>
-          <button className={view === "studio" ? "nav selected" : "nav"} onClick={() => setView("studio")}>▣ <span>Studio</span></button>
-          <button className={view === "models" ? "nav selected" : "nav"} onClick={() => setView("models")}>◈ <span>Models</span></button>
-          <button className={view === "settings" ? "nav selected" : "nav"} onClick={() => setView("settings")}>⚙ <span>Settings</span></button>
-        </div>
+        <nav className="primary-navigation" aria-label="Primary navigation">
+          {navigation.map((section) => <div className="nav-group" key={section.group}>
+            <div className="group-label">{section.group}</div>
+            {section.items.map((item) => <button key={item.view} type="button"
+              className={view === item.view ? "nav selected" : "nav"}
+              aria-current={view === item.view ? "page" : undefined}
+              aria-label={item.label} title={item.description} onClick={() => setView(item.view)}>
+              <span className="nav-symbol" aria-hidden="true">{item.symbol}</span><span className="nav-label">{item.label}</span>
+            </button>)}
+          </div>)}
+        </nav>
+        {/* App-lifetime download status (issue #27) on every destination; Models renders its own, so never twice.
+            Below 1200 px the rail is icon-only, so styles.css floats this card beside the rail instead. */}
+        {view !== "models" && <DownloadStatus includeAdult={includeAdultModels} compact />}
         <div className="nav-footer">
           <span className="status-dot" /> Local-first
           <small>Pre-alpha architecture preview</small>
@@ -194,51 +231,48 @@ export default function App() {
 
       <div className="shell">
         <header className="topbar">
-          <div className="breadcrumbs">OPTIC RIFT <span>/</span> {view === "projects" ? "Projects" : view === "studio" ? "Creative studio" : view === "models" ? "Model library" : "Preferences"}</div>
+          <div className="breadcrumbs">OPTIC RIFT <span>/</span> {routeTitle[view]}</div>
           <div className="top-actions"><button className="project-pill" onClick={() => setView("projects")} title="Choose a project">{project ? "Project: " + project.name : "No project open"}</button><span className="pill">PRE-ALPHA</span><button className="top-button" onClick={() => setView("models")}>Model manager</button></div>
         </header>
 
-        {view === "projects" && <ProjectChooser current={project} onOpened={(opened) => { setProject(opened); setView("studio"); }} />}
+        {view === "projects" && <ProjectChooser current={project} onOpened={(opened) => { setProject(opened); setView("library"); }} />}
 
-        {view === "studio" && <>
-          <nav className="studio-tabs" aria-label="Studio workspace">
-            <div className="studio-tab-switch" role="group" aria-label="Choose Studio activity">
-              <button type="button" className={studioMode === "create" ? "selected" : ""} aria-pressed={studioMode === "create"}
-                onClick={() => { setStudioMode("create"); setStudioModeChosen(true); }}>Create</button>
-              <button type="button" className={studioMode === "edit" ? "selected" : ""} aria-pressed={studioMode === "edit"}
-                onClick={() => { setStudioMode("edit"); setStudioModeChosen(true); }}>Edit media</button>
-            </div>
-            <span>{studioMode === "create" ? "Generate local images. Video generation models are discoverable in Models." : "Edit the media you have opened."}</span>
-          </nav>
-        </>}
+        <input ref={inputRef} type="file"
+          accept={view === "photo" ? "image/*" : view === "video" ? "video/*" : "image/*,video/*"}
+          multiple hidden onChange={addMedia} aria-label="Select image and video files" />
+
+        {view === "library" && <SessionMediaLibrary items={items} projectName={project?.name ?? null}
+          notification={message} onDismissNotification={() => setMessage("")}
+          historyVersion={historyVersion} onImport={() => inputRef.current?.click()}
+          onOpen={openMedia} onRemove={removeItem} onGeneratedResult={addGenerated} />}
+
         {/* Create stays mounted once opened, so a running job, its progress/Cancel and the current result
-            survive a switch to Edit media or another page. Hidden content is not rendered visibly. */}
-        {createOpened && <main className="create-workspace" hidden={!(view === "studio" && studioMode === "create")}>
-            <GeneratePanel layout="create" visible={view === "studio" && studioMode === "create"} prompt={prompt} onPromptChange={setPrompt} mode={creationMode}
+            survive a switch to Photo Studio or another page. Hidden content is not rendered visibly. */}
+        {createOpened && <main className="create-workspace" hidden={view !== "create"}>
+            <GeneratePanel layout="create" visible={view === "create"} prompt={prompt} onPromptChange={setPrompt} mode={creationMode}
               onModeChange={setCreationMode} historyVersion={historyVersion} projectId={project?.id ?? null}
               libraryVersion={libraryVersion} onOpenModels={() => setView("models")}
-              onResult={(media) => { addGenerated(media); setStudioMode("edit"); setStudioModeChosen(true); }}
+              onResult={addGenerated}
               onGenerated={() => setHistoryVersion((v) => v + 1)} />
           </main>}
-        {view === "studio" && studioMode === "edit" && <main className="workspace">
+        {(view === "photo" || view === "video") && <main className={`workspace ${view}-workspace`}>
           <section className="media-panel">
-            <div className="section-title"><div><h2>Media library</h2><p>Your images and clips</p></div><span className="count">{items.length}</span></div>
-            <input ref={inputRef} type="file" accept="image/*,video/*" multiple hidden onChange={addMedia} aria-label="Select image and video files" />
-            <button className="import-button" onClick={() => inputRef.current?.click()}>＋ Import media</button>
+            <div className="section-title"><div><h2>{view === "photo" ? "Photos" : "Video clips"}</h2><p>Opened this session</p></div><span className="count">{editorItems.length}</span></div>
+            <button className="import-button" onClick={() => inputRef.current?.click()}>＋ Import {view === "photo" ? "photos" : "video"}</button>
             <div className="media-list">
-              {items.length === 0 && <div className="empty-library">Your canvas starts here.<br /><span>Import a video or image to preview it.</span></div>}
-              {items.map((item) => <div className={selectedId === item.id ? "media-row active" : "media-row"} key={item.id}>
-                <button onClick={() => selectItem(item.id)} className="media-pick">
+              {editorItems.length === 0 && <div className="empty-library">No {view === "photo" ? "photos" : "videos"} opened this session.<br /><span>Import media or open it from the Media Library.</span></div>}
+              {editorItems.map((item) => <div className={selectedId === item.id ? "media-row active" : "media-row"} key={item.id}>
+                <button onClick={() => selectItem(item)} className="media-pick">
                   <span className="media-kind">{item.kind === "video" ? "▶" : "▧"}</span><span className="media-label"><strong title={item.name}>{item.name}</strong><small>{item.kind} · {formatSize(item.size)}{failedIds.has(item.id) ? " · can't preview" : ""}</small></span>
                 </button>
                 <button className="remove-item" aria-label={"Remove " + item.name} title="Remove from this session" onClick={() => removeItem(item.id)}>×</button>
               </div>)}
             </div>
-            <div className="sidebar-note">Imported files stay on your computer. Imported media is open for this session only and is not saved into projects yet.</div>
+            <div className="sidebar-note">Session media is not saved into projects yet. <button type="button" className="inline-link" onClick={() => setView("library")}>Open Media Library</button></div>
           </section>
 
           <section className="studio-center">
-            <div className="canvas-header"><div><strong>Preview</strong><span>{selected ? selected.name : "No media selected"}</span></div><span className="preview-label">{selected?.kind ?? "READY"}</span></div>
+            <div className="canvas-header"><div><strong>{view === "photo" ? "Photo Studio" : "Video Studio"}</strong><span>{selected ? selected.name : "No media selected"}</span></div><span className="preview-label">{selected?.kind ?? "READY"}</span></div>
             <div className="canvas">
               {selected && previewFailed && <div className="empty-canvas preview-failed" role="alert"><div className="empty-icon">⚠</div><h1>Can't preview {selected.name}</h1><p>{selected.kind === "image" ? IMAGE_PREVIEW_FAILED : VIDEO_PREVIEW_FAILED}</p></div>}
               {editablePhoto && !previewFailed && <PhotoCanvasPreview key={selected.id}
@@ -251,38 +285,45 @@ export default function App() {
               {selected?.kind === "image" && !editablePhoto && !previewFailed &&
                 <p className="photo-readonly-note">{readOnlyReason ? `Preview only: ${readOnlyReason}` : "Preview only. PNG, JPEG and WebP are supported for editing and export."}</p>}
               {selected?.kind === "video" && !previewFailed && <video key={selected.id} ref={videoRef} src={selected.url} controls preload="metadata" playsInline onLoadedMetadata={(event) => { const length = event.currentTarget.duration; setDuration(Number.isFinite(length) ? length : 0); setPlayhead(0); }} onTimeUpdate={(event) => setPlayhead(event.currentTarget.currentTime)} onError={() => markFailed(selected.id, VIDEO_PREVIEW_FAILED)} />}
-              {!selected && <div className="empty-canvas"><div className="empty-icon">◉</div><h1>Make something extraordinary.</h1><p>Start with a photo or video, or choose Create to generate an image locally.</p><button className="primary" onClick={() => inputRef.current?.click()}>Import your first clip</button></div>}
+              {!selected && <div className="empty-canvas"><div className="empty-icon">◉</div><h1>{view === "photo" ? "Edit a photo." : "Preview a video."}</h1><p>{view === "photo" ? "Open a photo to adjust and export a new PNG copy." : "Open a clip to play, seek, and mark in/out points. Timeline export is not yet available."}</p><button className="primary" onClick={() => inputRef.current?.click()}>Import {view === "photo" ? "a photo" : "a video"}</button></div>}
             </div>
             <div className="player-controls">
               {isVideo ? <><button className="control" onClick={() => seek(playhead - 0.1)} title="Step back 0.1 seconds">↶ 0.1s</button><button className="control" onClick={() => seek(playhead + 0.1)} title="Step forward 0.1 seconds">0.1s ↷</button><span className="time">{formatTime(playhead)} / {formatTime(duration)}</span></> :
                 <span className="time">{previewFailed ? "Preview unavailable" : selected ? "Image preview" : "Import media to begin"}</span>}
               <span className="control-hint">Originals never modified</span>
             </div>
-            <div className="timeline-panel"><div className="timeline-heading"><strong>Timeline preview</strong><span>Non-destructive markers only</span></div>
+            {view === "video" && <div className="timeline-panel"><div className="timeline-heading"><strong>Timeline preview</strong><span>Non-destructive markers only</span></div>
               {isVideo ? <>
                 <input className="scrubber" type="range" aria-label="Scrub video" min={0} max={Math.max(duration, 0.01)} step={0.01} value={Math.min(playhead, duration || 0)} onChange={(e) => seek(Number(e.target.value))} />
                 <div className="trim-tools"><button onClick={setInPoint}>Mark in: {formatTime(trimIn)}</button><button onClick={setOutPoint}>Mark out: {trimOut === null ? "end" : formatTime(trimOut)}</button><span>Preview markers only; exporting trims is not available yet.</span></div>
                 <div className="timeline-clip"><span>▶</span><strong>{selected?.name}</strong></div>
               </> : <div className="timeline-empty">Select a video to see its clip timeline.</div>}
-            </div>
+            </div>}
           </section>
 
           <aside className="inspector editor-inspector">
-            <div className="section-title"><div><h2>Media adjustments</h2><p>Preview changes without altering originals</p></div></div>
-            {editablePhoto && !previewFailed ? <div className="adjustments">
+            <div className="section-title"><div><h2>{view === "photo" ? "Photo adjustments" : "Video tools"}</h2><p>{view === "photo" ? "Original preserved; export creates a copy" : "Playback and non-destructive markers"}</p></div></div>
+            {view === "photo" && editablePhoto && !previewFailed ? <div className="adjustments">
               <h3>Image preview</h3>
-              <label>Brightness <output>{brightness}%</output><input type="range" min="25" max="175" value={brightness} onChange={(event) => setBrightness(Number(event.target.value))} /></label>
-              <label>Contrast <output>{contrast}%</output><input type="range" min="25" max="175" value={contrast} onChange={(event) => setContrast(Number(event.target.value))} /></label>
-              <button className="secondary full" onClick={() => setRotation((value) => (value + 90) % 360)}>Rotate preview 90°</button>
+              <label>Brightness <output>{brightness}%</output><input type="range" min="25" max="175" value={brightness} onChange={(event) => updatePhotoAdjustments({ brightness: Number(event.target.value) })} /></label>
+              <label>Contrast <output>{contrast}%</output><input type="range" min="25" max="175" value={contrast} onChange={(event) => updatePhotoAdjustments({ contrast: Number(event.target.value) })} /></label>
+              <button className="secondary full" onClick={() => updatePhotoAdjustments({ rotation: (rotation + 90) % 360 })}>Rotate preview 90°</button>
               <button className="primary full" type="button" disabled={photoExportBusy}
                 onClick={() => void exportAdjustedPhoto()}>
                 {photoExportBusy ? "Saving adjusted PNG…" : "Save adjusted PNG copy"}
               </button>
               {photoExportNotice && <p role="status" className="photo-export-notice">{photoExportNotice}</p>}
               <p>Export to Pictures may sync with OneDrive. The original stays unchanged. Supports PNG, JPEG and WebP sources up to 32 MB and 20 megapixels. PNG export does not preserve source EXIF or ICC metadata, and it does not save an asset into this project.</p>
-            </div> : <p className="model-hint">Select an image to adjust its preview, or choose Create to generate a new image.</p>}
-            <button className="secondary full" onClick={() => { setStudioMode("create"); setStudioModeChosen(true); }}>Create an image</button>
-            <GenerationHistory refreshVersion={historyVersion} onResult={addGenerated} />
+            </div> : view === "photo" ? <p className="model-hint">Choose a photo to adjust and export, or use Create Images for AI generation.</p> :
+              <div className="video-capability-note" role="status">
+                <strong>Video editing is not yet available.</strong>
+                <p>You can play a local clip, seek in 0.1-second steps, and mark an in/out range. Markers are preview-only. Clip assembly, transitions and video export still need qualified native implementation.</p>
+                {isVideo && <p>Current preview range: {formatTime(trimIn)} to {formatTime(trimOut ?? duration)}.</p>}
+              </div>}
+            {view === "photo" && <>
+              <button className="secondary full" onClick={() => setView("create")}>Create an image</button>
+              <GenerationHistory refreshVersion={historyVersion} onResult={addGenerated} />
+            </>}
           </aside>
           {message && <div className="notice" role="status"><span>{message}</span><button onClick={() => setMessage("")} aria-label="Dismiss notification">×</button></div>}
         </main>}
@@ -308,5 +349,6 @@ export default function App() {
         {view === "settings" && <main className="content-page"><div className="page-eyebrow">PREFERENCES</div><h1>Your studio stays on your computer.</h1><p className="lead">Local files, user-controlled AI models, and clear permission boundaries come first.</p><div className="setting-row"><span><strong>Application shell</strong><small>{status?.stage ?? "Browser preview: native Rust bridge unavailable"}</small></span><strong>{status ? "Tauri / Rust" : "Browser-only preview"}</strong></div><div className="setting-row"><span><strong>Model execution</strong><small>Local text-to-image through an isolated Python worker; set up on the Models page</small></span><strong>Text to image</strong></div><div className="setting-row"><span><strong>Persistent projects</strong><small>Named projects are saved locally and reopen after restart. Imported media is not saved into projects yet.</small></span><strong>Names only</strong></div><div className="setting-row"><span><strong>Local/cloud policy</strong><small>No cloud generation is enabled or silently selected</small></span><strong>Local first</strong></div></main>}
       </div>
     </div>
+    </DownloadProvider>
   );
 }

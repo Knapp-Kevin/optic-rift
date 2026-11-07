@@ -10,12 +10,13 @@ test("Create default follows native qualified-execution decision", () => {
   }
 });
 
-test("Create and Edit remain independently navigable with a bounded preview", () => {
+test("Create, Photo and Video are first-class destinations with bounded workspaces", () => {
   const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8");
   const css = readFileSync(new URL("../src/styles.css", import.meta.url), "utf8");
-  assert.match(app, /className="studio-tabs"/);
-  assert.match(app, /setStudioMode\("create"\)/);
-  assert.match(app, /setStudioMode\("edit"\)/);
+  assert.match(app, /aria-label="Primary navigation"/);
+  assert.match(app, /navigation\.map\(\(section\)/);
+  assert.match(app, /view === "create"/);
+  assert.match(app, /view === "photo" \|\| view === "video"/);
   assert.match(app, /layout="create"/);
   assert.match(css, /\.create-preview img\{[^}]*object-fit:contain/);
   assert.match(css, /\.canvas video,\.canvas img\{[^}]*max-height:100%/);
@@ -52,8 +53,8 @@ test("Create survives Edit media switches and re-conceals previews while hidden"
   const panel = readFileSync(new URL("../src/GeneratePanel.tsx", import.meta.url), "utf8");
   const strip = readFileSync(new URL("../src/GenerationFilmstrip.tsx", import.meta.url), "utf8");
   // Hidden rather than unmounted, so a running job keeps its progress, Cancel and result.
-  assert.match(app, /createOpened && <main className="create-workspace" hidden=\{!\(view === "studio" && studioMode === "create"\)\}/);
-  assert.match(app, /visible=\{view === "studio" && studioMode === "create"\}/);
+  assert.match(app, /createOpened && <main className="create-workspace" hidden=\{view !== "create"\}/);
+  assert.match(app, /visible=\{view === "create"\}/);
   assert.match(panel, /active=\{visible\}/);
   assert.match(strip, /if \(!active\) setPreviewsRevealed\(false\)/);
 });
@@ -81,9 +82,10 @@ test("Image-to-image never displays an unchosen history item as the selected sou
   assert.match(css, /\.create-settings input\[type=range\]\{width:100%;margin:0;/);
 });
 
-test("Edit media accounts for the Studio tab bar instead of scrolling the page", () => {
+test("Photo and Video workspaces are bounded to the viewport with independent scroll", () => {
   const css = readFileSync(new URL("../src/styles.css", import.meta.url), "utf8");
-  assert.match(css, /\.studio-tabs~\.workspace\{min-height:calc\(100vh - 120px\)\}/);
+  assert.match(css, /\.workspace\.photo-workspace,\.workspace\.video-workspace\{flex:none;height:calc\(100vh - 68px\);min-height:0\}/);
+  assert.match(css, /\.workspace\.video-workspace>\.editor-inspector/);
 });
 
 test("GPU consent dialog scrolls inside a short stage instead of being clipped", () => {

@@ -351,18 +351,25 @@ pub struct ModelDetail {
     pub format: Format,
     pub repo_files: usize,
     pub repo_bytes: u64,
+    /// An inert, hash-addressable configuration sample. This is NOT model weights or execution support.
+    pub cache_metadata_file: Option<RepoFile>,
     pub plans: Vec<PlanView>,
     pub rejections: Vec<Rejection>,
     pub page_url: String,
 }
 
-async fn get_with_optional_token(
+fn token_retry_allowed(allow_token: bool, status: u16) -> bool {
+    allow_token && matches!(status, 401 | 403)
+}
+
+async fn get_with_token_policy(
     url: &str,
     timeout: Duration,
+    allow_token: bool,
 ) -> Result<(reqwest::Response, bool), String> {
     let http = client(timeout)?;
     let anonymous = http.get(url).send().await.map_err(net_error)?;
-    if !matches!(anonymous.status().as_u16(), 401 | 403) {
+    if !token_retry_allowed(allow_token, anonymous.status().as_u16()) {
         return Ok((anonymous, false));
     }
     match USER_SLOT.token()? {
@@ -390,11 +397,61 @@ fn repo_files(siblings: &[RawSibling]) -> Vec<RepoFile> {
         .collect()
 }
 
+/// Metadata-only cache is deliberately much narrower than model-file installation.
+/// A video repository without a safely hash-identifiable, small config stays discover-only.
+pub fn video_cache_candidate(capability: Capability, files: &[RepoFile]) -> Option<RepoFile> {
+    if !matches!(
+        capability,
+        Capability::TextToVideo | Capability::ImageToVideo | Capability::VideoToVideo
+    ) {
+        return None;
+    }
+    const SMALL_CONFIG_BYTES: u64 = 256 * 1024;
+    for name in ["model_index.json", "config.json"] {
+        if let Some(file) = files.iter().find(|f| {
+            f.path == name
+                && f.size > 0
+                && f.size <= SMALL_CONFIG_BYTES
+                && (f.blob_id.as_ref().is_some_and(|id| valid_hash(id, 40))
+                    || f.lfs_sha256.as_ref().is_some_and(|id| valid_hash(id, 64)))
+        }) {
+            return Some(file.clone());
+        }
+    }
+    None
+}
+
+pub fn valid_hash(hash: &str, len: usize) -> bool {
+    hash.len() == len
+        && hash
+            .bytes()
+            .all(|ch| ch.is_ascii_hexdigit() && !ch.is_ascii_uppercase())
+}
+
 /// Inspect one repository at `revision` ("main" or a commit SHA) and evaluate every adapter.
 pub async fn inspect(
     id: &str,
     revision: &str,
     capability: Capability,
+) -> Result<ModelDetail, String> {
+    inspect_with_token_policy(id, revision, capability, true).await
+}
+
+/// Anonymous-only metadata inspection for the public video metadata cache.
+/// It must never read or send a stored Hugging Face credential, even for 401s.
+pub async fn inspect_public(
+    id: &str,
+    revision: &str,
+    capability: Capability,
+) -> Result<ModelDetail, String> {
+    inspect_with_token_policy(id, revision, capability, false).await
+}
+
+async fn inspect_with_token_policy(
+    id: &str,
+    revision: &str,
+    capability: Capability,
+    allow_token: bool,
 ) -> Result<ModelDetail, String> {
     if !valid_repo_id(id) {
         return Err("Invalid model identifier.".into());
@@ -403,7 +460,7 @@ pub async fn inspect(
         return Err("Invalid revision.".into());
     }
     let url = format!("{HUB}/api/models/{id}/revision/{revision}?blobs=true");
-    let (response, _) = get_with_optional_token(&url, Duration::from_secs(20)).await?;
+    let (response, _) = get_with_token_policy(&url, Duration::from_secs(20), allow_token).await?;
     match response.status().as_u16() {
         200 => {}
         401 | 403 | 404 => {
@@ -430,9 +487,10 @@ pub async fn inspect(
     };
     let mut model_index = None;
     if names.iter().any(|n| n == "model_index.json") {
-        let (resp, used_token) = get_with_optional_token(
+        let (mut resp, used_token) = get_with_token_policy(
             &format!("{HUB}/{id}/resolve/{sha}/model_index.json"),
             Duration::from_secs(20),
+            allow_token,
         )
         .await?;
         if resp.status().is_success() {
@@ -443,9 +501,22 @@ pub async fn inspect(
                     Access::Public
                 };
             }
-            let bytes = resp.bytes().await.map_err(net_error)?;
-            if bytes.len() <= MAX_INDEX_BYTES {
-                model_index = serde_json::from_slice::<serde_json::Value>(&bytes).ok();
+            // Never buffer an unbounded upstream config before checking its size.
+            if resp
+                .content_length()
+                .is_none_or(|n| n <= MAX_INDEX_BYTES as u64)
+            {
+                let mut bytes = Vec::new();
+                while let Some(chunk) = resp.chunk().await.map_err(net_error)? {
+                    if bytes.len().saturating_add(chunk.len()) > MAX_INDEX_BYTES {
+                        bytes.clear();
+                        break;
+                    }
+                    bytes.extend_from_slice(&chunk);
+                }
+                if !bytes.is_empty() {
+                    model_index = serde_json::from_slice::<serde_json::Value>(&bytes).ok();
+                }
             }
         }
     }
@@ -495,6 +566,7 @@ pub async fn inspect(
         format: format_of(&names),
         repo_files: files.len(),
         repo_bytes: files.iter().map(|f| f.size).sum(),
+        cache_metadata_file: video_cache_candidate(capability, &files),
         page_url: format!("{HUB}/{id}"),
         id: raw.id,
         revision: sha,
@@ -510,6 +582,73 @@ pub async fn inspect(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn cache_preview_is_only_small_hash_identified_video_config() {
+        let f = |path: &str, size: u64, hash: Option<&str>| RepoFile {
+            path: path.into(),
+            size,
+            lfs_sha256: None,
+            blob_id: hash.map(str::to_owned),
+        };
+        let sha = "a".repeat(40);
+        let list = vec![
+            f("README.md", 100, Some(&sha)),
+            f("model_index.json", 1133, Some(&sha)),
+            f("transformer/model.safetensors", 2000, Some(&sha)),
+        ];
+        for task in [
+            Capability::TextToVideo,
+            Capability::ImageToVideo,
+            Capability::VideoToVideo,
+        ] {
+            let selected = video_cache_candidate(task, &list).unwrap();
+            assert_eq!(selected.path, "model_index.json");
+            assert_eq!(selected.size, 1133);
+        }
+        assert!(video_cache_candidate(Capability::TextToImage, &list).is_none());
+        assert!(video_cache_candidate(
+            Capability::TextToVideo,
+            &[f("model_index.json", 0, Some(&sha))]
+        )
+        .is_none());
+        assert!(video_cache_candidate(
+            Capability::TextToVideo,
+            &[f("model_index.json", 262_145, Some(&sha))]
+        )
+        .is_none());
+        assert!(video_cache_candidate(
+            Capability::VideoToVideo,
+            &[f("../config.json", 200, Some(&sha))]
+        )
+        .is_none());
+        assert!(video_cache_candidate(
+            Capability::VideoToVideo,
+            &[f("model_index.json", 200, None)]
+        )
+        .is_none());
+        assert!(video_cache_candidate(
+            Capability::VideoToVideo,
+            &[f("model_index.json", 200, Some("invalid"))]
+        )
+        .is_none());
+        assert!(video_cache_candidate(
+            Capability::VideoToVideo,
+            &[f("model_index.json", 200, Some(&"A".repeat(40)))]
+        )
+        .is_none());
+    }
+
+    #[test]
+    fn public_cache_token_policy_cannot_retry_with_credentials() {
+        for status in [200, 302, 401, 403, 404, 500] {
+            assert!(!token_retry_allowed(false, status));
+        }
+        assert!(token_retry_allowed(true, 401));
+        assert!(token_retry_allowed(true, 403));
+        assert!(!token_retry_allowed(true, 302));
+        assert!(!token_retry_allowed(true, 500));
+    }
 
     #[test]
     fn repo_ids_and_revisions_are_strict() {
@@ -536,6 +675,43 @@ mod tests {
         assert!(!valid_revision_sha(
             "60987F37E94CD59C36B1CBA832B9F97B57395A10"
         ));
+    }
+
+    #[test]
+    fn all_video_discovery_queries_are_task_specific_and_anonymous() {
+        for (capability, tag) in [
+            (Capability::TextToVideo, "text-to-video"),
+            (Capability::ImageToVideo, "image-to-video"),
+            (Capability::VideoToVideo, "video-to-video"),
+        ] {
+            let url = search_url("", capability, 16).unwrap();
+            let pairs: Vec<(String, String)> = url
+                .query_pairs()
+                .map(|(a, b)| (a.into_owned(), b.into_owned()))
+                .collect();
+            assert!(pairs.iter().any(|(k, v)| k == "pipeline_tag" && v == tag));
+            assert!(!pairs
+                .iter()
+                .any(|(k, _)| k.contains("token") || k.contains("authorization")));
+            assert!(!url.as_str().contains("@"));
+        }
+    }
+
+    #[test]
+    fn source_flagged_video_metadata_is_not_treated_as_safe_or_runnable() {
+        let raw: RawModel = serde_json::from_value(serde_json::json!({
+            "id": "fixture/video",
+            "sha": "b".repeat(40),
+            "pipeline_tag": "image-to-video",
+            "gated": false,
+            "tags": ["not-for-all-audiences", "license:other"],
+            "siblings": [{"rfilename": "model_index.json"}]
+        }))
+        .unwrap();
+        let model = summarize(raw, Capability::ImageToVideo);
+        assert_eq!(model.audience, "not-for-all-audiences");
+        assert_eq!(model.license.as_deref(), Some("other"));
+        assert!(matches!(model.compatibility, Compatibility::NoAdapter));
     }
 
     #[test]

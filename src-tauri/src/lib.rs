@@ -12,6 +12,7 @@ mod photo_export;
 mod process_tree;
 mod project_store;
 mod runtime;
+mod video_metadata_cache;
 
 #[derive(Serialize)]
 struct RuntimeStatus {
@@ -93,11 +94,14 @@ pub fn with_commands<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Bu
         model_commands::catalog_capabilities,
         model_commands::catalog_search,
         model_commands::catalog_inspect,
+        model_commands::video_cache_metadata,
+        model_commands::video_cache_clear,
         model_commands::open_model_page,
         model_commands::models_library,
         model_commands::models_set_dir,
         model_commands::model_install,
         model_commands::model_install_cancel,
+        model_commands::model_install_status,
         model_commands::model_remove,
         model_commands::image_runtime_install,
         model_commands::generation_generate,

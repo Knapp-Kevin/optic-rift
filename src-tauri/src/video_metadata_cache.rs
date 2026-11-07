@@ -1,0 +1,1002 @@
+//! Conservative public video-model metadata caching. This is deliberately NOT
+//! a weight downloader or inference adapter. The only permitted payload is a
+//! small, validated, hash-addressed JSON configuration at an immutable revision.
+//! Public-only: no credentials and no redirect-following at this boundary.
+
+use crate::adapters::{Capability, RepoFile};
+use crate::hf_catalog::{self, ModelDetail};
+use serde::{Deserialize, Serialize};
+use sha1::{Digest as _, Sha1};
+use sha2::Sha256;
+use std::fs::{self, File, OpenOptions};
+use std::io::{Read, Write};
+use std::path::{Path, PathBuf};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
+const MAX_JSON_BYTES: usize = 256 * 1024;
+const CACHE_DIR: &str = "video-model-metadata";
+const RECEIPT_NAME: &str = "optic-rift-metadata-receipt.json";
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct CacheRequest {
+    pub repo: String,
+    pub revision: String,
+    pub capability: Capability,
+    pub license_acknowledged: String,
+    pub adult_acknowledged: bool,
+    pub accept: bool,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CacheReceipt {
+    pub repo: String,
+    pub revision: String,
+    pub capability: Capability,
+    pub source_license: String,
+    pub source_audience: String,
+    pub filename: String,
+    pub sha256: String,
+    pub bytes: u64,
+    pub cached_unix_ms: u64,
+    /// File data only: never infer runtime support or downloadable weights.
+    pub status: String,
+}
+
+fn is_video(capability: Capability) -> bool {
+    matches!(
+        capability,
+        Capability::TextToVideo | Capability::ImageToVideo | Capability::VideoToVideo
+    )
+}
+
+/// The UI's consent fields are rechecked by native code against fresh metadata
+/// at the exact pinned revision. No trust is placed in client-supplied file lists.
+pub fn admit(request: &CacheRequest, detail: &ModelDetail) -> Result<RepoFile, String> {
+    if !request.accept {
+        return Err("Download configuration only after explicit approval.".into());
+    }
+    if !is_video(request.capability) {
+        return Err("This metadata-only cache is for video model discovery.".into());
+    }
+    if !hf_catalog::valid_repo_id(&request.repo)
+        || !hf_catalog::valid_revision_sha(&request.revision)
+        || detail.id != request.repo
+        || detail.revision != request.revision
+        || detail.capability != request.capability
+    {
+        return Err("Model identity or pinned revision does not match inspection.".into());
+    }
+    // Gated metadata is a different authorization path. No token is ever
+    // placed in this download-only request or forwarded across redirects.
+    if detail.gated != "no" {
+        return Err(
+            "Gated video configuration needs separate authorized support; no download was started."
+                .into(),
+        );
+    }
+    // A user's selected capability is not evidence that a repository actually
+    // advertises that task. Do not silently reclassify a model across video modes.
+    let tag = match request.capability {
+        Capability::TextToVideo => "text-to-video",
+        Capability::ImageToVideo => "image-to-video",
+        Capability::VideoToVideo => "video-to-video",
+        _ => unreachable!(),
+    };
+    if detail.pipeline_tag.as_deref() != Some(tag) {
+        return Err("The source's declared task does not match this video capability.".into());
+    }
+    let license = detail.license.as_deref().unwrap_or("unknown");
+    if request.license_acknowledged != license {
+        return Err("Review the model's current license and acknowledge it again.".into());
+    }
+    if detail.audience == "not-for-all-audiences" && !request.adult_acknowledged {
+        return Err("This source-flagged 18+ model needs explicit acknowledgment.".into());
+    }
+    let candidate = detail.cache_metadata_file.clone().ok_or(
+        "No small, integrity-identifiable configuration file is available for this model."
+            .to_string(),
+    )?;
+    if !matches!(candidate.path.as_str(), "model_index.json" | "config.json")
+        || candidate.size == 0
+        || candidate.size > MAX_JSON_BYTES as u64
+        || !(candidate
+            .blob_id
+            .as_ref()
+            .is_some_and(|v| hf_catalog::valid_hash(v, 40))
+            || candidate
+                .lfs_sha256
+                .as_ref()
+                .is_some_and(|v| hf_catalog::valid_hash(v, 64)))
+    {
+        return Err("Model configuration does not meet the safe metadata cache policy.".into());
+    }
+    Ok(candidate)
+}
+
+fn git_blob_id(bytes: &[u8]) -> String {
+    let mut hasher = Sha1::new();
+    hasher.update(format!("blob {}\0", bytes.len()).as_bytes());
+    hasher.update(bytes);
+    format!("{:x}", hasher.finalize())
+}
+
+fn digest_sha256(bytes: &[u8]) -> String {
+    format!("{:x}", Sha256::digest(bytes))
+}
+
+fn verify_download(bytes: &[u8], file: &RepoFile) -> Result<(), String> {
+    if bytes.is_empty() || bytes.len() > MAX_JSON_BYTES || bytes.len() as u64 != file.size {
+        return Err("Configuration download has an unexpected size.".into());
+    }
+    if let Some(sha) = &file.lfs_sha256 {
+        if digest_sha256(bytes) != *sha {
+            return Err("Configuration SHA-256 does not match source metadata.".into());
+        }
+    } else if let Some(blob) = &file.blob_id {
+        if git_blob_id(bytes) != *blob {
+            return Err("Configuration Git blob identity does not match source metadata.".into());
+        }
+    } else {
+        return Err("Configuration lacks source integrity evidence.".into());
+    }
+    serde_json::from_slice::<serde_json::Value>(bytes)
+        .map_err(|_| "Source configuration was not valid JSON.".to_string())?;
+    Ok(())
+}
+
+/// Anonymous HTTPS only, with redirects refused. The exact path is chosen by
+/// the native allowlist and never comes from an arbitrary user-provided URL.
+async fn read_public_config(
+    repo: &str,
+    revision: &str,
+    file: &RepoFile,
+) -> Result<Vec<u8>, String> {
+    let client = reqwest::Client::builder()
+        .https_only(true)
+        .redirect(reqwest::redirect::Policy::none())
+        .connect_timeout(Duration::from_secs(10))
+        .timeout(Duration::from_secs(25))
+        .user_agent(concat!("OpticRift/", env!("CARGO_PKG_VERSION")))
+        .build()
+        .map_err(|_| "Could not establish a public metadata connection.".to_string())?;
+    let url = format!(
+        "{}/{repo}/resolve/{revision}/{}",
+        hf_catalog::HUB,
+        file.path
+    );
+    let mut response = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|_| "Could not reach the public metadata file.".to_string())?;
+    // The Hub now answers `resolve` for small Git-stored files with a same-host 307 to
+    // `/api/resolve-cache/models/<repo>/<sha>/<file>`. Follow exactly that one hop; any
+    // other target (another host, CDN, path, scheme or a second redirect) is refused.
+    if matches!(response.status().as_u16(), 301 | 302 | 303 | 307 | 308) {
+        let target = response
+            .headers()
+            .get(reqwest::header::LOCATION)
+            .and_then(|v| v.to_str().ok())
+            .and_then(|loc| resolve_cache_redirect(loc, repo, revision, &file.path))
+            .ok_or("Public metadata redirected somewhere other than the Hub's own file cache; nothing was downloaded.")?;
+        response = client
+            .get(target)
+            .send()
+            .await
+            .map_err(|_| "Could not reach the public metadata file.".to_string())?;
+    }
+    if !response.status().is_success() {
+        return Err(format!(
+            "Public metadata request was not approved (HTTP {}). Redirects or gated access are not followed.",
+            response.status().as_u16()
+        ));
+    }
+    if response
+        .content_length()
+        .is_some_and(|len| len > MAX_JSON_BYTES as u64 || len != file.size)
+    {
+        return Err("Public metadata response exceeded the expected size.".into());
+    }
+    let mut data = Vec::with_capacity((file.size as usize).min(MAX_JSON_BYTES));
+    while let Some(chunk) = response
+        .chunk()
+        .await
+        .map_err(|_| "Public metadata transfer stopped.".to_string())?
+    {
+        if data.len().saturating_add(chunk.len()) > MAX_JSON_BYTES {
+            return Err("Public metadata transfer exceeded the safe byte limit.".into());
+        }
+        data.extend_from_slice(&chunk);
+    }
+    verify_download(&data, file)?;
+    Ok(data)
+}
+
+/// Accept a redirect only to `https://huggingface.co/api/resolve-cache/models/<repo>/<revision>/<file>`
+/// (query allowed), with no credentials, port or alternative host. Relative locations are resolved
+/// against the Hub. Integrity is still enforced afterwards by the source Git/LFS hash.
+fn resolve_cache_redirect(
+    location: &str,
+    repo: &str,
+    revision: &str,
+    file: &str,
+) -> Option<reqwest::Url> {
+    let base = reqwest::Url::parse(hf_catalog::HUB).ok()?;
+    let target = base.join(location).ok()?;
+    let expected = format!("/api/resolve-cache/models/{repo}/{revision}/{file}");
+    (target.scheme() == "https"
+        && target.host_str() == base.host_str()
+        && target.port().is_none()
+        && target.username().is_empty()
+        && target.password().is_none()
+        && target.fragment().is_none()
+        && target.path() == expected)
+        .then_some(target)
+}
+
+#[cfg(windows)]
+fn is_reparse(metadata: &fs::Metadata) -> bool {
+    use std::os::windows::fs::MetadataExt;
+    metadata.file_attributes() & 0x400 != 0
+}
+#[cfg(not(windows))]
+fn is_reparse(_metadata: &fs::Metadata) -> bool {
+    false
+}
+
+fn checked_dir(path: &Path) -> Result<(), String> {
+    match fs::create_dir(path) {
+        Ok(()) => {}
+        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {}
+        Err(_) => return Err("Could not create the metadata cache folder.".into()),
+    }
+    let m = fs::symlink_metadata(path)
+        .map_err(|_| "Cannot inspect the metadata cache folder.".to_string())?;
+    if !m.is_dir() || m.file_type().is_symlink() || is_reparse(&m) {
+        return Err("Metadata cache path is redirected or unsafe.".into());
+    }
+    Ok(())
+}
+
+fn cache_folder(app_local: &Path, repo: &str, revision: &str) -> Result<PathBuf, String> {
+    if !hf_catalog::valid_repo_id(repo) || !hf_catalog::valid_revision_sha(revision) {
+        return Err("Invalid cache model identity.".into());
+    }
+    // The local application directory itself must be a regular directory.
+    checked_dir(app_local)?;
+    let root = app_local.join(CACHE_DIR);
+    checked_dir(&root)?;
+    let repo_dir = root.join(digest_sha256(repo.as_bytes()));
+    checked_dir(&repo_dir)?;
+    let rev_dir = repo_dir.join(revision);
+    checked_dir(&rev_dir)?;
+    Ok(rev_dir)
+}
+
+fn existing_cache_folder(app_local: &Path, repo: &str, revision: &str) -> Option<PathBuf> {
+    if !hf_catalog::valid_repo_id(repo) || !hf_catalog::valid_revision_sha(revision) {
+        return None;
+    }
+    let root = app_local.join(CACHE_DIR);
+    let model_dir = root.join(digest_sha256(repo.as_bytes()));
+    let folder = model_dir.join(revision);
+    // Inspection is read-only. Never create directories just to display cache
+    // status, and never follow a reparse point in a cache path component.
+    for path in [
+        app_local,
+        root.as_path(),
+        model_dir.as_path(),
+        folder.as_path(),
+    ] {
+        let meta = fs::symlink_metadata(path).ok()?;
+        if !meta.is_dir() || meta.file_type().is_symlink() || is_reparse(&meta) {
+            return None;
+        }
+    }
+    Some(folder)
+}
+
+fn safe_read_file(path: &Path, bound: u64) -> Result<Vec<u8>, String> {
+    let m =
+        fs::symlink_metadata(path).map_err(|_| "Metadata cache file is missing.".to_string())?;
+    if !m.is_file() || m.file_type().is_symlink() || is_reparse(&m) || m.len() > bound {
+        return Err("Metadata cache file is redirected or too large.".into());
+    }
+    let mut buf = Vec::new();
+    File::open(path)
+        .and_then(|f| f.take(bound + 1).read_to_end(&mut buf))
+        .map_err(|_| "Could not read the metadata cache file.".to_string())?;
+    if buf.len() as u64 > bound {
+        return Err("Metadata cache file changed size during reading.".into());
+    }
+    Ok(buf)
+}
+
+fn publish_new_file(dir: &Path, name: &str, bytes: &[u8]) -> Result<(), String> {
+    if !matches!(name, "model_index.json" | "config.json" | RECEIPT_NAME) {
+        return Err("Refusing an unexpected metadata cache filename.".into());
+    }
+    let destination = dir.join(name);
+    if fs::symlink_metadata(&destination).is_ok() {
+        return Err("Metadata cache destination exists; no file was overwritten.".into());
+    }
+    let temp = dir.join(format!(".{}.partial-{}", name, uuid::Uuid::new_v4()));
+    let mut output = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&temp)
+        .map_err(|_| "Cannot create the metadata staging file.".to_string())?;
+    let result = (|| -> Result<(), String> {
+        output
+            .write_all(bytes)
+            .and_then(|_| output.sync_all())
+            .map_err(|_| "Could not finish the metadata staging write.".to_string())?;
+        drop(output);
+        fs::hard_link(&temp, &destination).map_err(|_| {
+            "Metadata destination already exists or cannot be published safely.".to_string()
+        })?;
+        Ok(())
+    })();
+    let _ = fs::remove_file(&temp);
+    result
+}
+
+/// A cache receipt is shown only when both files are regular, size-bounded and
+/// the payload matches both the receipt SHA-256 and the inspected upstream hash.
+pub fn cached_receipt(app_local: &Path, detail: &ModelDetail) -> Option<CacheReceipt> {
+    let file = detail.cache_metadata_file.as_ref()?;
+    let dir = existing_cache_folder(app_local, &detail.id, &detail.revision)?;
+    let bytes = safe_read_file(&dir.join(&file.path), MAX_JSON_BYTES as u64).ok()?;
+    verify_download(&bytes, file).ok()?;
+    let receipt_bytes = safe_read_file(&dir.join(RECEIPT_NAME), 16 * 1024).ok()?;
+    let receipt: CacheReceipt = serde_json::from_slice(&receipt_bytes).ok()?;
+    (receipt.repo == detail.id
+        && receipt.revision == detail.revision
+        && receipt.capability == detail.capability
+        && receipt.filename == file.path
+        && receipt.bytes == bytes.len() as u64
+        && receipt.sha256 == digest_sha256(&bytes)
+        && receipt.status == "metadata-only")
+        .then_some(receipt)
+}
+
+/// Safe, read-only metadata fetch then verified local publication.
+/// This does not install weights, make a model runnable or consume GPU.
+pub async fn cache_public_metadata(
+    app_local: PathBuf,
+    request: CacheRequest,
+) -> Result<CacheReceipt, String> {
+    if !hf_catalog::valid_repo_id(&request.repo)
+        || !hf_catalog::valid_revision_sha(&request.revision)
+        || !is_video(request.capability)
+        || !request.accept
+    {
+        return Err("Cache request lacks a valid model revision, capability or approval.".into());
+    }
+    // Re-read public source metadata at the pinned commit. A UI-provided
+    // inspection, hash, path or license is never sufficient authorization.
+    let detail =
+        hf_catalog::inspect_public(&request.repo, &request.revision, request.capability).await?;
+    let file = admit(&request, &detail)?;
+    let bytes = read_public_config(&request.repo, &request.revision, &file).await?;
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|v| v.as_millis() as u64)
+        .unwrap_or(0);
+    let receipt = CacheReceipt {
+        repo: detail.id.clone(),
+        revision: detail.revision.clone(),
+        capability: detail.capability,
+        source_license: detail.license.clone().unwrap_or_else(|| "unknown".into()),
+        source_audience: detail.audience.into(),
+        filename: file.path.clone(),
+        sha256: digest_sha256(&bytes),
+        bytes: bytes.len() as u64,
+        cached_unix_ms: now,
+        status: "metadata-only".into(),
+    };
+    tauri::async_runtime::spawn_blocking(move || {
+        store_verified(&app_local, &detail, &file, &bytes, &receipt)?;
+        Ok(receipt)
+    })
+    .await
+    .map_err(|_| "Metadata cache task could not complete.".to_string())?
+}
+
+/// Publish an already source-verified configuration and then its receipt.
+///
+/// The two files cannot be published atomically. If an earlier attempt stopped after
+/// the configuration but before the receipt, that orphan would otherwise block every
+/// later cache attempt and could not be cleared (clearing requires a receipt). Such an
+/// orphan is adopted only when it is a regular file byte-identical to the freshly
+/// verified source; anything else is refused and nothing is overwritten.
+fn store_verified(
+    app_local: &Path,
+    detail: &ModelDetail,
+    file: &RepoFile,
+    bytes: &[u8],
+    receipt: &CacheReceipt,
+) -> Result<(), String> {
+    let dir = cache_folder(app_local, &detail.id, &detail.revision)?;
+    if cached_receipt(app_local, detail).is_some() {
+        return Err("Configuration metadata is already cached and verified.".into());
+    }
+    let config_path = dir.join(&file.path);
+    if fs::symlink_metadata(&config_path).is_ok() {
+        let existing = safe_read_file(&config_path, MAX_JSON_BYTES as u64)?;
+        if existing != bytes {
+            return Err(
+                "A different configuration file is already in the cache folder; nothing was overwritten."
+                    .into(),
+            );
+        }
+    } else {
+        publish_new_file(&dir, &file.path, bytes)?;
+    }
+    let manifest = serde_json::to_vec_pretty(receipt)
+        .map_err(|_| "Could not create metadata receipt.".to_string())?;
+    publish_new_file(&dir, RECEIPT_NAME, &manifest)
+}
+
+/// Remove only our two cache files after checking exact identity and layout.
+/// No recursive deletion: unexpected files or links stop cleanup, protecting
+/// user-owned data even if the cache directory was redirected or modified.
+pub fn remove_metadata(
+    app_local: &Path,
+    repo: &str,
+    revision: &str,
+    accept: bool,
+) -> Result<(), String> {
+    if !accept {
+        return Err("Clearing cached configuration requires approval.".into());
+    }
+    let dir = existing_cache_folder(app_local, repo, revision)
+        .ok_or("No ordinary metadata cache folder exists for this model.")?;
+    let receipt_path = dir.join(RECEIPT_NAME);
+    let bytes = safe_read_file(&receipt_path, 16 * 1024)?;
+    let receipt: CacheReceipt = serde_json::from_slice(&bytes).map_err(|_| {
+        "Cached configuration receipt is invalid; manual inspection required.".to_string()
+    })?;
+    if receipt.repo != repo
+        || receipt.revision != revision
+        || receipt.status != "metadata-only"
+        || !matches!(
+            receipt.filename.as_str(),
+            "model_index.json" | "config.json"
+        )
+    {
+        return Err("Cache receipt is inconsistent; refusing to delete unknown files.".into());
+    }
+    let config_path = dir.join(&receipt.filename);
+    let config = safe_read_file(&config_path, MAX_JSON_BYTES as u64)?;
+    if config.len() as u64 != receipt.bytes || digest_sha256(&config) != receipt.sha256 {
+        return Err("Cached configuration has changed; refusing to delete unknown files.".into());
+    }
+    // Refuse directory contents beyond this precise pair, including partials.
+    let entries = fs::read_dir(&dir)
+        .map_err(|_| "Could not inspect the metadata cache folder.".to_string())?;
+    let mut names = Vec::new();
+    for item in entries {
+        let entry = item.map_err(|_| "Could not inspect the metadata cache folder.".to_string())?;
+        names.push(entry.file_name().to_string_lossy().to_string());
+    }
+    if names.len() != 2
+        || !names.iter().any(|v| v == RECEIPT_NAME)
+        || !names.iter().any(|v| v == receipt.filename.as_str())
+    {
+        return Err("Cache folder contains other files; nothing was removed.".into());
+    }
+    fs::remove_file(&receipt_path)
+        .map_err(|_| "Could not clear the metadata receipt.".to_string())?;
+    fs::remove_file(&config_path)
+        .map_err(|_| "Could not clear the configuration metadata.".to_string())?;
+    // Removing a directory is non-recursive and only succeeds when empty.
+    let _ = fs::remove_dir(&dir);
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::hf_catalog::{Access, Format};
+
+    fn detail(flagged: bool, gated: &str, license: Option<&str>) -> ModelDetail {
+        let content = b"{\"_class_name\":\"LTXPipeline\"}";
+        ModelDetail {
+            id: "example/video-model".into(),
+            revision: "a".repeat(40),
+            capability: Capability::TextToVideo,
+            pipeline_tag: Some("text-to-video".into()),
+            license: license.map(str::to_owned),
+            license_name: None,
+            license_link: None,
+            base_models: None,
+            gated: gated.into(),
+            access: Access::Public,
+            audience: if flagged {
+                "not-for-all-audiences"
+            } else {
+                "unverified"
+            },
+            format: Format::Diffusers,
+            repo_files: 1,
+            repo_bytes: content.len() as u64,
+            cache_metadata_file: Some(RepoFile {
+                path: "model_index.json".into(),
+                size: content.len() as u64,
+                blob_id: Some(git_blob_id(content)),
+                lfs_sha256: None,
+            }),
+            plans: vec![],
+            rejections: vec![],
+            page_url: "https://huggingface.co/example/video-model".into(),
+        }
+    }
+
+    fn req() -> CacheRequest {
+        CacheRequest {
+            repo: "example/video-model".into(),
+            revision: "a".repeat(40),
+            capability: Capability::TextToVideo,
+            license_acknowledged: "unknown".into(),
+            adult_acknowledged: false,
+            accept: true,
+        }
+    }
+
+    fn temp_root() -> PathBuf {
+        let root = std::env::temp_dir().join(format!("optic-video-q-{}", uuid::Uuid::new_v4()));
+        fs::create_dir(&root).unwrap();
+        root
+    }
+
+    fn fixture_receipt(d: &ModelDetail, bytes: &[u8]) -> CacheReceipt {
+        CacheReceipt {
+            repo: d.id.clone(),
+            revision: d.revision.clone(),
+            capability: d.capability,
+            source_license: "unknown".into(),
+            source_audience: d.audience.into(),
+            filename: "model_index.json".into(),
+            sha256: digest_sha256(bytes),
+            bytes: bytes.len() as u64,
+            cached_unix_ms: 1,
+            status: "metadata-only".into(),
+        }
+    }
+
+    const FIXTURE: &[u8] = b"{\"_class_name\":\"LTXPipeline\"}";
+
+    #[test]
+    fn only_the_hubs_own_resolve_cache_redirect_is_followed() {
+        let (repo, rev, file) = (
+            "Wan-AI/Wan2.1-T2V-1.3B-Diffusers",
+            "0fad780a534b6463e45facd96134c9f345acfa5b",
+            "model_index.json",
+        );
+        // Observed live from the Hub on 2026-11-06.
+        let live = "/api/resolve-cache/models/Wan-AI/Wan2.1-T2V-1.3B-Diffusers/0fad780a534b6463e45facd96134c9f345acfa5b/model_index.json?%2FWan-AI%2FWan2.1-T2V-1.3B-Diffusers%2Fresolve%2F0fad780a534b6463e45facd96134c9f345acfa5b%2Fmodel_index.json=&etag=%225939d0bf16bfab26f95f149dc29abf898ed5056c%22";
+        let url = resolve_cache_redirect(live, repo, rev, file).unwrap();
+        assert_eq!(url.host_str(), Some("huggingface.co"));
+        assert!(
+            resolve_cache_redirect(&format!("https://huggingface.co{live}"), repo, rev, file)
+                .is_some()
+        );
+        let expected = format!("/api/resolve-cache/models/{repo}/{rev}/{file}");
+        for bad in [
+            format!("https://cdn-lfs.huggingface.co{expected}"),
+            format!("https://evil.example{expected}"),
+            format!("//evil.example{expected}"),
+            format!("http://huggingface.co{expected}"),
+            format!("https://huggingface.co:8443{expected}"),
+            format!("https://user:pw@huggingface.co{expected}"),
+            format!("https://huggingface.co.evil.example{expected}"),
+            format!("/api/resolve-cache/models/{repo}/{}/{file}", "1".repeat(40)),
+            format!("/api/resolve-cache/models/other/repo/{rev}/{file}"),
+            format!(
+                "/api/resolve-cache/models/{repo}/{rev}/unet/diffusion_pytorch_model.safetensors"
+            ),
+            format!("/api/resolve-cache/models/{repo}/{rev}/../{file}"),
+            format!("/{repo}/resolve/{rev}/{file}"),
+            format!("{expected}#frag"),
+            String::new(),
+        ] {
+            assert!(
+                resolve_cache_redirect(&bad, repo, rev, file).is_none(),
+                "{bad}"
+            );
+        }
+    }
+
+    #[test]
+    fn refused_top_level_requests_fail_before_any_network_or_disk_access() {
+        let root = std::env::temp_dir().join(format!("optic-video-none-{}", uuid::Uuid::new_v4()));
+        let mut cases = Vec::new();
+        let mut r = req();
+        r.accept = false;
+        cases.push(r);
+        let mut r = req();
+        r.repo = "not a repo".into();
+        cases.push(r);
+        let mut r = req();
+        r.revision = "main".into();
+        cases.push(r);
+        let mut r = req();
+        r.capability = Capability::TextToImage;
+        cases.push(r);
+        for r in cases {
+            // The pre-check message is produced only before inspection, so no request was made.
+            let err =
+                tauri::async_runtime::block_on(cache_public_metadata(root.clone(), r)).unwrap_err();
+            assert!(err.starts_with("Cache request lacks"), "{err}");
+        }
+        assert!(!root.exists(), "nothing was created on disk");
+    }
+
+    #[test]
+    fn admission_refuses_missing_or_unverifiable_candidates_and_bad_identity() {
+        let mut d = detail(false, "no", None);
+        d.cache_metadata_file = None;
+        assert!(admit(&req(), &d).unwrap_err().contains("No small"));
+        for (path, size, blob) in [
+            ("../model_index.json", 10, Some("a".repeat(40))),
+            ("weights.safetensors", 10, Some("a".repeat(40))),
+            ("model_index.json", 0, Some("a".repeat(40))),
+            ("model_index.json", 262_145, Some("a".repeat(40))),
+            ("model_index.json", 10, Some("A".repeat(40))),
+            ("model_index.json", 10, Some("a".repeat(39))),
+            ("model_index.json", 10, None),
+        ] {
+            let mut d = detail(false, "no", None);
+            d.cache_metadata_file = Some(RepoFile {
+                path: path.into(),
+                size,
+                blob_id: blob,
+                lfs_sha256: None,
+            });
+            assert!(admit(&req(), &d).is_err(), "{path} {size}");
+        }
+        for gated in ["auto", "manual", "yes", ""] {
+            assert!(
+                admit(&req(), &detail(false, gated, None)).is_err(),
+                "{gated}"
+            );
+        }
+        let mut r = req();
+        r.repo = "../escape".into();
+        assert!(admit(&r, &detail(false, "no", None)).is_err());
+        let mut d = detail(false, "no", None);
+        d.pipeline_tag = None;
+        assert!(admit(&req(), &d).unwrap_err().contains("declared task"));
+        let mut r = req();
+        r.license_acknowledged = "apache-2.0".into();
+        assert!(admit(&r, &detail(false, "no", Some("mit"))).is_err());
+        r.license_acknowledged = "mit".into();
+        assert!(admit(&r, &detail(false, "no", Some("mit"))).is_ok());
+    }
+
+    #[test]
+    fn verify_download_refuses_size_hash_and_json_mismatches() {
+        let good = RepoFile {
+            path: "model_index.json".into(),
+            size: FIXTURE.len() as u64,
+            blob_id: Some(git_blob_id(FIXTURE)),
+            lfs_sha256: None,
+        };
+        assert!(verify_download(FIXTURE, &good).is_ok());
+        let mut altered = FIXTURE.to_vec();
+        altered[2] ^= 1;
+        assert!(verify_download(&altered, &good)
+            .unwrap_err()
+            .contains("Git blob"));
+        assert!(verify_download(&FIXTURE[1..], &good)
+            .unwrap_err()
+            .contains("size"));
+        assert!(verify_download(b"", &good).is_err());
+        let mut lfs = good.clone();
+        lfs.blob_id = None;
+        lfs.lfs_sha256 = Some("0".repeat(64));
+        assert!(verify_download(FIXTURE, &lfs)
+            .unwrap_err()
+            .contains("SHA-256"));
+        let truncated = b"{\"_class_name\":";
+        let corrupt = RepoFile {
+            path: "model_index.json".into(),
+            size: truncated.len() as u64,
+            blob_id: Some(git_blob_id(truncated)),
+            lfs_sha256: None,
+        };
+        assert!(verify_download(truncated, &corrupt)
+            .unwrap_err()
+            .contains("JSON"));
+        let mut none = good.clone();
+        none.blob_id = None;
+        assert!(verify_download(FIXTURE, &none).is_err());
+    }
+
+    #[test]
+    fn status_inspection_is_read_only_and_rejects_tampering() {
+        let root = temp_root();
+        let d = detail(false, "no", None);
+        assert!(cached_receipt(&root, &d).is_none());
+        assert!(
+            !root.join(CACHE_DIR).exists(),
+            "inspection must not create cache folders"
+        );
+        let receipt = fixture_receipt(&d, FIXTURE);
+        store_verified(
+            &root,
+            &d,
+            d.cache_metadata_file.as_ref().unwrap(),
+            FIXTURE,
+            &receipt,
+        )
+        .unwrap();
+        assert!(cached_receipt(&root, &d).is_some());
+        let dir = existing_cache_folder(&root, &d.id, &d.revision).unwrap();
+        // Duplicate cache attempts are refused and change nothing.
+        let before = fs::read(dir.join(RECEIPT_NAME)).unwrap();
+        assert!(store_verified(
+            &root,
+            &d,
+            d.cache_metadata_file.as_ref().unwrap(),
+            FIXTURE,
+            &receipt
+        )
+        .unwrap_err()
+        .contains("already cached"));
+        assert_eq!(fs::read(dir.join(RECEIPT_NAME)).unwrap(), before);
+        // Corrupt receipt, mismatched receipt identity and tampered payload all read as not cached.
+        fs::remove_file(dir.join(RECEIPT_NAME)).unwrap();
+        fs::write(dir.join(RECEIPT_NAME), b"{not json").unwrap();
+        assert!(cached_receipt(&root, &d).is_none());
+        let mut other = receipt.clone();
+        other.revision = "b".repeat(40);
+        fs::remove_file(dir.join(RECEIPT_NAME)).unwrap();
+        fs::write(dir.join(RECEIPT_NAME), serde_json::to_vec(&other).unwrap()).unwrap();
+        assert!(cached_receipt(&root, &d).is_none());
+        fs::remove_file(dir.join(RECEIPT_NAME)).unwrap();
+        fs::write(
+            dir.join(RECEIPT_NAME),
+            serde_json::to_vec(&receipt).unwrap(),
+        )
+        .unwrap();
+        assert!(cached_receipt(&root, &d).is_some());
+        fs::remove_file(dir.join("model_index.json")).unwrap();
+        fs::write(
+            dir.join("model_index.json"),
+            b"{\"_class_name\":\"LTXPipelinf\"}",
+        )
+        .unwrap();
+        assert!(cached_receipt(&root, &d).is_none());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn orphaned_config_is_adopted_only_when_byte_identical() {
+        let root = temp_root();
+        let d = detail(false, "no", None);
+        let file = d.cache_metadata_file.clone().unwrap();
+        let receipt = fixture_receipt(&d, FIXTURE);
+        // Simulate a stop between the configuration and its receipt.
+        let dir = cache_folder(&root, &d.id, &d.revision).unwrap();
+        publish_new_file(&dir, "model_index.json", FIXTURE).unwrap();
+        assert!(cached_receipt(&root, &d).is_none());
+        store_verified(&root, &d, &file, FIXTURE, &receipt).unwrap();
+        assert!(cached_receipt(&root, &d).is_some());
+        remove_metadata(&root, &d.id, &d.revision, true).unwrap();
+        assert!(!dir.exists(), "clear removes the emptied revision folder");
+        // A different orphan is never overwritten or adopted.
+        let dir = cache_folder(&root, &d.id, &d.revision).unwrap();
+        publish_new_file(&dir, "model_index.json", b"{\"user\":\"data\"}").unwrap();
+        assert!(store_verified(&root, &d, &file, FIXTURE, &receipt)
+            .unwrap_err()
+            .contains("different configuration"));
+        assert_eq!(
+            fs::read(dir.join("model_index.json")).unwrap(),
+            b"{\"user\":\"data\"}"
+        );
+        assert!(!dir.join(RECEIPT_NAME).exists());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn clear_refuses_inconsistent_receipts_tampering_and_partials() {
+        let root = temp_root();
+        let d = detail(false, "no", None);
+        let receipt = fixture_receipt(&d, FIXTURE);
+        store_verified(
+            &root,
+            &d,
+            d.cache_metadata_file.as_ref().unwrap(),
+            FIXTURE,
+            &receipt,
+        )
+        .unwrap();
+        let dir = existing_cache_folder(&root, &d.id, &d.revision).unwrap();
+        let rewrite = |r: &CacheReceipt| {
+            fs::remove_file(dir.join(RECEIPT_NAME)).unwrap();
+            fs::write(dir.join(RECEIPT_NAME), serde_json::to_vec(r).unwrap()).unwrap();
+        };
+        assert!(remove_metadata(&root, &d.id, "not-a-sha", true).is_err());
+        assert!(remove_metadata(&root, "../x", &d.revision, true).is_err());
+        let mut traversal = receipt.clone();
+        traversal.filename = "../../model_index.json".into();
+        rewrite(&traversal);
+        assert!(remove_metadata(&root, &d.id, &d.revision, true).is_err());
+        let mut wrong_status = receipt.clone();
+        wrong_status.status = "installed".into();
+        rewrite(&wrong_status);
+        assert!(remove_metadata(&root, &d.id, &d.revision, true).is_err());
+        let mut wrong_hash = receipt.clone();
+        wrong_hash.sha256 = "0".repeat(64);
+        rewrite(&wrong_hash);
+        assert!(remove_metadata(&root, &d.id, &d.revision, true).is_err());
+        fs::remove_file(dir.join(RECEIPT_NAME)).unwrap();
+        fs::write(dir.join(RECEIPT_NAME), b"{corrupt").unwrap();
+        assert!(remove_metadata(&root, &d.id, &d.revision, true).is_err());
+        rewrite(&receipt);
+        fs::write(dir.join(".model_index.json.partial-x"), b"{}").unwrap();
+        assert!(remove_metadata(&root, &d.id, &d.revision, true)
+            .unwrap_err()
+            .contains("other files"));
+        // Every refusal above left both files in place.
+        assert_eq!(fs::read(dir.join("model_index.json")).unwrap(), FIXTURE);
+        fs::remove_file(dir.join(".model_index.json.partial-x")).unwrap();
+        remove_metadata(&root, &d.id, &d.revision, true).unwrap();
+        assert!(cached_receipt(&root, &d).is_none());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn junctioned_cache_folders_are_never_used_or_cleared() {
+        let root = temp_root();
+        let elsewhere = temp_root();
+        let d = detail(false, "no", None);
+        let receipt = fixture_receipt(&d, FIXTURE);
+        store_verified(
+            &elsewhere,
+            &d,
+            d.cache_metadata_file.as_ref().unwrap(),
+            FIXTURE,
+            &receipt,
+        )
+        .unwrap();
+        // Directory junctions need no elevation, unlike symbolic links.
+        let status = std::process::Command::new("cmd")
+            .args(["/C", "mklink", "/J"])
+            .arg(root.join(CACHE_DIR))
+            .arg(elsewhere.join(CACHE_DIR))
+            .output()
+            .unwrap();
+        assert!(status.status.success(), "mklink /J failed: {status:?}");
+        assert!(cached_receipt(&root, &d).is_none());
+        assert!(remove_metadata(&root, &d.id, &d.revision, true).is_err());
+        assert!(store_verified(
+            &root,
+            &d,
+            d.cache_metadata_file.as_ref().unwrap(),
+            FIXTURE,
+            &receipt
+        )
+        .unwrap_err()
+        .contains("redirected"));
+        // The real target is untouched.
+        assert!(cached_receipt(&elsewhere, &d).is_some());
+        fs::remove_dir(root.join(CACHE_DIR)).unwrap();
+        fs::remove_dir_all(root).unwrap();
+        fs::remove_dir_all(elsewhere).unwrap();
+    }
+
+    #[test]
+    fn admission_checks_consent_license_access_and_task_independently() {
+        assert!(admit(&req(), &detail(false, "no", None)).is_ok());
+        let mut wrong_task = detail(false, "no", None);
+        wrong_task.pipeline_tag = Some("image-to-video".into());
+        assert!(admit(&req(), &wrong_task)
+            .unwrap_err()
+            .contains("declared task"));
+        let mut r = req();
+        r.accept = false;
+        assert!(admit(&r, &detail(false, "no", None)).is_err());
+        assert!(admit(&req(), &detail(true, "no", None))
+            .unwrap_err()
+            .contains("18+"));
+        let mut r = req();
+        r.adult_acknowledged = true;
+        assert!(admit(&r, &detail(true, "no", None)).is_ok());
+        assert!(admit(&req(), &detail(false, "auto", None))
+            .unwrap_err()
+            .contains("Gated"));
+        assert!(admit(&req(), &detail(false, "no", Some("other")))
+            .unwrap_err()
+            .contains("license"));
+        let mut r = req();
+        r.revision = "b".repeat(40);
+        assert!(admit(&r, &detail(false, "no", None)).is_err());
+        let mut r = req();
+        r.capability = Capability::TextToImage;
+        assert!(admit(&r, &detail(false, "no", None)).is_err());
+    }
+
+    #[test]
+    fn downloaded_config_requires_source_blob_identity_and_valid_json() {
+        let source = br#"{"_class_name":"VideoPipeline"}"#;
+        let mut f = RepoFile {
+            path: "model_index.json".into(),
+            size: source.len() as u64,
+            blob_id: Some(git_blob_id(source)),
+            lfs_sha256: None,
+        };
+        assert!(verify_download(source, &f).is_ok());
+        assert!(verify_download(b"{}", &f).is_err());
+        f.blob_id = Some(git_blob_id(b"not-json"));
+        f.size = 8;
+        assert!(verify_download(b"not-json", &f).is_err());
+        f.blob_id = None;
+        f.lfs_sha256 = Some(digest_sha256(source));
+        f.size = source.len() as u64;
+        assert!(verify_download(source, &f).is_ok());
+    }
+
+    #[test]
+    fn metadata_clear_is_explicit_and_never_recursive() {
+        let root =
+            std::env::temp_dir().join(format!("optic-video-clear-test-{}", uuid::Uuid::new_v4()));
+        fs::create_dir(&root).unwrap();
+        let repo = "example/video-model";
+        let revision = "a".repeat(40);
+        let folder = cache_folder(&root, repo, &revision).unwrap();
+        let data = br#"{"pipeline":"demo"}"#;
+        let receipt = CacheReceipt {
+            repo: repo.into(),
+            revision: revision.clone(),
+            capability: Capability::TextToVideo,
+            source_license: "unknown".into(),
+            source_audience: "unverified".into(),
+            filename: "model_index.json".into(),
+            sha256: digest_sha256(data),
+            bytes: data.len() as u64,
+            cached_unix_ms: 1,
+            status: "metadata-only".into(),
+        };
+        publish_new_file(&folder, "model_index.json", data).unwrap();
+        publish_new_file(
+            &folder,
+            RECEIPT_NAME,
+            &serde_json::to_vec(&receipt).unwrap(),
+        )
+        .unwrap();
+        assert!(remove_metadata(&root, repo, &revision, false).is_err());
+        fs::write(folder.join("other-user-file.txt"), b"keep").unwrap();
+        assert!(remove_metadata(&root, repo, &revision, true).is_err());
+        assert_eq!(
+            fs::read(folder.join("other-user-file.txt")).unwrap(),
+            b"keep"
+        );
+        fs::remove_file(folder.join("other-user-file.txt")).unwrap();
+        remove_metadata(&root, repo, &revision, true).unwrap();
+        assert!(!folder.join("model_index.json").exists());
+        assert!(!folder.join(RECEIPT_NAME).exists());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn cache_paths_have_no_repository_path_segments_and_do_not_overwrite() {
+        let root =
+            std::env::temp_dir().join(format!("optic-video-cache-test-{}", uuid::Uuid::new_v4()));
+        fs::create_dir(&root).unwrap();
+        let folder = cache_folder(&root, "example/video-model", &"a".repeat(40)).unwrap();
+        assert!(folder.starts_with(&root));
+        assert!(!folder.to_string_lossy().contains("example/video-model"));
+        publish_new_file(&folder, "model_index.json", br#"{"a":1}"#).unwrap();
+        assert!(publish_new_file(&folder, "model_index.json", br#"{"a":2}"#).is_err());
+        assert_eq!(
+            fs::read(folder.join("model_index.json")).unwrap(),
+            br#"{"a":1}"#
+        );
+        assert!(publish_new_file(&folder, "../../outside.json", b"{}").is_err());
+        fs::remove_dir_all(root).unwrap();
+    }
+}
