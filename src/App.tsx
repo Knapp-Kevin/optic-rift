@@ -6,14 +6,12 @@ import ModelBrowser from "./ModelBrowser";
 import GeneratePanel from "./GeneratePanel";
 import GenerationHistory from "./GenerationHistory";
 import type { ProjectRecord } from "./projects";
-import { hasQualifiedLocalImageModel, type ModelLibrary } from "./models";
+import { navigation, routeTitle, editorFor, mediaForEditor, type View, type MediaItem } from "./creativeNavigation";
 import { formatSize, IMAGE_PREVIEW_FAILED, VIDEO_PREVIEW_FAILED } from "./mediaFormat";
 import { renderAdjustedPhoto } from "./photoEdits";
 import PhotoCanvasPreview from "./PhotoCanvasPreview";
+import SessionMediaLibrary from "./SessionMediaLibrary";
 
-type View = "projects" | "studio" | "models" | "settings";
-type MediaKind = "image" | "video";
-type MediaItem = { id: string; name: string; kind: MediaKind; url: string; size: number; mimeType: string };
 type RuntimeStatus = { application: string; stage: string; generation_ready: boolean; project_storage_ready: boolean };
 
 const formatTime = (seconds: number) => {
@@ -27,19 +25,18 @@ export default function App() {
   const [view, setView] = useState<View>("projects");
   const [project, setProject] = useState<ProjectRecord | null>(null);
   const [items, setItems] = useState<MediaItem[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
+  const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
+  const [photoAdjustments, setPhotoAdjustments] = useState<Record<string, {
+    brightness: number; contrast: number; rotation: number;
+  }>>({});
   const [prompt, setPrompt] = useState("");
-  const [studioMode, setStudioMode] = useState<"create" | "edit">("edit");
-  const [studioModeChosen, setStudioModeChosen] = useState(false);
   const [createOpened, setCreateOpened] = useState(false);
   const [creationMode, setCreationMode] = useState<"text-to-image" | "image-to-image">("text-to-image");
   const [libraryVersion, setLibraryVersion] = useState(0);
   const [historyVersion, setHistoryVersion] = useState(0);
   const [message, setMessage] = useState("");
   const [includeAdultModels, setIncludeAdultModels] = useState(false);
-  const [brightness, setBrightness] = useState(100);
-  const [contrast, setContrast] = useState(100);
-  const [rotation, setRotation] = useState(0);
   const [photoExportBusy, setPhotoExportBusy] = useState(false);
   const [photoExportNotice, setPhotoExportNotice] = useState("");
   const [duration, setDuration] = useState(0);
@@ -54,7 +51,13 @@ export default function App() {
   const inputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const objectUrls = useRef<string[]>([]);
-  const selected = items.find((item) => item.id === selectedId) ?? null;
+  const editorItems = mediaForEditor(items, view);
+  const selectedId = view === "video" ? selectedVideoId : selectedPhotoId;
+  const selected = editorItems.find((item) => item.id === selectedId) ?? null;
+  const edits = selected?.kind === "image" ? photoAdjustments[selected.id] : undefined;
+  const brightness = edits?.brightness ?? 100;
+  const contrast = edits?.contrast ?? 100;
+  const rotation = edits?.rotation ?? 0;
   const previewFailed = selected ? failedIds.has(selected.id) : false;
   const readOnlyReason = selected ? readOnlyPhotos.get(selected.id) : undefined;
   const editablePhoto = selected?.kind === "image" && !readOnlyReason &&
@@ -75,28 +78,35 @@ export default function App() {
     };
   }, []);
 
-  useEffect(() => {
-    if (view !== "studio" || studioModeChosen) return;
-    let active = true;
-    void invoke<ModelLibrary>("models_library")
-      .then((lib) => { if (active) setStudioMode(hasQualifiedLocalImageModel(lib) ? "create" : "edit"); })
-      .catch(() => { if (active) setStudioMode("edit"); });
-    return () => { active = false; };
-  }, [view, libraryVersion, studioModeChosen]);
+  useEffect(() => { if (view === "create") setCreateOpened(true); }, [view]);
 
-  useEffect(() => { if (view === "studio" && studioMode === "create") setCreateOpened(true); }, [view, studioMode]);
-
-  function selectItem(id: string) {
-    setSelectedId(id);
-    setDuration(0);
-    setPlayhead(0);
-    setTrimIn(0);
-    setTrimOut(null);
-    setBrightness(100);
-    setContrast(100);
-    setRotation(0);
+  function selectItem(item: MediaItem) {
+    if (item.kind === "image") {
+      setSelectedPhotoId(item.id);
+    } else {
+      if (selectedVideoId !== item.id) {
+        setDuration(0);
+        setPlayhead(0);
+        setTrimIn(0);
+        setTrimOut(null);
+      }
+      setSelectedVideoId(item.id);
+    }
     setPhotoExportNotice("");
     setMessage("");
+  }
+
+  function openMedia(item: MediaItem) {
+    selectItem(item);
+    setView(editorFor(item.kind));
+  }
+
+  function updatePhotoAdjustments(changes: Partial<{ brightness: number; contrast: number; rotation: number }>) {
+    if (!selected || selected.kind !== "image") return;
+    setPhotoAdjustments((previous) => ({
+      ...previous,
+      [selected.id]: { brightness: 100, contrast: 100, rotation: 0, ...previous[selected.id], ...changes },
+    }));
   }
 
   function addMedia(event: ChangeEvent<HTMLInputElement>) {
@@ -112,8 +122,14 @@ export default function App() {
     }
     if (accepted.length > 0) {
       setItems((previous) => [...previous, ...accepted]);
-      if (!selectedId) selectItem(accepted[0].id);
-      setMessage("Media is open for this session only. Durable project saving is not implemented yet.");
+      const firstPhoto = accepted.find((item) => item.kind === "image");
+      const firstVideo = accepted.find((item) => item.kind === "video");
+      if (firstPhoto && (!selectedPhotoId || view === "photo")) setSelectedPhotoId(firstPhoto.id);
+      if (firstVideo && (!selectedVideoId || view === "video")) {
+        setSelectedVideoId(firstVideo.id);
+        setDuration(0); setPlayhead(0); setTrimIn(0); setTrimOut(null);
+      }
+      setMessage("Media is available this session only. Project media persistence is not implemented yet.");
     } else {
       setMessage("No supported image or video files were selected.");
     }
@@ -123,7 +139,8 @@ export default function App() {
     objectUrls.current.push(result.url);
     const item: MediaItem = { id: crypto.randomUUID(), name: result.name, kind: "image", url: result.url, size: result.size, mimeType: "image/png" };
     setItems((previous) => [...previous, item]);
-    selectItem(item.id);
+    setSelectedPhotoId(item.id);
+    setView("photo");
     setMessage("Generated image opened in this session. Its file and provenance stay in Optic Rift's output folder; use Save to Pictures to keep a copy elsewhere.");
   }
 
@@ -170,7 +187,16 @@ export default function App() {
     const entry = items.find((item) => item.id === id);
     if (!entry) return;
     setItems((previous) => previous.filter((item) => item.id !== id));
-    if (selectedId === id) selectItem(items.find((item) => item.id !== id)?.id ?? "");
+    if (selectedPhotoId === id) setSelectedPhotoId(items.find((item) => item.id !== id && item.kind === "image")?.id ?? null);
+    if (selectedVideoId === id) {
+      setSelectedVideoId(items.find((item) => item.id !== id && item.kind === "video")?.id ?? null);
+      setDuration(0); setPlayhead(0); setTrimIn(0); setTrimOut(null);
+    }
+    setPhotoAdjustments((previous) => {
+      const next = { ...previous };
+      delete next[id];
+      return next;
+    });
     URL.revokeObjectURL(entry.url);
     objectUrls.current = objectUrls.current.filter((url) => url !== entry.url);
   }
