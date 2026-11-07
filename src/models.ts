@@ -28,6 +28,7 @@ export type ModelDetail = {
   id: string; revision: string; pipeline_tag: string | null; capability: Capability;
   license: string | null; license_name: string | null; license_link: string | null; base_models: string | null;
   gated: string; access: Access; audience: string; format: string; repo_files: number; repo_bytes: number;
+  cache_metadata_file: RepoFile | null;
   plans: PlanView[]; rejections: Rejection[]; page_url: string;
 };
 export type GpuInfo = { name: string | null; driver: string | null; vram_total_mb: number | null; vram_used_mb: number | null; vram_free_mb: number | null };
@@ -38,7 +39,7 @@ export type Manifest = {
   files: { path: string; size: number; sha256: string }[];
 };
 export type InstalledModel = { manifest: Manifest; dir: string; files_present: boolean };
-export type Inspection = { detail: ModelDetail; installed: InstalledModel | null; gpu: GpuInfo; runtime_installed: boolean; model_dir: string; free_bytes: number | null };
+export type Inspection = { detail: ModelDetail; cached_metadata: boolean; installed: InstalledModel | null; gpu: GpuInfo; runtime_installed: boolean; model_dir: string; free_bytes: number | null };
 export type RuntimeManifest = { runtime: string; python: string; torch: string; diffusers: string; cuda_available: boolean; device: string | null };
 export type RuntimeStatus = { installed: RuntimeManifest | null; uv_available: boolean; uv_executable: { path: string; sha256: string } | null; root: string; torch_index: string; torch: string; packages: string[] };
 export type ModelLibrary = { qualified_image_ready: boolean; model_dir: string; free_bytes: number | null; installed: InstalledModel[]; loaded: [string, string] | null; runtime: RuntimeStatus; gpu: GpuInfo };

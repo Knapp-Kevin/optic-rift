@@ -235,3 +235,16 @@
   .navigation .nav-footer{padding-top:7px;padding-bottom:2px}
   .primary-navigation .nav{min-height:36px}
 }
+/* App-lifetime model download status (issue #27): compact card in the navigation rail. */
+.download-status.compact{margin:10px 12px;padding:10px;display:flex;flex-direction:column;gap:6px;font-size:11px;border:1px solid #3c4a67;border-radius:8px;background:#151d30;color:#dce6fc}
+.download-status.compact strong{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.download-status.compact progress{width:100%;height:8px;accent-color:#91a7ff}
+.download-status.compact span{overflow-wrap:anywhere}
+.download-status.compact button{padding:6px 8px;font-size:11px}
+.navigation .download-status.compact{margin:10px 0 0;flex-shrink:0}
+/* The 70 px icon rail cannot hold the card, so it floats beside the rail, above page content.
+   The sticky rail is its own stacking context, so the rail itself must sit above the page for the card to. */
+@media (max-width:1200px){
+  .navigation{z-index:20}
+  .navigation .download-status.compact{position:fixed;left:78px;bottom:14px;width:260px;margin:0;z-index:40;box-shadow:0 10px 30px #000a}
+}

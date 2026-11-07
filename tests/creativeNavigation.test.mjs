@@ -44,6 +44,15 @@ test("Sidebar navigation renders each destination as a real route, not a dead li
   assert.match(css, /\.navigation \.nav \.nav-symbol\{display:inline-flex\}/);
 });
 
+test("Download status and Cancel stay on every destination, including the icon-only rail", () => {
+  const app = source("../src/App.tsx");
+  const css = source("../src/styles.css");
+  assert.match(app, /<DownloadProvider onInstalled=/);
+  assert.match(app, /\{view !== "models" && <DownloadStatus includeAdult=\{includeAdultModels\} compact \/>\}/);
+  // Below 1200 px the card floats beside the rail; the sticky rail must stack above the page or the card is hidden.
+  assert.match(css, /@media \(max-width:1200px\)\{\s*\.navigation\{z-index:20\}\s*\.navigation \.download-status\.compact\{position:fixed;/);
+});
+
 test("Media Library works without claiming persisted project assets or silently rendering previews", () => {
   const app = source("../src/App.tsx");
   const library = source("../src/SessionMediaLibrary.tsx");

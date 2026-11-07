@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import ProjectChooser from "./ProjectChooser";
 import HuggingFaceAccess from "./HuggingFaceAccess";
 import ModelBrowser from "./ModelBrowser";
+import { DownloadProvider, DownloadStatus } from "./downloads";
 import GeneratePanel from "./GeneratePanel";
 import GenerationHistory from "./GenerationHistory";
 import type { ProjectRecord } from "./projects";
@@ -204,6 +205,7 @@ export default function App() {
   }
 
   return (
+    <DownloadProvider onInstalled={() => setLibraryVersion((v) => v + 1)}>
     <div className="app">
       <aside className="navigation">
         <div className="brand"><img className="brand-icon-img" src="/branding/optic-rift-approved-256.webp" alt="" /><span>OPTIC <b>RIFT</b><small>VISUAL STUDIO</small></span></div>
@@ -218,6 +220,9 @@ export default function App() {
             </button>)}
           </div>)}
         </nav>
+        {/* App-lifetime download status (issue #27) on every destination; Models renders its own, so never twice.
+            Below 1200 px the rail is icon-only, so styles.css floats this card beside the rail instead. */}
+        {view !== "models" && <DownloadStatus includeAdult={includeAdultModels} compact />}
         <div className="nav-footer">
           <span className="status-dot" /> Local-first
           <small>Pre-alpha architecture preview</small>
@@ -344,5 +349,6 @@ export default function App() {
         {view === "settings" && <main className="content-page"><div className="page-eyebrow">PREFERENCES</div><h1>Your studio stays on your computer.</h1><p className="lead">Local files, user-controlled AI models, and clear permission boundaries come first.</p><div className="setting-row"><span><strong>Application shell</strong><small>{status?.stage ?? "Browser preview: native Rust bridge unavailable"}</small></span><strong>{status ? "Tauri / Rust" : "Browser-only preview"}</strong></div><div className="setting-row"><span><strong>Model execution</strong><small>Local text-to-image through an isolated Python worker; set up on the Models page</small></span><strong>Text to image</strong></div><div className="setting-row"><span><strong>Persistent projects</strong><small>Named projects are saved locally and reopen after restart. Imported media is not saved into projects yet.</small></span><strong>Names only</strong></div><div className="setting-row"><span><strong>Local/cloud policy</strong><small>No cloud generation is enabled or silently selected</small></span><strong>Local first</strong></div></main>}
       </div>
     </div>
+    </DownloadProvider>
   );
 }
