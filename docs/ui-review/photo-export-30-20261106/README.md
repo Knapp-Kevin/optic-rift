@@ -36,3 +36,14 @@ QA profile; synthetic fixtures only (no inference, no personal outputs). Create 
 | `journeys/j3-i2i-source-result` | Image to image: real stored source beside the simulated result |
 | `journeys/j5-wrong-mime-refused` | Non-PNG result refused at the stage (fix `71642e3`) |
 | `journeys/j-restart-reopened` | After an app restart, the three exports re-imported into Edit media |
+
+## Genuine generated image journey (owner-approved, 2026-11-06)
+
+One real SSD-1B 768x768 generation in the QA profile at PR #31 `71642e3` (fictional prompt), then Create -> Edit -> export and restart -> reopen. No IPC was simulated.
+
+| File | State |
+|---|---|
+| `genuine/g1-genuine-result` | Real result on the Create stage |
+| `genuine/g2-genuine-edit-exported` | Opened in Edit media, 120/110/90 deg, exported |
+| `genuine/g4-genuine-reopened-from-history` | After restart: reopened from Recent generations into the editor |
+| `genuine/g5-genuine-export-reimported` | After restart: the exported PNG re-imported and editable |
