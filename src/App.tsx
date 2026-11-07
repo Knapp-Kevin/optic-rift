@@ -48,12 +48,16 @@ export default function App() {
   const [trimOut, setTrimOut] = useState<number | null>(null);
   const [status, setStatus] = useState<RuntimeStatus | null>(null);
   const [failedIds, setFailedIds] = useState<ReadonlySet<string>>(new Set());
+  // Photos the shared canvas editor can't take (over the edit limits, header/decode mismatch) stay
+  // viewable read-only, as in PR #30, instead of becoming "Can't preview". Value: the reason shown.
+  const [readOnlyPhotos, setReadOnlyPhotos] = useState<ReadonlyMap<string, string>>(new Map());
   const inputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const objectUrls = useRef<string[]>([]);
   const selected = items.find((item) => item.id === selectedId) ?? null;
   const previewFailed = selected ? failedIds.has(selected.id) : false;
-  const editablePhoto = selected?.kind === "image" &&
+  const readOnlyReason = selected ? readOnlyPhotos.get(selected.id) : undefined;
+  const editablePhoto = selected?.kind === "image" && !readOnlyReason &&
     ["image/png", "image/jpeg", "image/webp"].includes(selected.mimeType);
   const isVideo = selected?.kind === "video" && !previewFailed;
   function markFailed(id: string, text: string) {
@@ -240,12 +244,12 @@ export default function App() {
               {editablePhoto && !previewFailed && <PhotoCanvasPreview key={selected.id}
                 sourceUrl={selected.url} label={selected.name}
                 brightness={brightness} contrast={contrast} rotation={rotation}
-                onError={(reason) => markFailed(selected.id, reason)} />}
+                onError={(reason) => setReadOnlyPhotos((previous) => new Map(previous).set(selected.id, reason))} />}
               {selected?.kind === "image" && !editablePhoto && !previewFailed &&
                 <img key={selected.id} onError={() => markFailed(selected.id, IMAGE_PREVIEW_FAILED)}
                   src={selected.url} alt={selected.name} />}
               {selected?.kind === "image" && !editablePhoto && !previewFailed &&
-                <p className="photo-readonly-note">Preview only. PNG, JPEG and WebP are supported for editing and export.</p>}
+                <p className="photo-readonly-note">{readOnlyReason ? `Preview only: ${readOnlyReason}` : "Preview only. PNG, JPEG and WebP are supported for editing and export."}</p>}
               {selected?.kind === "video" && !previewFailed && <video key={selected.id} ref={videoRef} src={selected.url} controls preload="metadata" playsInline onLoadedMetadata={(event) => { const length = event.currentTarget.duration; setDuration(Number.isFinite(length) ? length : 0); setPlayhead(0); }} onTimeUpdate={(event) => setPlayhead(event.currentTarget.currentTime)} onError={() => markFailed(selected.id, VIDEO_PREVIEW_FAILED)} />}
               {!selected && <div className="empty-canvas"><div className="empty-icon">◉</div><h1>Make something extraordinary.</h1><p>Start with a photo or video, or choose Create to generate an image locally.</p><button className="primary" onClick={() => inputRef.current?.click()}>Import your first clip</button></div>}
             </div>

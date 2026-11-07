@@ -145,3 +145,11 @@ test("Photo preview decodes once per asset and never persists private derivative
   assert.match(app, /selected\?\.kind === "image" && !editablePhoto && !previewFailed/);
   assert.match(app, /Preview only\. PNG, JPEG and WebP are supported for editing and export/);
 });
+
+test("Photos the canvas editor refuses stay viewable read-only instead of becoming unpreviewable", () => {
+  const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8");
+  assert.match(app, /onError=\{\(reason\) => setReadOnlyPhotos\(\(previous\) => new Map\(previous\)\.set\(selected\.id, reason\)\)\}/);
+  assert.match(app, /const editablePhoto = selected\?\.kind === "image" && !readOnlyReason &&/);
+  assert.doesNotMatch(app, /<PhotoCanvasPreview[^>]*onError=\{\(reason\) => markFailed/);
+  assert.match(app, /Preview only: \$\{readOnlyReason\}/);
+});
