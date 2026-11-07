@@ -124,10 +124,12 @@ test("Photo preview proxy is bounded, preserves the correct orientation and neve
   assert.throws(() => photoPaintDimensions(5000, 5000, 0, 1400));
 });
 
-test("Edit media stays within the viewport on desktop; its columns scroll on their own", () => {
+test("Photo editing and video preview keep separate scrollable viewport-bounded workspaces", () => {
   const css = readFileSync(new URL("../src/styles.css", import.meta.url), "utf8");
-  assert.match(css, /@media\(min-width:1201px\)\{\s*\.studio-tabs~\.workspace\{flex:none;height:calc\(100vh - 120px\);min-height:0\}/);
-  assert.match(css, /\.studio-tabs~\.workspace>\.editor-inspector\{min-height:0;overflow-y:auto;overscroll-behavior:contain\}/);
+  assert.match(css, /@media \(min-width:1201px\)\{/);
+  assert.match(css, /\.workspace\.photo-workspace,\.workspace\.video-workspace\{flex:none;height:calc\(100vh - 68px\);min-height:0\}/);
+  assert.match(css, /\.workspace\.photo-workspace>\.editor-inspector/);
+  assert.match(css, /min-height:0;overflow-y:auto;overscroll-behavior:contain/);
 });
 
 test("Photo preview decodes once per asset and never persists private derivatives", () => {
