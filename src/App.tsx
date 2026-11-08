@@ -10,6 +10,7 @@ import type { ProjectRecord } from "./projects";
 import { navigation, routeTitle, editorFor, mediaForEditor, type View, type MediaItem } from "./creativeNavigation";
 import { formatSize, IMAGE_PREVIEW_FAILED, VIDEO_PREVIEW_FAILED } from "./mediaFormat";
 import { renderAdjustedPhoto } from "./photoEdits";
+import { captureVideoFrame, capturedFrameName } from "./videoFrameCapture";
 import PhotoCanvasPreview from "./PhotoCanvasPreview";
 import SessionMediaLibrary from "./SessionMediaLibrary";
 
@@ -41,6 +42,8 @@ export default function App() {
   const [includeAdultModels, setIncludeAdultModels] = useState(false);
   const [photoExportBusy, setPhotoExportBusy] = useState(false);
   const [photoExportNotice, setPhotoExportNotice] = useState("");
+  const [videoFrameReady, setVideoFrameReady] = useState(false);
+  const [frameCaptureBusy, setFrameCaptureBusy] = useState(false);
   const [duration, setDuration] = useState(0);
   const [playhead, setPlayhead] = useState(0);
   const [trimIn, setTrimIn] = useState(0);
@@ -52,6 +55,7 @@ export default function App() {
   const [readOnlyPhotos, setReadOnlyPhotos] = useState<ReadonlyMap<string, string>>(new Map());
   const inputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const frameCaptureBusyRef = useRef(false);
   const objectUrls = useRef<string[]>([]);
   const editorItems = mediaForEditor(items, view);
   const selectedId = view === "video" ? selectedVideoId : selectedPhotoId;
@@ -87,6 +91,7 @@ export default function App() {
       setSelectedPhotoId(item.id);
     } else {
       if (selectedVideoId !== item.id) {
+        setVideoFrameReady(false);
         setDuration(0);
         setPlayhead(0);
         setTrimIn(0);
@@ -130,6 +135,7 @@ export default function App() {
       if (firstPhoto && (!selectedPhotoId || view === "photo")) setSelectedPhotoId(firstPhoto.id);
       if (firstVideo && (!selectedVideoId || view === "video")) {
         setSelectedVideoId(firstVideo.id);
+        setVideoFrameReady(false);
         setDuration(0); setPlayhead(0); setTrimIn(0); setTrimOut(null);
       }
       setMessage("Media is available this session only. Project media persistence is not implemented yet.");
@@ -174,6 +180,48 @@ export default function App() {
     }
   }
 
+  async function captureCurrentVideoFrame() {
+    const source = selected;
+    const video = videoRef.current;
+    if (frameCaptureBusyRef.current || !source || source.kind !== "video" ||
+        view !== "video" || !video || !videoFrameReady || previewFailed) return;
+    frameCaptureBusyRef.current = true;
+    setFrameCaptureBusy(true);
+    try {
+      const frame = await captureVideoFrame(video, source.url);
+      // A late PNG encoder must never move the user to Photo Studio or reveal
+      // a different source after navigating away or switching video clips.
+      if (videoRef.current !== video) return;
+      const url = URL.createObjectURL(frame.blob);
+      const item: MediaItem = {
+        id: crypto.randomUUID(),
+        name: capturedFrameName(frame.timeSeconds),
+        kind: "image",
+        url,
+        size: frame.blob.size,
+        mimeType: "image/png",
+        derivedFrom: {
+          kind: "video-frame",
+          sourceId: source.id,
+          sourceName: source.name,
+          timeSeconds: frame.timeSeconds,
+        },
+      };
+      objectUrls.current.push(url);
+      setItems((previous) => [...previous, item]);
+      setSelectedPhotoId(item.id);
+      setView("photo");
+      setMessage(`Captured the visible frame at ${formatTime(frame.timeSeconds)} into Photo Studio. The frame is session-only; exporting a copy still requires your approval.`);
+    } catch (reason) {
+      if (videoRef.current === video) {
+        setMessage(reason instanceof Error ? reason.message : "Video frame capture did not complete.");
+      }
+    } finally {
+      frameCaptureBusyRef.current = false;
+      setFrameCaptureBusy(false);
+    }
+  }
+
   function seek(to: number) {
     const value = Math.min(Math.max(to, 0), duration || 0);
     if (videoRef.current) videoRef.current.currentTime = value;
@@ -193,6 +241,7 @@ export default function App() {
     if (selectedPhotoId === id) setSelectedPhotoId(items.find((item) => item.id !== id && item.kind === "image")?.id ?? null);
     if (selectedVideoId === id) {
       setSelectedVideoId(items.find((item) => item.id !== id && item.kind === "video")?.id ?? null);
+      setVideoFrameReady(false);
       setDuration(0); setPlayhead(0); setTrimIn(0); setTrimOut(null);
     }
     setPhotoAdjustments((previous) => {
@@ -284,7 +333,14 @@ export default function App() {
                   src={selected.url} alt={selected.name} />}
               {selected?.kind === "image" && !editablePhoto && !previewFailed &&
                 <p className="photo-readonly-note">{readOnlyReason ? `Preview only: ${readOnlyReason}` : "Preview only. PNG, JPEG and WebP are supported for editing and export."}</p>}
-              {selected?.kind === "video" && !previewFailed && <video key={selected.id} ref={videoRef} src={selected.url} controls preload="metadata" playsInline onLoadedMetadata={(event) => { const length = event.currentTarget.duration; setDuration(Number.isFinite(length) ? length : 0); setPlayhead(0); }} onTimeUpdate={(event) => setPlayhead(event.currentTarget.currentTime)} onError={() => markFailed(selected.id, VIDEO_PREVIEW_FAILED)} />}
+              {selected?.kind === "video" && !previewFailed && <video key={selected.id} ref={videoRef}
+                src={selected.url} controls preload="metadata" playsInline
+                onLoadedMetadata={(event) => { const length = event.currentTarget.duration; setDuration(Number.isFinite(length) ? length : 0); setPlayhead(0); }}
+                onLoadedData={() => setVideoFrameReady(true)}
+                onSeeking={() => setVideoFrameReady(false)}
+                onSeeked={() => setVideoFrameReady(true)}
+                onTimeUpdate={(event) => setPlayhead(event.currentTarget.currentTime)}
+                onError={() => { setVideoFrameReady(false); markFailed(selected.id, VIDEO_PREVIEW_FAILED); }} />}
               {!selected && <div className="empty-canvas"><div className="empty-icon">◉</div><h1>{view === "photo" ? "Edit a photo." : "Preview a video."}</h1><p>{view === "photo" ? "Open a photo to adjust and export a new PNG copy." : "Open a clip to play, seek, and mark in/out points. Timeline export is not yet available."}</p><button className="primary" onClick={() => inputRef.current?.click()}>Import {view === "photo" ? "a photo" : "a video"}</button></div>}
             </div>
             <div className="player-controls">
@@ -305,6 +361,11 @@ export default function App() {
             <div className="section-title"><div><h2>{view === "photo" ? "Photo adjustments" : "Video tools"}</h2><p>{view === "photo" ? "Original preserved; export creates a copy" : "Playback and non-destructive markers"}</p></div></div>
             {view === "photo" && editablePhoto && !previewFailed ? <div className="adjustments">
               <h3>Image preview</h3>
+              {selected?.derivedFrom?.kind === "video-frame" &&
+                <p className="photo-frame-origin">
+                  Session-only frame from <strong>{selected.derivedFrom.sourceName}</strong> at {formatTime(selected.derivedFrom.timeSeconds)}.
+                  This source relationship is not saved with the exported PNG.
+                </p>}
               <label>Brightness <output>{brightness}%</output><input type="range" min="25" max="175" value={brightness} onChange={(event) => updatePhotoAdjustments({ brightness: Number(event.target.value) })} /></label>
               <label>Contrast <output>{contrast}%</output><input type="range" min="25" max="175" value={contrast} onChange={(event) => updatePhotoAdjustments({ contrast: Number(event.target.value) })} /></label>
               <button className="secondary full" onClick={() => updatePhotoAdjustments({ rotation: (rotation + 90) % 360 })}>Rotate preview 90°</button>
@@ -315,8 +376,16 @@ export default function App() {
               {photoExportNotice && <p role="status" className="photo-export-notice">{photoExportNotice}</p>}
               <p>Export to Pictures may sync with OneDrive. The original stays unchanged. Supports PNG, JPEG and WebP sources up to 32 MB and 20 megapixels. PNG export does not preserve source EXIF or ICC metadata, and it does not save an asset into this project.</p>
             </div> : view === "photo" ? <p className="model-hint">Choose a photo to adjust and export, or use Create Images for AI generation.</p> :
-              <div className="video-capability-note" role="status">
-                <strong>Video editing is not yet available.</strong>
+              <div className="video-capability-note">
+                <strong>Video frame to photo</strong>
+                <p>Pause or seek to a frame, then open a PNG copy in Photo Studio. No model, audio processing, file export, or cloud upload is involved.</p>
+                <button type="button" className="primary full" onClick={() => void captureCurrentVideoFrame()}
+                  disabled={!isVideo || !videoFrameReady || frameCaptureBusy}
+                  title={!videoFrameReady ? "Wait for the current video frame to load" : "Capture this frame into Photo Studio"}>
+                  {frameCaptureBusy ? "Capturing frame…" : "Capture frame to Photo Studio"}
+                </button>
+                <p>This frame is held only for this session. The original video is unchanged. Use Photo Studio's separate Save action to export a PNG.</p>
+                <strong>Video timeline editing is not yet available.</strong>
                 <p>You can play a local clip, seek in 0.1-second steps, and mark an in/out range. Markers are preview-only. Clip assembly, transitions and video export still need qualified native implementation.</p>
                 {isVideo && <p>Current preview range: {formatTime(trimIn)} to {formatTime(trimOut ?? duration)}.</p>}
               </div>}
