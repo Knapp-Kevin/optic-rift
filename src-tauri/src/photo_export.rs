@@ -16,6 +16,16 @@ const MAX_PNG_EDGE: u32 = 8192;
 const MAX_PNG_PIXELS: u64 = 20_000_000;
 const MAX_DECODE_BYTES: usize = 80 * 1024 * 1024;
 
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(deny_unknown_fields)]
+pub struct PhotoCrop {
+    /// Insets in basis points of the rotated source image. 10000 = 100%.
+    pub left: u16,
+    pub top: u16,
+    pub right: u16,
+    pub bottom: u16,
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PhotoExportRequest {
@@ -24,6 +34,7 @@ pub struct PhotoExportRequest {
     pub brightness: u16,
     pub contrast: u16,
     pub rotation: u16,
+    pub crop: Option<PhotoCrop>,
     pub width: u32,
     pub height: u32,
     pub accept_pictures_export: bool,
@@ -44,6 +55,18 @@ fn valid_source_hash(s: &str) -> bool {
             .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
 }
 
+fn validate_crop(c: &PhotoCrop) -> Result<(), String> {
+    if [c.left, c.top, c.right, c.bottom]
+        .iter()
+        .any(|&edge| edge > 9500)
+        || u32::from(c.left) + u32::from(c.right) >= 10_000
+        || u32::from(c.top) + u32::from(c.bottom) >= 10_000
+    {
+        return Err("The requested crop is invalid or removes the full photo.".into());
+    }
+    Ok(())
+}
+
 fn validate_request(r: &PhotoExportRequest) -> Result<(), String> {
     if !r.accept_pictures_export {
         return Err("Approve export to Pictures before any file is written.".into());
@@ -54,6 +77,9 @@ fn validate_request(r: &PhotoExportRequest) -> Result<(), String> {
         || !valid_source_hash(&r.source_sha256)
     {
         return Err("Photo edit settings or source digest are invalid.".into());
+    }
+    if let Some(crop) = &r.crop {
+        validate_crop(crop)?;
     }
     if r.width == 0
         || r.height == 0
@@ -176,7 +202,8 @@ pub fn export_to_pictures(
         "adjustments": {
             "brightness_percent": request.brightness,
             "contrast_percent": request.contrast,
-            "rotation_degrees_clockwise": request.rotation
+            "rotation_degrees_clockwise": request.rotation,
+            "crop_insets_basis_points_of_rotated_image": &request.crop
         },
         "output": {
             "sha256": &receipt.sha256,
@@ -234,6 +261,7 @@ mod tests {
             brightness: 100,
             contrast: 100,
             rotation: 0,
+            crop: None,
             width: 2,
             height: 1,
             accept_pictures_export: true,
@@ -260,6 +288,15 @@ mod tests {
         request = fixture();
         request.png_base64 = "not-a-png".into();
         assert!(decode_verified_png(&request).is_err());
+        request = fixture();
+        request.crop = Some(PhotoCrop { left: 9501, top: 0, right: 0, bottom: 0 });
+        assert!(decode_verified_png(&request).unwrap_err().contains("crop"));
+        request = fixture();
+        request.crop = Some(PhotoCrop { left: 9500, top: 0, right: 500, bottom: 0 });
+        assert!(decode_verified_png(&request).unwrap_err().contains("crop"));
+        request = fixture();
+        request.crop = Some(PhotoCrop { left: 1000, top: 2500, right: 0, bottom: 0 });
+        assert!(decode_verified_png(&request).is_ok());
     }
 
     #[test]
