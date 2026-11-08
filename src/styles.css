@@ -336,3 +336,21 @@
  .video-compose-fields{grid-template-columns:minmax(0,1fr)}
  .video-compose-page{padding:20px 13px}
 }
+
+/* Real Photo Studio cropping: source pixel data remains untouched. Controls
+   edit the common preview/export raster transform, not a visual-only mask. */
+.photo-crop-tools{min-width:0;margin:18px 0 15px;padding:12px;border:1px solid #405476;border-radius:10px;background:#1b2941}
+.photo-crop-tools legend{color:#d9e5fb;padding:0 5px;font-size:12px;font-weight:700}
+.adjustments .photo-crop-tools p{font-size:11px;line-height:1.55;color:#b7c8e7}
+.photo-crop-presets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:10px 0 15px}
+.photo-crop-presets .secondary{font-size:11px;min-height:36px;padding:8px 6px;max-width:none}
+.photo-crop-presets button:disabled{opacity:.5}
+.adjustments label.photo-crop-control{margin-bottom:12px;gap:7px;min-width:0}
+.photo-crop-control output{font-size:11px;color:#e0eaff;float:none}
+.photo-crop-control input{min-height:20px}
+.photo-crop-tools .photo-crop-status{border-left:3px solid #8fa7ef;padding:7px 9px;background:#263858;border-radius:4px}
+.photo-crop-tools button:focus-visible,.photo-crop-tools input:focus-visible{outline:2px solid #a4baff;outline-offset:2px}
+@media(max-width:1200px){
+  .photo-workspace .editor-inspector .adjustments{width:100%;min-width:0}
+  .photo-workspace .editor-inspector .photo-crop-tools{max-width:440px}
+}
