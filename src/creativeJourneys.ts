@@ -39,7 +39,7 @@ export const creativeJourneys: readonly CreativeJourney[] = [
   { id: "V02", area: "Video", title: "Capture a video frame for photo editing", outcome: "Take a visible frame into Photo Studio and optionally export it.",
     current: "Explicit session-only PNG frame capture is in draft development.", state: "partial", route: "video",
     acceptance: "Real decoded frame → Photo editing → explicit export, original video unchanged." },
-  { id: "V03", area: "Video", title: "Edit and export video", outcome: "Trim, arrange, overlay, grade, preview and render clips.",
+  { id: "V03", area: "Video", title: "Edit and export video on a timeline", outcome: "Trim, arrange, overlay, grade, preview and render clips.",
     current: "No qualified multi-clip editing, native timeline renderer or video export.", state: "not-implemented", route: null,
     acceptance: "Multi-clip project → deterministic render → restart/reopen and quality verification." },
   { id: "V04", area: "Video", title: "Generate video from a prompt", outcome: "Compose and generate a locally qualified video shot.",
