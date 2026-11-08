@@ -91,13 +91,17 @@ fn export_roots<R: tauri::Runtime>(
 }
 
 /// Debug builds only: lets automated Windows qualification answer the native file dialog,
-/// which DevTools cannot click. Release builds always show the real dialog.
+/// which DevTools cannot click. `OPTIC_RIFT_QA_PICK_VIDEO` names a folder; the answer is the
+/// file with the clip's name in it, like a user accepting the pre-filled name, or a cancelled
+/// dialog if there is none. Release builds always show the real dialog.
 #[cfg(debug_assertions)]
-fn qa_picked_video() -> Option<std::path::PathBuf> {
-    std::env::var_os("OPTIC_RIFT_QA_PICK_VIDEO").map(std::path::PathBuf::from)
+fn qa_picked_video(name: &str) -> Option<Option<std::path::PathBuf>> {
+    let folder = std::path::PathBuf::from(std::env::var_os("OPTIC_RIFT_QA_PICK_VIDEO")?);
+    let file = folder.join(name);
+    Some(file.is_file().then_some(file))
 }
 #[cfg(not(debug_assertions))]
-fn qa_picked_video() -> Option<std::path::PathBuf> {
+fn qa_picked_video(_name: &str) -> Option<Option<std::path::PathBuf>> {
     None
 }
 
@@ -120,8 +124,8 @@ async fn video_source_grant<R: tauri::Runtime>(
     let owner = 0isize;
     tauri::async_runtime::spawn_blocking(move || {
         let trusted = video_trim::trusted_tools(roots.resource_dir.as_deref())?;
-        let picked = match qa_picked_video() {
-            Some(path) => Some(path),
+        let picked = match qa_picked_video(&request.name) {
+            Some(answer) => answer,
             None => video_trim::pick_video_file(owner, &request.name)?,
         };
         match picked {

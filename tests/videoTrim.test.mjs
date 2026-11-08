@@ -19,8 +19,8 @@ test("Native IPC types reject unknown fields and keep the dialog seam out of rel
   const rust = source("../src-tauri/src/video_trim.rs");
   const lib = source("../src-tauri/src/lib.rs");
   assert.equal((rust.match(/#\[serde\(deny_unknown_fields, rename_all = "camelCase"\)\]/g) ?? []).length, 3);
-  assert.match(lib, /#\[cfg\(debug_assertions\)\]\s*fn qa_picked_video\(\)/);
-  assert.match(lib, /#\[cfg\(not\(debug_assertions\)\)\]\s*fn qa_picked_video\(\) -> Option<std::path::PathBuf> \{\s*None\s*\}/);
+  assert.match(lib, /#\[cfg\(debug_assertions\)\]\s*fn qa_picked_video\(name: &str\)/);
+  assert.match(lib, /#\[cfg\(not\(debug_assertions\)\)\]\s*fn qa_picked_video\(_name: &str\) -> Option<Option<std::path::PathBuf>> \{\s*None\s*\}/);
   for (const command of ["video_source_grant", "video_source_revoke", "video_trim_resolve", "video_trim_start",
     "video_trim_status", "video_trim_cancel", "video_trim_jobs", "video_export_reveal"]) {
     assert.match(lib, new RegExp(`^\\s+${command},\\r?$`, "m"), command);

@@ -2215,6 +2215,8 @@ mod tests {
 
     #[test]
     fn substituted_ffmpeg_is_refused() {
+        // Swaps the session-wide pin, so it must not overlap a test that starts jobs.
+        let _serial = serial();
         let t = trusted();
         let mut pinned = pinned_tools().lock().unwrap();
         let saved = pinned.clone();
