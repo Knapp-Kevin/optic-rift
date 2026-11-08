@@ -180,3 +180,16 @@ test("Journey cards are written in short, plain sentences", () => {
     assert.doesNotMatch(text, /→/, `${journey.id} uses arrow shorthand`);
   }
 });
+
+test("Every example in the journey search box finds at least one journey", () => {
+  const explorer = source("../src/CreativeWorkflowExplorer.tsx");
+  const examples = explorer.match(/placeholder="([^"]+)"/)[1].replace(/…$/, "").split(/,\s*/);
+  assert.ok(examples.length >= 3);
+  for (const example of examples) {
+    // The explorer searches title, outcome and current state with a plain substring match.
+    const term = example.toLowerCase();
+    assert.ok(creativeJourneys.some((journey) =>
+      [journey.title, journey.outcome, journey.current].some((text) => text.toLowerCase().includes(term))),
+      `No journey matches the search example "${example}"`);
+  }
+});
