@@ -67,6 +67,11 @@ export default function VideoShotComposer({
     setNotice("Editing this planned shot. No model job is running.");
   }
 
+  function referenceText(referenceId: string) {
+    const name = media.find((item) => item.id === referenceId)?.name;
+    return name ? `Reference: ${name}` : "Reference no longer open. Edit this shot to choose another.";
+  }
+
   function deleteShot(id: string) {
     setShots((previous) => previous.filter((shot) => shot.id !== id));
     if (editingId === id) { setEditingId(null); setDraft(initialShot()); }
@@ -167,7 +172,7 @@ export default function VideoShotComposer({
             <strong>{videoModeLabel[shot.mode]} · {shot.durationSeconds}s · {shot.aspect}</strong>
             <p>{shot.prompt}</p>
             <small>{cameraMotionLabel[shot.camera]} · {videoIntentLabel[shot.intent]}</small>
-            {shot.referenceId && <small>Reference: {media.find((x) => x.id === shot.referenceId)?.name ?? "Reference unavailable; reselect before execution"}</small>}
+            {shot.referenceId && <small>{referenceText(shot.referenceId)}</small>}
             <div className="video-shot-buttons">
               <button type="button" onClick={() => selectShot(shot)}>Edit</button>
               <button type="button" disabled={index === 0}

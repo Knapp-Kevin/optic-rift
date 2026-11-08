@@ -35,8 +35,15 @@ export default function VideoEnhancePlanner({
     }
   }, [media, draft.videoId]);
 
-  function toggle(operation: EnhanceOperation) {
+  // Any change after a review makes the reviewed plan stale: drop it and its
+  // "ready for review" notice together so the screen never claims a stale plan.
+  function invalidateReview() {
     setReviewed(null);
+    setNotice("");
+  }
+
+  function toggle(operation: EnhanceOperation) {
+    invalidateReview();
     setDraft((previous) => ({
       ...previous,
       operations: previous.operations.includes(operation)
@@ -77,7 +84,7 @@ export default function VideoEnhancePlanner({
         <label>Choose video
           <select value={draft.videoId ?? ""} onChange={(event) => {
             setDraft((previous) => ({ ...previous, videoId: event.target.value || null }));
-            setReviewed(null);
+            invalidateReview();
           }}>
             <option value="">Select an opened local video</option>
             {videos.map((video) => <option key={video.id} value={video.id}>{video.name}</option>)}
@@ -96,7 +103,7 @@ export default function VideoEnhancePlanner({
           <label>Target resolution
             <select value={draft.target} onChange={(event) => {
               setDraft((previous) => ({ ...previous, target: event.target.value as VideoEnhancementPlan["target"] }));
-              setReviewed(null);
+              invalidateReview();
             }}>
               <option value="original">Keep source dimensions</option>
               <option value="1080p">Plan for 1080p</option>
@@ -106,7 +113,7 @@ export default function VideoEnhancePlanner({
           <label>Quality priority
             <select value={draft.priority} onChange={(event) => {
               setDraft((previous) => ({ ...previous, priority: event.target.value as VideoEnhancementPlan["priority"] }));
-              setReviewed(null);
+              invalidateReview();
             }}>
               <option value="preserve-detail">Preserve source detail</option>
               <option value="balanced">Balanced</option>
@@ -116,7 +123,7 @@ export default function VideoEnhancePlanner({
         </div>
         <label>Notes about the desired result
           <textarea rows={3} value={draft.notes} maxLength={MAX_VIDEO_ENHANCE_NOTES}
-            onChange={(event) => { setDraft((previous) => ({ ...previous, notes: event.target.value })); setReviewed(null); }}
+            onChange={(event) => { setDraft((previous) => ({ ...previous, notes: event.target.value })); invalidateReview(); }}
             placeholder="Reduce low-light grain but preserve the texture of the water…" />
         </label>
         <p className="video-form-hint">This is not an export setting. A target like 4K does not imply the

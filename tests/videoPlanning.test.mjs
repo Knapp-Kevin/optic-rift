@@ -144,3 +144,39 @@ test("Navigation and planning state persist across route changes without saving 
   assert.doesNotMatch(source("../src/videoShotPlan.ts"), /localStorage|sessionStorage|fetch\(/);
   assert.doesNotMatch(source("../src/videoEnhancementPlan.ts"), /localStorage|sessionStorage|fetch\(/);
 });
+
+test("A changed enhancement plan drops both the review and its 'ready' notice", () => {
+  const enhance = source("../src/VideoEnhancePlanner.tsx");
+  assert.match(enhance, /function invalidateReview\(\) \{\s*setReviewed\(null\);\s*setNotice\(""\);/);
+  // Every user edit after a review goes through invalidateReview, never a bare setReviewed(null).
+  const handlers = enhance.slice(enhance.indexOf("function toggle("));
+  assert.doesNotMatch(handlers.slice(0, handlers.indexOf("function reviewPlan(")), /setReviewed\(null\)/);
+  assert.doesNotMatch(enhance.slice(enhance.indexOf("return <main")), /setReviewed\(null\)/);
+  assert.equal((enhance.match(/invalidateReview\(\)/g) ?? []).length, 6);
+});
+
+test("A shot whose reference was removed says so once, in plain words", () => {
+  const shot = source("../src/VideoShotComposer.tsx");
+  assert.match(shot, /Reference no longer open\. Edit this shot to choose another\./);
+  assert.doesNotMatch(shot, /Reference unavailable; reselect/);
+});
+
+test("Journey cards are written in short, plain sentences", () => {
+  // Rough Flesch-Kincaid estimate; the runbook asks for about a grade-10 reading level.
+  const syllables = (word) => {
+    let w = word.toLowerCase().replace(/[^a-z]/g, "");
+    if (!w) return 0;
+    if (w.length <= 3) return 1;
+    w = w.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, "").replace(/^y/, "");
+    return Math.max(1, (w.match(/[aeiouy]{1,2}/g) ?? []).length);
+  };
+  for (const journey of creativeJourneys) {
+    const text = [journey.outcome, journey.current, journey.acceptance].join(" ");
+    const sentences = text.split(/[.!?]+/).filter((s) => s.trim().split(/\s+/).length > 1).length;
+    const words = text.split(/\s+/).filter((x) => /[a-z]/i.test(x));
+    const grade = 0.39 * (words.length / sentences) +
+      11.8 * (words.reduce((n, w) => n + syllables(w), 0) / words.length) - 15.59;
+    assert.ok(grade <= 10, `${journey.id} reads at about grade ${grade.toFixed(1)}`);
+    assert.doesNotMatch(text, /→/, `${journey.id} uses arrow shorthand`);
+  }
+});
