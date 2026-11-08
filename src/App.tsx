@@ -463,7 +463,7 @@ export default function App() {
                     {edge.charAt(0).toUpperCase() + edge.slice(1)} edge <output>{(crop[edge] / 100).toFixed(2)}%</output>
                     <input type="range" min={0} max={max} step={25} value={crop[edge]}
                       aria-label={edge + " crop inset percent"}
-                      onChange={(event) => updatePhotoCrop({ [edge]: Number(event.target.value) })} />
+                      onChange={(event) => updatePhotoCrop({ ...crop, [edge]: Number(event.target.value) })} />
                   </label>;
                 })}
                 <p className="photo-crop-status" role="status">
