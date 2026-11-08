@@ -8,6 +8,7 @@ import {
 } from "./videoShotPlan";
 
 type Props = {
+  visible: boolean;
   media: readonly MediaItem[];
   onOpenLibrary: () => void;
   onOpenVideoStudio: () => void;
@@ -22,7 +23,7 @@ const initialShot = (): VideoShotInput => ({
 const modes: VideoShotMode[] = ["text-to-video", "image-to-video", "video-to-video"];
 
 export default function VideoShotComposer({
-  media, onOpenLibrary, onOpenVideoStudio, onBrowseModels,
+  media, onOpenLibrary, onOpenVideoStudio, onBrowseModels, visible,
 }: Props) {
   const [shots, setShots] = useState<VideoShot[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -71,7 +72,7 @@ export default function VideoShotComposer({
     setNotice("Planned shot removed. No media was deleted.");
   }
 
-  return <main className="video-compose-page">
+  return <main className="video-compose-page" hidden={!visible}>
     <div className="page-eyebrow">CREATE VIDEOS · SHOT COMPOSER</div>
     <h1>Design the shot, then make the film.</h1>
     <p className="lead">Write what happens, set camera movement, and choose reference photos or clips.
