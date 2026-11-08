@@ -9,7 +9,10 @@ import GenerationHistory from "./GenerationHistory";
 import type { ProjectRecord } from "./projects";
 import { navigation, routeTitle, editorFor, mediaForEditor, type View, type MediaItem } from "./creativeNavigation";
 import { formatSize, IMAGE_PREVIEW_FAILED, VIDEO_PREVIEW_FAILED } from "./mediaFormat";
-import { renderAdjustedPhoto } from "./photoEdits";
+import {
+  EMPTY_PHOTO_CROP, centeredPhotoCrop, renderAdjustedPhoto, validatePhotoCrop,
+  type PhotoAdjustments, type PhotoCrop,
+} from "./photoEdits";
 import { captureVideoFrame, capturedFrameName } from "./videoFrameCapture";
 import PhotoCanvasPreview from "./PhotoCanvasPreview";
 import SessionMediaLibrary from "./SessionMediaLibrary";
@@ -37,9 +40,8 @@ export default function App() {
   const [items, setItems] = useState<MediaItem[]>([]);
   const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
   const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
-  const [photoAdjustments, setPhotoAdjustments] = useState<Record<string, {
-    brightness: number; contrast: number; rotation: number;
-  }>>({});
+  const [photoAdjustments, setPhotoAdjustments] = useState<Record<string, PhotoAdjustments>>({});
+  const [photoDimensions, setPhotoDimensions] = useState<Record<string, { width: number; height: number }>>({});
   const [prompt, setPrompt] = useState("");
   const [createOpened, setCreateOpened] = useState(false);
   const [videoCreateOpened, setVideoCreateOpened] = useState(false);
@@ -77,6 +79,8 @@ export default function App() {
   const brightness = edits?.brightness ?? 100;
   const contrast = edits?.contrast ?? 100;
   const rotation = edits?.rotation ?? 0;
+  const crop = edits?.crop ?? EMPTY_PHOTO_CROP;
+  const selectedPhotoDimensions = selected?.kind === "image" ? photoDimensions[selected.id] : undefined;
   const previewFailed = selected ? failedIds.has(selected.id) : false;
   const readOnlyReason = selected ? readOnlyPhotos.get(selected.id) : undefined;
   const editablePhoto = selected?.kind === "image" && !readOnlyReason &&
@@ -131,13 +135,32 @@ export default function App() {
     setView(editorFor(item.kind));
   }
 
-  function updatePhotoAdjustments(changes: Partial<{ brightness: number; contrast: number; rotation: number }>) {
+  function updatePhotoAdjustments(changes: Partial<PhotoAdjustments>) {
     if (!selected || selected.kind !== "image") return;
+    const id = selected.id;
     setPhotoAdjustments((previous) => ({
       ...previous,
-      // Defaults apply only to a photo that has no edits yet (the Record type hides the undefined case).
-      [selected.id]: { ...(previous[selected.id] ?? { brightness: 100, contrast: 100, rotation: 0 }), ...changes },
+      [id]: { ...(previous[id] ?? { brightness: 100, contrast: 100, rotation: 0 }), ...changes },
     }));
+    setPhotoExportNotice("");
+  }
+
+  function updatePhotoCrop(changes: Partial<PhotoCrop>) {
+    if (!selected || selected.kind !== "image") return;
+    const id = selected.id;
+    setPhotoAdjustments((previous) => {
+      const existing = previous[id] ?? { brightness: 100, contrast: 100, rotation: 0 };
+      const crop = validatePhotoCrop({ ...EMPTY_PHOTO_CROP, ...existing.crop, ...changes });
+      return { ...previous, [id]: { ...existing, crop } };
+    });
+    setPhotoExportNotice("");
+  }
+
+  function applyCropAspect(ratio: number) {
+    if (!selectedPhotoDimensions) return;
+    updatePhotoAdjustments({
+      crop: centeredPhotoCrop(selectedPhotoDimensions.width, selectedPhotoDimensions.height, rotation, ratio),
+    });
   }
 
   function addMedia(event: ChangeEvent<HTMLInputElement>) {
@@ -187,10 +210,11 @@ export default function App() {
     setPhotoExportBusy(true);
     setPhotoExportNotice("Rendering and validating your edited photo…");
     try {
-      const png = await renderAdjustedPhoto(selected.url, { brightness, contrast, rotation });
+      const png = await renderAdjustedPhoto(selected.url, { brightness, contrast, rotation, crop });
       const receipt = await invoke<{ path: string; sha256: string; width: number; height: number }>("photo_export_copy", {
         request: {
           ...png, brightness, contrast, rotation,
+          crop: { ...crop },
           accept_pictures_export: true,
         },
       });
@@ -278,6 +302,11 @@ export default function App() {
       void revokeSource(grant.grantId);
       setVideoGrants((previous) => { const next = { ...previous }; delete next[id]; return next; });
     }
+    setPhotoDimensions((previous) => {
+      const next = { ...previous };
+      delete next[id];
+      return next;
+    });
     URL.revokeObjectURL(entry.url);
     objectUrls.current = objectUrls.current.filter((url) => url !== entry.url);
   }
@@ -373,7 +402,10 @@ export default function App() {
               {selected && previewFailed && <div className="empty-canvas preview-failed" role="alert"><div className="empty-icon">⚠</div><h1>Can't preview {selected.name}</h1><p>{selected.kind === "image" ? IMAGE_PREVIEW_FAILED : VIDEO_PREVIEW_FAILED}</p></div>}
               {editablePhoto && !previewFailed && <PhotoCanvasPreview key={selected.id}
                 sourceUrl={selected.url} label={selected.name}
-                brightness={brightness} contrast={contrast} rotation={rotation}
+                brightness={brightness} contrast={contrast} rotation={rotation} crop={crop}
+                onDimensions={(dims) => setPhotoDimensions((previous) =>
+                  previous[selected.id]?.width === dims.width && previous[selected.id]?.height === dims.height
+                    ? previous : { ...previous, [selected.id]: dims })}
                 onError={(reason) => setReadOnlyPhotos((previous) => new Map(previous).set(selected.id, reason))} />}
               {selected?.kind === "image" && !editablePhoto && !previewFailed &&
                 <img key={selected.id} onError={() => markFailed(selected.id, IMAGE_PREVIEW_FAILED)}
@@ -415,12 +447,42 @@ export default function App() {
                 </p>}
               <label>Brightness <output>{brightness}%</output><input type="range" min="25" max="175" value={brightness} onChange={(event) => updatePhotoAdjustments({ brightness: Number(event.target.value) })} /></label>
               <label>Contrast <output>{contrast}%</output><input type="range" min="25" max="175" value={contrast} onChange={(event) => updatePhotoAdjustments({ contrast: Number(event.target.value) })} /></label>
-              <button className="secondary full" onClick={() => updatePhotoAdjustments({ rotation: (rotation + 90) % 360 })}>Rotate preview 90°</button>
+              <button className="secondary full" onClick={() => updatePhotoAdjustments({ rotation: (rotation + 90) % 360 })}>Rotate photo 90°</button>
               <button className="primary full" type="button" disabled={photoExportBusy}
                 onClick={() => void exportAdjustedPhoto()}>
                 {photoExportBusy ? "Saving adjusted PNG…" : "Save adjusted PNG copy"}
               </button>
               {photoExportNotice && <p role="status" className="photo-export-notice">{photoExportNotice}</p>}
+              <fieldset className="photo-crop-tools">
+                <legend>Crop photo</legend>
+                <p>Crop the rotated image. The preview and exported PNG use the same cropped pixels; the original is unchanged.</p>
+                <div className="photo-crop-presets" role="group" aria-label="Crop aspect presets">
+                  <button type="button" className="secondary" disabled={!selectedPhotoDimensions}
+                    onClick={() => applyCropAspect(1)}>Square 1:1</button>
+                  <button type="button" className="secondary" disabled={!selectedPhotoDimensions}
+                    onClick={() => applyCropAspect(16 / 9)}>Wide 16:9</button>
+                  <button type="button" className="secondary" disabled={!selectedPhotoDimensions}
+                    onClick={() => applyCropAspect(4 / 5)}>Portrait 4:5</button>
+                  <button type="button" className="secondary"
+                    onClick={() => updatePhotoAdjustments({ crop: { ...EMPTY_PHOTO_CROP } })}>Reset crop</button>
+                </div>
+                {(["left", "top", "right", "bottom"] as const).map((edge) => {
+                  const opposite = edge === "left" ? "right" : edge === "right" ? "left" :
+                    edge === "top" ? "bottom" : "top";
+                  const max = Math.min(9500, 9900 - crop[opposite]);
+                  return <label key={edge} className="photo-crop-control">
+                    {edge.charAt(0).toUpperCase() + edge.slice(1)} edge <output>{(crop[edge] / 100).toFixed(2)}%</output>
+                    <input type="range" min={0} max={max} step={25} value={crop[edge]}
+                      aria-label={edge + " crop inset percent"}
+                      onChange={(event) => updatePhotoCrop({ ...crop, [edge]: Number(event.target.value) })} />
+                  </label>;
+                })}
+                <p className="photo-crop-status" role="status">
+                  {crop.left + crop.top + crop.right + crop.bottom === 0
+                    ? "Full photo, no crop."
+                    : "Crop preview active. Export saves only the visible area."}
+                </p>
+              </fieldset>
               <p>Export to Pictures may sync with OneDrive. The original stays unchanged. Supports PNG, JPEG and WebP sources up to 32 MB and 20 megapixels. PNG export does not preserve source EXIF or ICC metadata, and it does not save an asset into this project.</p>
             </div> : view === "photo" ? <p className="model-hint">Choose a photo to adjust and export, or use Create Images for AI generation.</p> :
               <div className="video-capability-note">

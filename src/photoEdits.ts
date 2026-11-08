@@ -3,11 +3,67 @@
  * previews. Originals and browser object URLs are read-only. The editor is not
  * yet a layer/mask editor, and exporting does not save the project.
  */
+export type PhotoCrop = {
+  /** Insets from each edge of the rotated image, in basis points (10000 = 100%). */
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+};
+
 export type PhotoAdjustments = {
   brightness: number;
   contrast: number;
   rotation: number;
+  crop?: PhotoCrop;
 };
+
+export const EMPTY_PHOTO_CROP: Readonly<PhotoCrop> = Object.freeze({
+  left: 0, top: 0, right: 0, bottom: 0,
+});
+
+export function validatePhotoCrop(crop: PhotoCrop = EMPTY_PHOTO_CROP): PhotoCrop {
+  const values = [crop.left, crop.top, crop.right, crop.bottom];
+  if (values.some((value) => !Number.isInteger(value) || value < 0 || value > 9500) ||
+      crop.left + crop.right >= 10000 || crop.top + crop.bottom >= 10000) {
+    throw new Error("Crop edges are invalid or leave no usable image.");
+  }
+  return { ...crop };
+}
+
+/** Crop uses the rotated photo's visual coordinates, not EXIF/source orientation. */
+export function photoCropBounds(
+  width: number, height: number, crop: PhotoCrop = EMPTY_PHOTO_CROP,
+): { x: number; y: number; width: number; height: number } {
+  const c = validatePhotoCrop(crop);
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 ||
+      width > MAX_PHOTO_EDGE || height > MAX_PHOTO_EDGE || width * height > MAX_PHOTO_PIXELS) {
+    throw new Error("Crop source dimensions exceed the photo edit limit.");
+  }
+  const x = Math.floor(width * c.left / 10000);
+  const y = Math.floor(height * c.top / 10000);
+  const cutRight = Math.floor(width * c.right / 10000);
+  const cutBottom = Math.floor(height * c.bottom / 10000);
+  return { x, y, width: width - x - cutRight, height: height - y - cutBottom };
+}
+
+/** Exact-enough aspect presets in 0.01% increments, centered on the rotated photo.
+ * Users can fine tune the four edges with the standard Crop controls.
+ */
+export function centeredPhotoCrop(
+  originalWidth: number, originalHeight: number, rotation: number, ratio: number,
+): PhotoCrop {
+  const size = photoExportDimensions(originalWidth, originalHeight, rotation);
+  if (!Number.isFinite(ratio) || ratio <= 0 || ratio > 100) {
+    throw new Error("The requested crop aspect is unsupported.");
+  }
+  if (size.width / size.height > ratio) {
+    const side = Math.min(4975, Math.max(0, Math.round((1 - ratio * size.height / size.width) * 5000 / 25) * 25));
+    return validatePhotoCrop({ left: side, right: side, top: 0, bottom: 0 });
+  }
+  const side = Math.min(4975, Math.max(0, Math.round((1 - size.width / ratio / size.height) * 5000 / 25) * 25));
+  return validatePhotoCrop({ left: 0, right: 0, top: side, bottom: side });
+}
 
 export const MAX_PHOTO_SOURCE_BYTES = 32 * 1024 * 1024;
 export const MAX_PHOTO_PNG_BYTES = 32 * 1024 * 1024;
@@ -87,12 +143,13 @@ export function probePhotoDimensions(bytes: Uint8Array, mime: string): { width: 
 
 export function validatePhotoAdjustments(value: PhotoAdjustments): PhotoAdjustments {
   const { brightness, contrast, rotation } = value;
+  const crop = validatePhotoCrop(value.crop);
   if (!Number.isInteger(brightness) || brightness < 25 || brightness > 175 ||
       !Number.isInteger(contrast) || contrast < 25 || contrast > 175 ||
       !Number.isInteger(rotation) || ![0, 90, 180, 270].includes(rotation)) {
     throw new Error("Photo adjustment values are outside the supported export range.");
   }
-  return { brightness, contrast, rotation };
+  return { brightness, contrast, rotation, ...(value.crop ? { crop } : {}) };
 }
 
 export function photoExportDimensions(width: number, height: number, rotation: number) {
@@ -131,26 +188,36 @@ function pngBase64(blob: Blob): Promise<string> {
  */
 export function photoPaintDimensions(
   originalWidth: number, originalHeight: number, rotation: number, maxPreviewEdge?: number,
+  crop: PhotoCrop = EMPTY_PHOTO_CROP,
 ): { width: number; height: number; drawWidth: number; drawHeight: number } {
-  photoExportDimensions(originalWidth, originalHeight, rotation);
+  const rotated = photoExportDimensions(originalWidth, originalHeight, rotation);
+  const bounds = photoCropBounds(rotated.width, rotated.height, crop);
   if (maxPreviewEdge !== undefined &&
       (!Number.isInteger(maxPreviewEdge) || maxPreviewEdge < 128 || maxPreviewEdge > 2048)) {
     throw new Error("The requested photo preview dimensions are invalid.");
   }
   const scale = maxPreviewEdge === undefined ? 1 :
-    Math.min(1, maxPreviewEdge / Math.max(originalWidth, originalHeight));
+    Math.min(1, maxPreviewEdge / Math.max(bounds.width, bounds.height));
   const drawWidth = Math.max(1, Math.round(originalWidth * scale));
   const drawHeight = Math.max(1, Math.round(originalHeight * scale));
-  return { ...photoExportDimensions(drawWidth, drawHeight, rotation), drawWidth, drawHeight };
+  return {
+    width: Math.max(1, Math.round(bounds.width * scale)),
+    height: Math.max(1, Math.round(bounds.height * scale)),
+    drawWidth, drawHeight,
+  };
 }
 
 export function paintAdjustedPhoto(
   bitmap: ImageBitmap, edits: PhotoAdjustments,
   canvas: HTMLCanvasElement, maxPreviewEdge?: number,
 ): { width: number; height: number } {
-  const { brightness, contrast, rotation } = validatePhotoAdjustments(edits);
-  const { width, height, drawWidth, drawHeight } =
-    photoPaintDimensions(bitmap.width, bitmap.height, rotation, maxPreviewEdge);
+  const { brightness, contrast, rotation, crop } = validatePhotoAdjustments(edits);
+  const rotated = photoExportDimensions(bitmap.width, bitmap.height, rotation);
+  const bounds = photoCropBounds(rotated.width, rotated.height, crop);
+  const { width, height } =
+    photoPaintDimensions(bitmap.width, bitmap.height, rotation, maxPreviewEdge, crop);
+  const scaleX = width / bounds.width;
+  const scaleY = height / bounds.height;
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d", { alpha: true });
@@ -158,10 +225,14 @@ export function paintAdjustedPhoto(
   ctx.save();
   try {
     ctx.clearRect(0, 0, width, height);
-    ctx.translate(width / 2, height / 2);
+    ctx.scale(scaleX, scaleY);
+    // Crop happens AFTER rotation, as in the visible editor. Both preview
+    // and native-bound PNG use the identical transform, never CSS clipping.
+    ctx.translate(-bounds.x, -bounds.y);
+    ctx.translate(rotated.width / 2, rotated.height / 2);
     ctx.rotate(rotation * Math.PI / 180);
     ctx.filter = `brightness(${brightness}%) contrast(${contrast}%)`;
-    ctx.drawImage(bitmap, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
+    ctx.drawImage(bitmap, -bitmap.width / 2, -bitmap.height / 2);
   } finally {
     ctx.restore();
   }
