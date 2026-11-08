@@ -69,6 +69,9 @@ export default function SessionMediaLibrary({
         <div className="session-media-detail">
           <strong title={item.name}>{item.name}</strong>
           <small>{item.kind === "image" ? "Photo" : "Video"} · {formatSize(item.size)} · Session only</small>
+          {item.derivedFrom?.kind === "video-frame" && <small className="session-media-origin">
+            Frame captured at {item.derivedFrom.timeSeconds.toFixed(3)} s from {item.derivedFrom.sourceName}. Not saved as project provenance.
+          </small>}
         </div>
         <div className="session-media-actions">
           <button type="button" className="secondary" onClick={() => onOpen(item)}>
