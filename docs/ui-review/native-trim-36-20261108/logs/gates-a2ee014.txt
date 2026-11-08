@@ -1,0 +1,80 @@
+﻿HEAD a2ee0143e99783add2c3b2ef1fa1415b29cfd8ef
+== npm ci exit=0
+At <local path>
+1:13 char:17
++ Gate 'npm ci' { cmd /c npm ci }
++                 ~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn allow-...y allowScripts::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+npm warn allow-scripts   esbuild@0.25.12 (postinstall: node install.js)
+npm warn allow-scripts
+npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to review, or `npm approve-scripts <pkg>` to 
+allow.
+
+== test:content exit=0
+✔ Removing a clip from the session withdraws its export permission (0.6981ms)
+✔ every native window retains all observed WebView2 privacy controls (0.8336ms)
+✔ each required WebView2 privacy switch is mutation-guarded (2.1855ms)
+ℹ tests 88
+ℹ suites 0
+ℹ pass 88
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 381.3979
+
+== build exit=0
+> tsc --noEmit && vite build
+
+vite v6.4.5 building for production...
+transforming...
+✓ 59 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.45 kB │ gzip:   0.30 kB
+dist/assets/index-Cwu7UPP0.css   42.65 kB │ gzip:   9.36 kB
+dist/assets/index-Cbh9wDCp.js   350.83 kB │ gzip: 107.71 kB
+✓ built in 693ms
+
+== cargo fmt --check exit=0
+
+== cargo check --locked exit=0
+cargo :     Checking optic-rift v0.1.0 (<local path>
+ff-1dba26a9baa4\scratchpad\pr36\src-tauri)
+At <local path>
+1:17 char:31
++ ... --locked' { cargo check --manifest-path src-tauri/Cargo.toml --locked ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (    Checking op...pr36\src-tauri):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.50s
+
+== cargo test --locked exit=101
+thread 'video_trim::tests::cancel_stops_the_encoder_and_leaves_no_files' (47460) panicked at src\video_trim.rs:2150:10:
+called `Result::unwrap()` on an `Err` value: "FFmpeg changed on disk since this session started; export refused. Restart Optic Rift to trust the new build."
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    video_trim::tests::cancel_stops_the_encoder_and_leaves_no_files
+
+test result: FAILED. 111 passed; 1 failed; 5 ignored; 0 measured; 0 filtered out; finished in 75.54s
+
+error: test failed, to rerun pass `--lib`
+
+== cargo clippy --locked -D warnings exit=0
+cargo :    Compiling optic-rift v0.1.0 (<local path>
+ff-1dba26a9baa4\scratchpad\pr36\src-tauri)
+At <local path>
+1:19 char:44
++ ... warnings' { cargo clippy --manifest-path src-tauri/Cargo.toml --all-t ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (   Compiling op...pr36\src-tauri):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 5.08s
+
+DONE

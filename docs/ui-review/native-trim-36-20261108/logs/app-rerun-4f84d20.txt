@@ -1,0 +1,37 @@
+﻿
+HEAD 4f84d20d4843739072c6eee30627a3063cf3aba8
+exe sha256 B4F4C91FD2C5FFD87AA0DEB052B0E531B6713EC811B69758DDE056B61FEC21BF
+== source changed after the grant (re-run with corrected waits)
+goto Video Studio: Video Studio
+MUTATE 1: export final-mutate.mp4: succeeded optic-rift-trim-ccc06fc0-3d5a-4c32-959b-6e6a4ab92ee1.mp4
+MUTATE 2: same clip after the file changed: {"notice":"","jobsStarted":0}
+MUTATE 3: Save again asks for the file again: {"notice":"The source video changed on disk after you chose it. Nothing was exported; choose it again.","jobsStarted":0}
+== real Windows dialog (no seam), re-run
+goto Video Studio: Video Studio
+CLICK-SAVE vp9-counter.webm: clicked
+dialog title: Optic Rift: choose vp9-counter.webm to allow a trimmed copy
+file-name box prefilled: 
+OK button label: Allow trimmed copy
+clicked Cancel
+dialog closed: True
+AFTER-DIALOG: {"confirmText":"","notice":"No file was chosen. Nothing was exported. | An export of long-1080p-120s.mp4 was interrupted when Optic Rift closed. Its partial files were removed; no video was saved. Dismiss","job":{"state":"succeeded","file":"optic-rift-trim-ccc06fc0-3d5a-4c32-959b-6e6a4ab92ee1.mp4","frames":31}}
+goto Video Studio: Video Studio
+CLICK-SAVE rotated-audio-counter.mp4: clicked
+dialog title: Optic Rift: choose rotated-audio-counter.mp4 to allow a trimmed copy
+file-name box prefilled: 
+OK button label: Allow trimmed copy
+set the file name and clicked OK (attempt 1)
+dialog closed: True
+AFTER-DIALOG: {"confirmText":"Save a trimmed copy of rotated-audio-counter.mp4?\n\nFrames 31 to 61 (31 frames, 00:01.0 to 00:02.0, 360×640).\nAudio: the clip's audio track is kept (re-encoded to AAC).\n\nA new MP4 and a receipt will be saved in Pictures\\Optic Rift, which may sync with OneDrive. Your original video is not changed.","notice":"","job":{"state":"succeeded","file":"optic-rift-trim-f712a94f-0d2d-4cea-8b2d-f91a14df8be9.mp4","frames":31}}
+ANALYSIS real-dialog rotated-audio-counter.mp4: {"output":"optic-rift-trim-ccc06fc0-3d5a-4c32-959b-6e6a4ab92ee1.mp4","sha256":"fd6931a0e707124d3d8cd5b7b4f207dfd15b49e17a69a56159157bc06087b97b","receiptShaMatches":true,"receiptSourceSha":"dc31f4a72812bdb5","receiptRange":[15,45,31],"codec":"h264","size":[640,360],"rotationTag":0,"container":"mov,mp4,m4a,3gp,3g2,mj2","frames":31,"videoSeconds":1.033333,"audioTracks":0,"audioSeconds":null,"firstSourceFrame":91,"lastSourceFrame":91,"strictlyIncreasing":false,"sourceFrames":"91,91,91,91,91,91,91,91,91,91,91,91,91,91,91,91,91,91,91,91,91,91,91,91,91,91,91,91,91,91,91","worstMatchMad":"69.67","smallestMargin":"0.48"}
+== layout and keyboard (dialog closed)
+KB 1280x720 setup: Video Studio
+KB 1280x720 Save trimmed video: {"tabsFromNav":27,"focused":true,"outline":"solid 2px","inViewport":true,"topmost":true,"pageScrollX":false}
+KB 1440x900 setup: Video Studio
+KB 1440x900 Save trimmed video: {"tabsFromNav":27,"focused":true,"outline":"solid 2px","inViewport":true,"topmost":true,"pageScrollX":false}
+KB 1920x1080 setup: Video Studio
+KB 1920x1080 Save trimmed video: {"tabsFromNav":27,"focused":true,"outline":"solid 2px","inViewport":true,"topmost":true,"pageScrollX":false}
+KB 1100x700 setup: Video Studio
+KB 1100x700 Save trimmed video: {"tabsFromNav":27,"focused":true,"outline":"solid 2px","inViewport":true,"topmost":true,"pageScrollX":false}
+pictures end: 70
+DONE
