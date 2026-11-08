@@ -49,7 +49,8 @@ export default function VideoShotComposer({
         }
         setShots((previous) => previous.map((shot) => shot.id === editingId ? { ...normalized, id: editingId } : shot));
       } else {
-        setShots((previous) => [...previous, { ...normalized, id: crypto.randomUUID() }]);
+        setShots((previous) => previous.length >= MAX_SESSION_VIDEO_SHOTS
+          ? previous : [...previous, { ...normalized, id: crypto.randomUUID() }]);
       }
       setEditingId(null);
       setDraft(initialShot());
