@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { MediaItem } from "./creativeNavigation";
 import {
   audioText, grantSource, isFinal, jobLabel, jobProgress, resolveTrim, videoExportError,
@@ -22,6 +22,8 @@ export default function VideoTrimPanel({ clip, ready, inSeconds, outSeconds, gra
   const [notice, setNotice] = useState("");
   const { job, running } = exporter;
   const jobForClip = job && !exporter.dismissed ? job : null;
+  // A notice belongs to the clip it was about; switching clips clears it.
+  useEffect(() => { setNotice(""); }, [clip?.id]);
 
   async function saveTrimmed() {
     if (!clip || busy || running) return;

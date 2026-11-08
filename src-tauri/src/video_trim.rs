@@ -404,11 +404,17 @@ fn admit_source(
         .video
         .clone()
         .ok_or("This file has no video stream.")?;
+    // No color management yet: HDR transfer curves and BT.2020 wide-gamut primaries would be
+    // re-encoded as if they were ordinary SDR video and change color.
     if matches!(
         video.color_transfer.as_deref(),
         Some("smpte2084") | Some("arib-std-b67")
-    ) {
-        return Err("HDR video can't be trimmed yet; the export would change its colors.".into());
+    ) || video.color_primaries.as_deref() == Some("bt2020")
+    {
+        return Err(
+            "HDR or wide-gamut (BT.2020) video can't be trimmed yet; the export would change its colors. Nothing was granted."
+                .into(),
+        );
     }
     let (w, h, _) = display_size(&probe)?;
     if w % 2 == 1 || h % 2 == 1 {
@@ -2026,6 +2032,12 @@ mod tests {
         let fake = dir.join("fake.mp4");
         fs::write(&fake, vec![7u8; 4096]).unwrap();
         assert!(grant_picked(&t, &request_for(&fake), &fake).is_err());
+        // HDR (PQ transfer, BT.2020 primaries) is refused until color management exists.
+        let hdr = dir.join("hdr.mp4");
+        ffmpeg(&t, &["-v", "error", "-f", "lavfi", "-i", "testsrc2=s=64x48:r=30:d=1", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-bsf:v", "h264_metadata=colour_primaries=9:transfer_characteristics=16:matrix_coefficients=9", hdr.to_str().unwrap()]);
+        assert!(grant_picked(&t, &request_for(&hdr), &hdr)
+            .unwrap_err()
+            .contains("HDR"));
 
         let grant = grant_picked(&t, &request, &source).unwrap();
         let ok = |first, last| StartRequest {

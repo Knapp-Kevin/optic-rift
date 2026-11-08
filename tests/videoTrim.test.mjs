@@ -55,6 +55,10 @@ test("A running export stays visible and cancellable on every destination", () =
   assert.match(source("../src/VideoTrimPanel.tsx"), /Video export · /);
 });
 
+test("A notice about one clip is cleared when another clip is selected", () => {
+  assert.match(source("../src/VideoTrimPanel.tsx"), /useEffect\(\(\) => \{ setNotice\(""\); \}, \[clip\?\.id\]\);/);
+});
+
 test("Removing a clip from the session withdraws its export permission", () => {
   const app = source("../src/App.tsx");
   assert.match(app, /const grant = videoGrants\[id\];\s*if \(grant\) \{\s*void revokeSource\(grant\.grantId\);/);
