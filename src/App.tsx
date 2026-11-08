@@ -437,6 +437,11 @@ export default function App() {
               <label>Brightness <output>{brightness}%</output><input type="range" min="25" max="175" value={brightness} onChange={(event) => updatePhotoAdjustments({ brightness: Number(event.target.value) })} /></label>
               <label>Contrast <output>{contrast}%</output><input type="range" min="25" max="175" value={contrast} onChange={(event) => updatePhotoAdjustments({ contrast: Number(event.target.value) })} /></label>
               <button className="secondary full" onClick={() => updatePhotoAdjustments({ rotation: (rotation + 90) % 360 })}>Rotate photo 90°</button>
+              <button className="primary full" type="button" disabled={photoExportBusy}
+                onClick={() => void exportAdjustedPhoto()}>
+                {photoExportBusy ? "Saving adjusted PNG…" : "Save adjusted PNG copy"}
+              </button>
+              {photoExportNotice && <p role="status" className="photo-export-notice">{photoExportNotice}</p>}
               <fieldset className="photo-crop-tools">
                 <legend>Crop photo</legend>
                 <p>Crop the rotated image. The preview and exported PNG use the same cropped pixels; the original is unchanged.</p>
@@ -467,11 +472,6 @@ export default function App() {
                     : "Crop preview active. Export saves only the visible area."}
                 </p>
               </fieldset>
-              <button className="primary full" type="button" disabled={photoExportBusy}
-                onClick={() => void exportAdjustedPhoto()}>
-                {photoExportBusy ? "Saving adjusted PNG…" : "Save adjusted PNG copy"}
-              </button>
-              {photoExportNotice && <p role="status" className="photo-export-notice">{photoExportNotice}</p>}
               <p>Export to Pictures may sync with OneDrive. The original stays unchanged. Supports PNG, JPEG and WebP sources up to 32 MB and 20 megapixels. PNG export does not preserve source EXIF or ICC metadata, and it does not save an asset into this project.</p>
             </div> : view === "photo" ? <p className="model-hint">Choose a photo to adjust and export, or use Create Images for AI generation.</p> :
               <div className="video-capability-note">
