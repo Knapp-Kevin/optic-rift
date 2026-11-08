@@ -6,6 +6,7 @@ mod generation;
 mod gpu_guard;
 mod hf_access;
 mod hf_catalog;
+pub mod media;
 mod model_commands;
 mod model_store;
 mod photo_export;
