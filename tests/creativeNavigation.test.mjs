@@ -90,7 +90,8 @@ test("Editor navigation preserves per-asset photo edits and separate video selec
   assert.match(app, /const \[selectedPhotoId, setSelectedPhotoId\]/);
   assert.match(app, /const \[selectedVideoId, setSelectedVideoId\]/);
   assert.match(app, /const \[photoAdjustments, setPhotoAdjustments\]/);
-  assert.match(app, /\[selected\.id\]: \{ \.\.\.\(previous\[selected\.id\] \?\? \{ brightness: 100, contrast: 100, rotation: 0 \}\), \.\.\.changes \}/);
+  // Since the crop work, updatePhotoAdjustments captures the photo id in a local `id`.
+  assert.match(app, /\[id\]: \{ \.\.\.\(previous\[id\] \?\? \{ brightness: 100, contrast: 100, rotation: 0 \}\), \.\.\.changes \}/);
   assert.match(app, /editorItems\.map\(\(item\)/);
   assert.match(app, /mediaForEditor\(items, view\)/);
 });

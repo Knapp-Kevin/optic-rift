@@ -72,7 +72,8 @@ test("Preview and exported pixels use the same crop-after-rotate canvas transfor
   const dims = paintAdjustedPhoto(bitmap, edits, canvas);
   assert.deepEqual(dims, { width: 150, height: 200 });
   assert.deepEqual(ops.map((x) => x[0]), ["save", "clear", "scale", "translate", "translate", "rotate", "draw", "restore"]);
-  assert.deepEqual(ops[3], ["translate", -50, 0]);
+  // translate(-x, -y) with y = 0 passes -0, which canvas treats as 0; strict deepEqual does not.
+  assert.deepEqual(ops[3].map((v) => (Object.is(v, -0) ? 0 : v)), ["translate", -50, 0]);
   assert.deepEqual(ops[4], ["translate", 100, 200]);
   assert.equal(ops[5][1], Math.PI / 2);
   assert.deepEqual(ops[6], ["draw", bitmap, -200, -100]);

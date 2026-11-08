@@ -289,13 +289,28 @@ mod tests {
         request.png_base64 = "not-a-png".into();
         assert!(decode_verified_png(&request).is_err());
         request = fixture();
-        request.crop = Some(PhotoCrop { left: 9501, top: 0, right: 0, bottom: 0 });
+        request.crop = Some(PhotoCrop {
+            left: 9501,
+            top: 0,
+            right: 0,
+            bottom: 0,
+        });
         assert!(decode_verified_png(&request).unwrap_err().contains("crop"));
         request = fixture();
-        request.crop = Some(PhotoCrop { left: 9500, top: 0, right: 500, bottom: 0 });
+        request.crop = Some(PhotoCrop {
+            left: 9500,
+            top: 0,
+            right: 500,
+            bottom: 0,
+        });
         assert!(decode_verified_png(&request).unwrap_err().contains("crop"));
         request = fixture();
-        request.crop = Some(PhotoCrop { left: 1000, top: 2500, right: 0, bottom: 0 });
+        request.crop = Some(PhotoCrop {
+            left: 1000,
+            top: 2500,
+            right: 0,
+            bottom: 0,
+        });
         assert!(decode_verified_png(&request).is_ok());
     }
 
