@@ -80,8 +80,11 @@ export async function captureVideoFrame(
       "image/png",
     );
   });
-  if (blob.type !== "image/png" || !blob.size || blob.size > MAX_CAPTURE_PNG_BYTES) {
-    throw new Error("The captured PNG exceeds the supported 32 MB limit or is invalid.");
+  if (blob.type !== "image/png" || !blob.size) {
+    throw new Error("Could not encode this frame as a valid PNG.");
+  }
+  if (blob.size > MAX_CAPTURE_PNG_BYTES) {
+    throw new Error("The captured PNG exceeds the supported 32 MB limit.");
   }
   return { blob, width, height, timeSeconds };
 }
