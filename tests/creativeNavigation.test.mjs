@@ -5,10 +5,10 @@ import { editorFor, mediaForEditor, navigation, routeTitle } from "../src/creati
 
 const source = (name) => readFileSync(new URL(name, import.meta.url), "utf8");
 
-test("The seven destinations have unique user-intent routes, accessible labels and no audio scope", () => {
+test("The expanded creative destinations are unique and accessible without audio scope", () => {
   const routes = navigation.flatMap((section) => section.items);
   assert.deepEqual(routes.map((route) => route.view),
-    ["projects", "library", "create", "photo", "video", "models", "settings"]);
+    ["projects", "library", "workflows", "create", "create-video", "photo", "video", "enhance-video", "models", "settings"]);
   assert.equal(new Set(routes.map((route) => route.view)).size, routes.length);
   for (const route of routes) {
     assert.ok(route.label && route.description && route.symbol);
@@ -16,6 +16,9 @@ test("The seven destinations have unique user-intent routes, accessible labels a
   }
   assert.equal(routes.find((route) => route.view === "photo")?.label, "Photo Studio");
   assert.equal(routes.find((route) => route.view === "video")?.label, "Video Studio");
+  assert.equal(routes.find((route) => route.view === "create-video")?.label, "Create Videos");
+  assert.equal(routes.find((route) => route.view === "enhance-video")?.label, "Enhance Video");
+  assert.equal(routes.find((route) => route.view === "workflows")?.label, "Workflows");
   assert.doesNotMatch(routes.map((route) => route.label).join(" "), /audio|music|soundtrack/i);
 });
 
