@@ -9,12 +9,12 @@ import {
 
 const errorText = (e: unknown) => (typeof e === "string" ? e : e instanceof Error ? e.message : "The desktop bridge is unavailable.");
 
-type Props = { includeAdult: boolean; onLibraryChanged: () => void };
+type Props = { includeAdult: boolean; onLibraryChanged: () => void; initialCapability?: Capability };
 
 
-export default function ModelBrowser({ includeAdult, onLibraryChanged }: Props) {
+export default function ModelBrowser({ includeAdult, onLibraryChanged, initialCapability = "text-to-image" }: Props) {
   const [capabilities, setCapabilities] = useState<CapabilityInfo[]>([]);
-  const [capability, setCapability] = useState<Capability>("text-to-image");
+  const [capability, setCapability] = useState<Capability>(initialCapability);
   const [query, setQuery] = useState("");
   const [result, setResult] = useState<SearchResult | null>(null);
   const [searching, setSearching] = useState(false);
