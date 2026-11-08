@@ -13,6 +13,11 @@ import { renderAdjustedPhoto } from "./photoEdits";
 import { captureVideoFrame, capturedFrameName } from "./videoFrameCapture";
 import PhotoCanvasPreview from "./PhotoCanvasPreview";
 import SessionMediaLibrary from "./SessionMediaLibrary";
+import VideoShotComposer from "./VideoShotComposer";
+import VideoEnhancePlanner from "./VideoEnhancePlanner";
+import CreativeWorkflowExplorer from "./CreativeWorkflowExplorer";
+import type { Capability } from "./models";
+import type { VideoShotMode } from "./videoShotPlan";
 
 type RuntimeStatus = { application: string; stage: string; generation_ready: boolean; project_storage_ready: boolean };
 
@@ -35,6 +40,9 @@ export default function App() {
   }>>({});
   const [prompt, setPrompt] = useState("");
   const [createOpened, setCreateOpened] = useState(false);
+  const [videoCreateOpened, setVideoCreateOpened] = useState(false);
+  const [videoEnhanceOpened, setVideoEnhanceOpened] = useState(false);
+  const [modelBrowseCapability, setModelBrowseCapability] = useState<Capability>("text-to-image");
   const [creationMode, setCreationMode] = useState<"text-to-image" | "image-to-image">("text-to-image");
   const [libraryVersion, setLibraryVersion] = useState(0);
   const [historyVersion, setHistoryVersion] = useState(0);
@@ -84,8 +92,17 @@ export default function App() {
     };
   }, []);
 
-  useEffect(() => { if (view === "create") setCreateOpened(true); }, [view]);
+  useEffect(() => {
+    if (view === "create") setCreateOpened(true);
+    if (view === "create-video") setVideoCreateOpened(true);
+    if (view === "enhance-video") setVideoEnhanceOpened(true);
+  }, [view]);
   useEffect(() => { if (view !== "video") setVideoFrameReady(false); }, [view]);
+
+  function browseModelsFor(capability: Capability) {
+    setModelBrowseCapability(capability);
+    setView("models");
+  }
 
   function selectItem(item: MediaItem) {
     if (item.kind === "image") {
@@ -305,6 +322,24 @@ export default function App() {
               onResult={addGenerated}
               onGenerated={() => setHistoryVersion((v) => v + 1)} />
           </main>}
+        {view === "workflows" && <CreativeWorkflowExplorer onNavigate={setView} />}
+
+        {/* These planning workspaces are kept mounted after first visit. This
+            preserves a session storyboard or enhancement plan across navigation,
+            without falsely claiming project persistence or model execution. */}
+        {videoCreateOpened && <VideoShotComposer
+          media={items}
+          onOpenLibrary={() => setView("library")}
+          onOpenVideoStudio={() => setView("video")}
+          onBrowseModels={(mode: VideoShotMode) => browseModelsFor(mode)}
+          visible={view === "create-video"} />}
+        {videoEnhanceOpened && <VideoEnhancePlanner
+          media={items}
+          onOpenLibrary={() => setView("library")}
+          onOpenVideoStudio={() => setView("video")}
+          onBrowseModels={() => browseModelsFor("video-to-video")}
+          visible={view === "enhance-video"} />}
+
         {(view === "photo" || view === "video") && <main className={`workspace ${view}-workspace`}>
           <section className="media-panel">
             <div className="section-title"><div><h2>{view === "photo" ? "Photos" : "Video clips"}</h2><p>Opened this session</p></div><span className="count">{editorItems.length}</span></div>
@@ -399,7 +434,7 @@ export default function App() {
         </main>}
 
         {view === "models" && <main className="content-page"><div className="page-eyebrow">MODEL LIBRARY</div><h1>Find the right tool for your idea.</h1><p className="lead">Discover image and video models on Hugging Face, see what they do, what hardware they need and how they are licensed, and install the ones Optic Rift can run on this computer.</p>
-          <ModelBrowser includeAdult={includeAdultModels} onLibraryChanged={() => setLibraryVersion((v) => v + 1)} />
+          <ModelBrowser includeAdult={includeAdultModels} initialCapability={modelBrowseCapability} onLibraryChanged={() => setLibraryVersion((v) => v + 1)} />
           <HuggingFaceAccess />
           <div className="adult-preference">
             <div className="preference-top"><div><strong>Adult-oriented model discovery</strong><p>Models designed to create explicit sexual content will be labeled <b>Adult-focused (18+) · Explicit</b>. They will be excluded from discovery unless you opt in.</p></div><span className="adult-tag">18+</span></div>
