@@ -11,6 +11,13 @@ export type MediaItem = {
   url: string;
   size: number;
   mimeType: string;
+  /** Session-only relationship. Not a signed project asset or persisted provenance. */
+  derivedFrom?: {
+    kind: "video-frame";
+    sourceId: string;
+    sourceName: string;
+    timeSeconds: number;
+  };
 };
 
 export const navigation = [
