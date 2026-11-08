@@ -999,6 +999,21 @@ fn failure_text(code: Option<i32>, last_line: &str) -> String {
     }
 }
 
+fn damaged_text(stderr: &str) -> String {
+    let lines: Vec<&str> = stderr.lines().filter(|l| !l.trim().is_empty()).collect();
+    let first = lines
+        .first()
+        .map(|l| l.split("] ").last().unwrap_or(l).trim())
+        .unwrap_or("")
+        .chars()
+        .take(120)
+        .collect::<String>();
+    format!(
+        "The source video has damaged frames in this range: FFmpeg reported {} decoding problem(s), starting with \"{first}\".",
+        lines.len()
+    )
+}
+
 enum EncodeEnd {
     Done,
     Cancelled,
@@ -1104,6 +1119,11 @@ fn encode(
     match outcome {
         Err(None) => EncodeEnd::Cancelled,
         Err(Some(reason)) => EncodeEnd::Failed(reason),
+        // FFmpeg runs at `-v error`: a clean encode prints nothing. Decoder errors mean damaged
+        // source frames that FFmpeg concealed; exporting them as a verified copy would be false.
+        Ok(status) if status.success() && !stderr.trim().is_empty() => {
+            EncodeEnd::Failed(damaged_text(&stderr))
+        }
         Ok(status) if status.success() => EncodeEnd::Done,
         Ok(status) => {
             let last = stderr
@@ -2123,6 +2143,72 @@ mod tests {
         assert!(published(&dir).is_empty());
         assert!(revoke(&grant.grant_id));
         assert!(!revoke(&grant.grant_id));
+    }
+
+    #[test]
+    fn damaged_source_frames_fail_instead_of_being_concealed() {
+        let _serial = serial();
+        let t = trusted();
+        let dir = Scratch::new();
+        let clean = dir.join("clean.mp4");
+        ffmpeg(
+            &t,
+            &[
+                "-v",
+                "error",
+                "-f",
+                "lavfi",
+                "-i",
+                "testsrc2=s=320x240:r=30:d=4",
+                "-c:v",
+                "libx264",
+                "-preset",
+                "ultrafast",
+                "-g",
+                "30",
+                "-pix_fmt",
+                "yuv420p",
+                clean.to_str().unwrap(),
+            ],
+        );
+        let mut bytes = fs::read(&clean).unwrap();
+        let len = bytes.len();
+        let mut x: u64 = 7;
+        for _ in 0..300 {
+            x = x
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
+            let at = len * 2 / 5 + (x >> 33) as usize % (len / 5);
+            bytes[at] = (x >> 17) as u8;
+        }
+        let damaged = dir.join("damaged.mp4");
+        fs::write(&damaged, &bytes).unwrap();
+        let request = request_for(&damaged);
+        let grant = grant_picked(&t, &request, &damaged).unwrap();
+        let plan = resolve(&TrimRequest {
+            grant_id: grant.grant_id.clone(),
+            asset_id: request.asset_id.clone(),
+            in_seconds: 0.0,
+            out_seconds: None,
+        })
+        .unwrap();
+        let job = start(
+            &roots(&dir),
+            StartRequest {
+                grant_id: grant.grant_id.clone(),
+                asset_id: request.asset_id.clone(),
+                in_seconds: 0.0,
+                out_seconds: None,
+                expected_first_index: plan.first.index,
+                expected_last_index: plan.last.index,
+                accept_pictures_export: true,
+            },
+        )
+        .unwrap();
+        let done = wait(&job.job_id);
+        assert_eq!(done.state, JobState::Failed, "{}", done.message);
+        assert!(done.message.contains("damaged frames"), "{}", done.message);
+        assert!(published(&dir).is_empty());
     }
 
     #[test]
