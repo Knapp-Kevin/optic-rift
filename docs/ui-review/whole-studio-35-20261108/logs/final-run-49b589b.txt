@@ -1,0 +1,282 @@
+﻿HEAD 49b589b39dd28e65a5aae4515b427c0e0d948314
+       Built application at: C:\dev\mythologiq\optic-rift\src-tauri\target\debug\optic-rift.exe
+exe sha256 0F5144435974F4CE076BE26C18C1090DCF67EFEBF717A030670A051D958A3F4F
+pictures before: 30
+1280x720 Projects: {"current":["Projects"],"title":"Projects","main":"content-page projects-page","mainText":281,"aria":"Projects","pageScroll":[1280,1280],"navScroll":[720,720],"visibleMains":1}
+1280x720 Media Library: {"current":["Media Library"],"title":"Media Library","main":"content-page session-library-page","mainText":1947,"aria":"Media Library","pageScroll":[1265,1280],"navScroll":[720,720],"visibleMains":1}
+1280x720 Workflows: {"current":["Workflows"],"title":"Workflows","main":"video-compose-page workflow-explorer-page","mainText":10458,"aria":"Workflows","pageScroll":[1280,1280],"navScroll":[720,720],"visibleMains":1}
+1280x720 Create Images: {"current":["Create Images"],"title":"Create Images","main":"create-workspace","mainText":940,"aria":"Create Images","pageScroll":[1280,1280],"navScroll":[720,720],"visibleMains":1}
+1280x720 Create Videos: {"current":["Create Videos"],"title":"Create Videos","main":"video-compose-page","mainText":1532,"aria":"Create Videos","pageScroll":[1280,1280],"navScroll":[720,720],"visibleMains":1}
+1280x720 Photo Studio: {"current":["Photo Studio"],"title":"Photo Studio","main":"workspace photo-workspace","mainText":1877,"aria":"Photo Studio","pageScroll":[1280,1280],"navScroll":[720,720],"visibleMains":1}
+1280x720 Video Studio: {"current":["Video Studio"],"title":"Video Studio","main":"workspace video-workspace","mainText":1101,"aria":"Video Studio","pageScroll":[1280,1280],"navScroll":[720,720],"visibleMains":1}
+1280x720 Enhance Video: {"current":["Enhance Video"],"title":"Enhance Video","main":"video-compose-page video-enhance-page","mainText":1945,"aria":"Enhance Video","pageScroll":[1280,1280],"navScroll":[720,720],"visibleMains":1}
+1280x720 Models: {"current":["Models"],"title":"Models","main":"content-page","mainText":2038,"aria":"Models","pageScroll":[1265,1280],"navScroll":[720,720],"visibleMains":1}
+1280x720 Settings: {"current":["Settings"],"title":"Settings","main":"content-page","mainText":524,"aria":"Settings","pageScroll":[1280,1280],"navScroll":[720,720],"visibleMains":1}
+focus Projects: 1
+1280x720 tab order: ["Projects [none 3px]","Media Library [solid 2px]","Workflows [solid 2px]","Create Images [solid 2px]","Create Videos [solid 2px]","Photo Studio [solid 2px]","Video Studio [solid 2px]","Enhance Video [solid 2px]","Models [solid 2px]","Settings [solid 2px]"]
+1280x720 Enter on Enhance Video: 1
+1280x720 after Enter: Enhance Video current=Enhance Video
+1440x900 Projects: {"current":["Projects"],"title":"Projects","main":"content-page projects-page","mainText":281,"aria":"Projects","pageScroll":[1440,1440],"navScroll":[900,900],"visibleMains":1}
+1440x900 Media Library: {"current":["Media Library"],"title":"Media Library","main":"content-page session-library-page","mainText":1947,"aria":"Media Library","pageScroll":[1425,1440],"navScroll":[900,900],"visibleMains":1}
+1440x900 Workflows: {"current":["Workflows"],"title":"Workflows","main":"video-compose-page workflow-explorer-page","mainText":10458,"aria":"Workflows","pageScroll":[1440,1440],"navScroll":[900,900],"visibleMains":1}
+1440x900 Create Images: {"current":["Create Images"],"title":"Create Images","main":"create-workspace","mainText":894,"aria":"Create Images","pageScroll":[1440,1440],"navScroll":[900,900],"visibleMains":1}
+1440x900 Create Videos: {"current":["Create Videos"],"title":"Create Videos","main":"video-compose-page","mainText":1532,"aria":"Create Videos","pageScroll":[1440,1440],"navScroll":[900,900],"visibleMains":1}
+1440x900 Photo Studio: {"current":["Photo Studio"],"title":"Photo Studio","main":"workspace photo-workspace","mainText":1877,"aria":"Photo Studio","pageScroll":[1440,1440],"navScroll":[900,900],"visibleMains":1}
+1440x900 Video Studio: {"current":["Video Studio"],"title":"Video Studio","main":"workspace video-workspace","mainText":1101,"aria":"Video Studio","pageScroll":[1440,1440],"navScroll":[900,900],"visibleMains":1}
+1440x900 Enhance Video: {"current":["Enhance Video"],"title":"Enhance Video","main":"video-compose-page video-enhance-page","mainText":1945,"aria":"Enhance Video","pageScroll":[1440,1440],"navScroll":[900,900],"visibleMains":1}
+1440x900 Models: {"current":["Models"],"title":"Models","main":"content-page","mainText":2038,"aria":"Models","pageScroll":[1425,1440],"navScroll":[900,900],"visibleMains":1}
+1440x900 Settings: {"current":["Settings"],"title":"Settings","main":"content-page","mainText":524,"aria":"Settings","pageScroll":[1440,1440],"navScroll":[900,900],"visibleMains":1}
+focus Projects: 1
+1440x900 tab order: ["Projects [solid 2px]","Media Library [solid 2px]","Workflows [solid 2px]","Create Images [solid 2px]","Create Videos [solid 2px]","Photo Studio [solid 2px]","Video Studio [solid 2px]","Enhance Video [solid 2px]","Models [solid 2px]","Settings [solid 2px]"]
+1440x900 Enter on Enhance Video: 1
+1440x900 after Enter: Enhance Video current=Enhance Video
+1920x1080 Projects: {"current":["Projects"],"title":"Projects","main":"content-page projects-page","mainText":281,"aria":"Projects","pageScroll":[1920,1920],"navScroll":[1080,1080],"visibleMains":1}
+1920x1080 Media Library: {"current":["Media Library"],"title":"Media Library","main":"content-page session-library-page","mainText":1947,"aria":"Media Library","pageScroll":[1905,1920],"navScroll":[1080,1080],"visibleMains":1}
+1920x1080 Workflows: {"current":["Workflows"],"title":"Workflows","main":"video-compose-page workflow-explorer-page","mainText":10458,"aria":"Workflows","pageScroll":[1920,1920],"navScroll":[1080,1080],"visibleMains":1}
+1920x1080 Create Images: {"current":["Create Images"],"title":"Create Images","main":"create-workspace","mainText":894,"aria":"Create Images","pageScroll":[1920,1920],"navScroll":[1080,1080],"visibleMains":1}
+1920x1080 Create Videos: {"current":["Create Videos"],"title":"Create Videos","main":"video-compose-page","mainText":1532,"aria":"Create Videos","pageScroll":[1920,1920],"navScroll":[1080,1080],"visibleMains":1}
+1920x1080 Photo Studio: {"current":["Photo Studio"],"title":"Photo Studio","main":"workspace photo-workspace","mainText":1877,"aria":"Photo Studio","pageScroll":[1920,1920],"navScroll":[1080,1080],"visibleMains":1}
+1920x1080 Video Studio: {"current":["Video Studio"],"title":"Video Studio","main":"workspace video-workspace","mainText":1101,"aria":"Video Studio","pageScroll":[1920,1920],"navScroll":[1080,1080],"visibleMains":1}
+1920x1080 Enhance Video: {"current":["Enhance Video"],"title":"Enhance Video","main":"video-compose-page video-enhance-page","mainText":1945,"aria":"Enhance Video","pageScroll":[1920,1920],"navScroll":[1080,1080],"visibleMains":1}
+1920x1080 Models: {"current":["Models"],"title":"Models","main":"content-page","mainText":2038,"aria":"Models","pageScroll":[1905,1920],"navScroll":[1080,1080],"visibleMains":1}
+1920x1080 Settings: {"current":["Settings"],"title":"Settings","main":"content-page","mainText":524,"aria":"Settings","pageScroll":[1920,1920],"navScroll":[1080,1080],"visibleMains":1}
+focus Projects: 1
+1920x1080 tab order: ["Projects [solid 2px]","Media Library [solid 2px]","Workflows [solid 2px]","Create Images [solid 2px]","Create Videos [solid 2px]","Photo Studio [solid 2px]","Video Studio [solid 2px]","Enhance Video [solid 2px]","Models [solid 2px]","Settings [solid 2px]"]
+1920x1080 Enter on Enhance Video: 1
+1920x1080 after Enter: Enhance Video current=Enhance Video
+1100x700 Projects: {"current":["Projects"],"title":"Projects","main":"content-page projects-page","mainText":281,"aria":"Projects","pageScroll":[1100,1100],"navScroll":[700,700],"visibleMains":1}
+1100x700 Media Library: {"current":["Media Library"],"title":"Media Library","main":"content-page session-library-page","mainText":1947,"aria":"Media Library","pageScroll":[1085,1100],"navScroll":[700,700],"visibleMains":1}
+1100x700 Workflows: {"current":["Workflows"],"title":"Workflows","main":"video-compose-page workflow-explorer-page","mainText":10458,"aria":"Workflows","pageScroll":[1100,1100],"navScroll":[700,700],"visibleMains":1}
+1100x700 Create Images: {"current":["Create Images"],"title":"Create Images","main":"create-workspace","mainText":894,"aria":"Create Images","pageScroll":[1100,1100],"navScroll":[700,700],"visibleMains":1}
+1100x700 Create Videos: {"current":["Create Videos"],"title":"Create Videos","main":"video-compose-page","mainText":1532,"aria":"Create Videos","pageScroll":[1100,1100],"navScroll":[700,700],"visibleMains":1}
+1100x700 Photo Studio: {"current":["Photo Studio"],"title":"Photo Studio","main":"workspace photo-workspace","mainText":1877,"aria":"Photo Studio","pageScroll":[1085,1100],"navScroll":[700,700],"visibleMains":1}
+1100x700 Video Studio: {"current":["Video Studio"],"title":"Video Studio","main":"workspace video-workspace","mainText":1101,"aria":"Video Studio","pageScroll":[1085,1100],"navScroll":[700,700],"visibleMains":1}
+1100x700 Enhance Video: {"current":["Enhance Video"],"title":"Enhance Video","main":"video-compose-page video-enhance-page","mainText":1945,"aria":"Enhance Video","pageScroll":[1100,1100],"navScroll":[700,700],"visibleMains":1}
+1100x700 Models: {"current":["Models"],"title":"Models","main":"content-page","mainText":2038,"aria":"Models","pageScroll":[1085,1100],"navScroll":[700,700],"visibleMains":1}
+1100x700 Settings: {"current":["Settings"],"title":"Settings","main":"content-page","mainText":524,"aria":"Settings","pageScroll":[1100,1100],"navScroll":[700,700],"visibleMains":1}
+focus Projects: 1
+1100x700 tab order: ["Projects [solid 2px]","Media Library [solid 2px]","Workflows [solid 2px]","Create Images [solid 2px]","Create Videos [solid 2px]","Photo Studio [solid 2px]","Video Studio [solid 2px]","Enhance Video [solid 2px]","Models [solid 2px]","Settings [solid 2px]"]
+1100x700 Enter on Enhance Video: 1
+1100x700 after Enter: Enhance Video current=Enhance Video
+== plan
+P0 Create Videos empty: {"title":"Create Videos","status":"Planning available · Video generation not yet runnable","count":"0/24 planned shots · 0 seconds","actions":["Open Media Library","Open Video Studio","Explore Text to video models","Add to storyboard"],"fakeActions":[],"unsupported":"Rendering not connected"}
+P1 text-to-video: {"notice":"Shot added to the session storyboard. Nothing was generated.","cards":["SHOT 1 | Text to video · 6s · 9:16 | A sailboat crosses a misty bay at dawn. | Pan / tilt · Mature / PG-13-style themes | Edit | Move up | Move down | Remove"],"count":"1/24 planned shots · 6 seconds"}
+P2 image-to-video, no photos open: {"hint":"No matching media opened. Import it in Media Library first.","notice":"Choose a photo currently in your Media Library as the shot reference."}
+P3 blank prompt: Describe the shot in 1 to 1200 characters without control characters.
+P4 control character: Describe the shot in 1 to 1200 characters without control characters.
+P5 1201 characters (bypassing maxLength): Describe the shot in 1 to 1200 characters without control characters.
+P5b 1200 characters accepted: {"notice":"Shot added to the session storyboard. Nothing was generated.","count":"2/24 planned shots · 10 seconds","overflow":[618,618]}
+P5c remove the 1200-char shot: {"notice":"Planned shot removed. No media was deleted.","count":"1/24 planned shots · 6 seconds"}
+P6 Media Library: import: 1
+P7 image-to-video with photo: {"notice":"Shot added to the session storyboard. Nothing was generated.","cards":["SHOT 1 | Text to video · 6s · 9:16 | A sailboat crosses a misty bay at dawn. | Pan / tilt · Mature / PG-13-style themes | Edit | Move up | Move down | Remove","SHOT 2 | Photo to video · 8s · 16:9 | Slow push-in across the landscape. | Tracking movement · General themes | Reference: landscape-1200x800.png | Edit | Move up | Move down | Remove"]}
+P8 video-to-video without clip: Choose a local video currently open in the Media Library.
+P9 video-to-video with clip: {"notice":"Shot added to the session storyboard. Nothing was generated.","cards":["SHOT 1 | Text to video · 6s · 9:16 | A sailboat crosses a misty bay at dawn. | Pan / tilt · Mature / PG-13-style themes | Edit | Move up | Move down | Remove","SHOT 2 | Photo to video · 8s · 16:9 | Slow push-in across the landscape. | Tracking movement · General themes | Reference: landscape-1200x800.png | Edit | Move up | Move down | Remove","SHOT 3 | Video to video · 4s · 1:1 | Restyle as watercolor. | Handheld look · Adult-focused (18+) intent | Reference: grid-h264-640x360.mp4 | Edit | Move up | Move down | Remove"],"count":"3/24 planned shots · 18 seconds"}
+P9b photo list does not offer videos, clip list does not offer photos: {"photoOptions":["Choose a photo from this session","landscape-1200x800.png","portrait-800x1200.jpg"],"clipOptions":["Choose a video from this session","grid-h264-640x360.mp4","grid-vp9-640x360.webm"]}
+P10 edit shot 2 (12 s, handheld, 4:3): {"before":{"heading":"Edit planned shot","prompt":"Slow push-in across the landscape.","ref":"landscape-1200x800.png"},"notice":"Shot plan updated.","cards":["SHOT 1 | Text to video · 6s · 9:16 | A sailboat crosses a misty bay at dawn. | Pan / tilt · Mature / PG-13-style themes | Edit | Move up | Move down | Remove","SHOT 2 | Photo to video · 12s · 4:3 | Slow push-in across the landscape. | Handheld look · General themes | Reference: landscape-1200x800.png | Edit | Move up | Move down | Remove","SHOT 3 | Video to video · 4s · 1:1 | Restyle as watercolor. | Handheld look · Adult-focused (18+) intent | Reference: grid-h264-640x360.mp4 | Edit | Move up | Move down | Remove"],"count":"3/24 planned shots · 22 seconds"}
+P11 cancel edit leaves shot unchanged: {"first":"SHOT 1 | Text to video · 6s · 9:16 | A sailboat crosses a misty bay at dawn. | Pan / tilt · Mature / PG-13-style themes | Edit | Move up | Move down | Remove","heading":"Plan a shot","draft":""}
+P12 reorder: move shot 3 up, then shot 1 down: {"afterUp":["Text to video · 6s · 9:16","Video to video · 4s · 1:1","Photo to video · 12s · 4:3"],"afterDown":["Video to video · 4s · 1:1","Text to video · 6s · 9:16","Photo to video · 12s · 4:3"],"firstUpDisabled":true,"lastDownDisabled":true}
+P13 navigate Models → Video Studio → Media Library → back: {"count":"3/24 planned shots · 22 seconds","draft":"unsaved draft text","cards":3,"hiddenElsewhere":true}
+P14 hidden planner text not visible on other pages: {"leak":false,"planners":[{"hidden":true,"display":"none"}]}
+P15 remove the referenced photo in Media Library: {"cards":["SHOT 1 | Video to video · 4s · 1:1 | Restyle as watercolor. | Handheld look · Adult-focused (18+) intent | Reference: grid-h264-640x360.mp4 | Edit | Move up | Move down | Remove","SHOT 2 | Text to video · 6s · 9:16 | A sailboat crosses a misty bay at dawn. | Pan / tilt · Mature / PG-13-style themes | Edit | Move up | Move down | Remove","SHOT 3 | Photo to video · 12s · 4:3 | Slow push-in across the landscape. | Handheld look · General themes | Reference no longer open. Edit this shot to choose another. | Edit | Move up | Move down | Remove"]}
+P16 edit the shot whose photo is gone: {"selectValueShown":"Choose a photo from this session","rawValue":"(empty)","notice":"Choose a photo currently in your Media Library as the shot reference."}
+P17 cancel edit, fill to 24 shots: {"count":"24/24 planned shots · 64 seconds"}
+P18 25th shot refused: {"notice":"The session storyboard is limited to 24 planned shots.","count":"24/24 planned shots · 64 seconds"}
+P19 edit still allowed at 24: {"notice":"Shot plan updated.","last":"SHOT 24 | Text to video · 2s · 16:9 | Edited final shot | Locked-off camera · General themes | Edit | Move up | Move down | Remove","count":"24/24 planned shots · 64 seconds"}
+P20 Explore models preselects capability; adult discovery untouched: {"title":"Models","capability":"video-to-video","adultDiscovery":[false],"fakeActions":[],"searchedAutomatically":false}
+P21 Models from the sidebar later: video-to-video
+P22 library still shows no thumbnails: {"thumbs":0}
+IPC: ["generation_outputs","catalog_capabilities","models_library","hf_token_status","project_list"]
+non-IPC requests: []
+== enhance
+E0 Enhance empty: {"title":"Enhance Video","status":"Quality-improvement planning available · Processing not available","ops":["Reduce noise","Increase resolution","Stabilize footage","Smoother motion","Repair interlaced footage","Correct color and exposure","Recover apparent sharpness","Restore damaged footage"],"videoOptions":["Select an opened local video","grid-h264-640x360.mp4","grid-vp9-640x360.webm"],"fakeActions":[]}
+E1 review with no source: Choose a local video in your Media Library first.
+E2 source but no operation: Choose at least one supported planning operation.
+E3 all eight operations, 4K, maximum, notes: {"notice":"Enhancement plan ready for review. No processing or output was started.","review":"Source: grid-vp9-640x360.webm | Target: 2160p · Priority: maximum improvement | Reduce noise | Can erase fine textures if overused. | Increase resolution | A larger image does not automatically contain more genuine detail. | Stabilize footage | Can crop frame edges or distort motion. | Smoother motion | Synthesized motion may create artifacts. | Repair interlaced footage | Field-order errors can harm clarity. | Correct color and exposure | Incorrect assumptions can shift skin tones or clip highlights. | Recover apparent sharpness | Over-sharpening causes halos or invented-looking detail. | Restore damaged footage | Repair can remove intended scene details. | Notes: Reduce grain, keep the water texture. | No restoration, upscaling, or video export has occurred. This review is not a saved project recipe or proof that effects can run."}
+E4 change an option after review: {"reviewShown":false,"notice":""}
+E5 control character in notes: Keep enhancement notes under 500 characters without control characters.
+E6 501-character notes (bypassing maxLength): Keep enhancement notes under 500 characters without control characters.
+E7 valid again and route away/back: {"reviewKept":true,"ops":7,"notes":"Keep skin tones natural."}
+E8 remove the source clip in Media Library: {"notice":"The source video was removed from this session. Choose another clip.","reviewShown":false,"selected":"(none)"}
+IPC: ["catalog_capabilities","models_library","hf_token_status","generation_outputs"]
+non-IPC requests: []
+== workflows
+W0 directory: {"title":"Workflows","count":"25 of 25 user journeys","cards":25,"ids":["P01","P02","P03","P04","P05","V01","V02","V03","V04","V05","V06","V07","V08","R01","R02","R03","R04","R05","F01","F02","F03","S01","S02","S03","S04"],"fakeActions":[]}
+W1 per area: {"Photo":5,"Video":8,"Production":3,"Enhancement":5,"Privacy & projects":4}
+W2 per state: {"Working slice on development branches":2,"Partial tools":6,"Planning only":9,"Not implemented":8}
+W3 searches: {"upscal":[2,null],"frame":[6,null],"adult":[1,null],"timeline":[3,null],"RETOUCH":[1,null],"zzzz":[0,"No journeys match those filters. Try a different creative area or search."]}
+W4 combined filter + search: ["Denoise and sharpen footage"]
+W5 cards with/without routes: {"withButton":17,"withoutButtonHint":8,"notImplementedWithButton":[],"states":["Working slice on development branches","Not implemented","Partial tools","Planning only"]}
+W6 route links:
+  Import, correct and export a photo -> Open related workspace -> Photo Studio [content]
+  Full non-destructive photo editor -> (no route)
+  Generate concept art and variants -> Open related workspace -> Create Images [content]
+  Repair, restore, inpaint and upscale photos -> (no route)
+  Batch photo adjustments -> (no route)
+  Play and inspect local footage -> Open related workspace -> Video Studio [content]
+  Capture a video frame for photo editing -> Open related workspace -> Video Studio [content]
+  Edit and export video on a timeline -> (no route)
+  Generate video from a prompt -> Open planning workspace -> Create Videos [content]
+  Animate a still image into video -> Open planning workspace -> Create Videos [content]
+  Transform an existing video -> Open planning workspace -> Create Videos [content]
+  Place photos in a video -> (no route)
+  Reframe for social formats -> (no route)
+  Denoise and sharpen footage -> Open planning workspace -> Enhance Video [content]
+  Upscale video to HD or 4K -> Open planning workspace -> Enhance Video [content]
+  Stabilize shaky footage -> Open planning workspace -> Enhance Video [content]
+  Restore old and damaged video -> Open planning workspace -> Enhance Video [content]
+  Improve motion smoothness -> Open planning workspace -> Enhance Video [content]
+  Storyboard a short film -> Open planning workspace -> Create Videos [content]
+  Keep characters and visuals consistent -> (no route)
+  Assemble and finish a short film -> (no route)
+  Private project media and version history -> Open related workspace -> Media Library [content]
+  Content intent and adult model consent -> Open related workspace -> Models [content]
+  Offline editing without AI models -> Open related workspace -> Photo Studio [content]
+  Resumable render and download jobs -> Open related workspace -> Models [content]
+IPC: ["generation_outputs","models_library","catalog_capabilities","hf_token_status"]
+non-IPC requests: []
+== restart
+R0 after restart: {"shots":"0/24 planned shots · 0 seconds","draft":"","enhanceReview":false,"library":[]}
+R1 copy: Start with the first shot. | Your shot list appears here. It is a plan, not a render queue. Plans are not saved after restart.
+== regression: video frame capture
+F0 Video Studio empty: {"btn":"Capture frame to Photo Studio","disabled":true,"note":"Video frame to photo\n\nPause or seek to a frame, then open a PNG copy in Photo Studio. No model, audio processing, file export, or cloud upload is involved.\n\nCapture frame to Photo Studio\n\nThis frame is held only for this session. The original video is unchanged. Use Photo Studio's separate Save action to export a PNG.\n\nVideo timeline editing is not yet available.\n\nYou can play a local clip, seek in 0.1-second steps, and mark an in/out range. Markers are preview-only. Clip assembly, transitions and video export still need qualified native implementation."}
+F1 loading state: {"rows":["grid-h264-640x360.mp4","grid-vp9-640x360.webm","rotated-90-320x180.mp4"],"disabledWhileLoading":false,"title":"Capture this frame into Photo Studio"}
+capture grid-h264-640x360.mp4 @2.3s: {"before":{"t":2.3,"vw":640,"vh":360,"rs":4,"caps":0},"moved":true,"title":"Photo Studio","selected":"video-frame-00-00-02-300.png","origin":"Session-only frame from grid-h264-640x360.mp4 at 00:02.3. This source relationship is not saved with the exported PNG.","msg":"Planning available · Video generation not yet runnableFound models and cached configuration files are not installed or verified video engines. No video weights, remote inference, GPU jobs, or output files are started from this screen. | Quality-improvement planning available · Processing not availableUpscaling, denoise, restoration, stabilization and motion interpolation still require verified native or model-based execution. Selecting them here does not process your video or contact a provider. | Captured the visible frame at 00:02.3 into Photo Studio. The frame is session-only; exporting a copy still requires your approval.×","newCaps":1,"dims":[640,360,6826]}
+capture grid-vp9-640x360.webm @1.7s: {"before":{"t":1.7,"vw":640,"vh":360,"rs":4,"caps":1},"moved":true,"title":"Photo Studio","selected":"video-frame-00-00-01-700.png","origin":"Session-only frame from grid-vp9-640x360.webm at 00:01.7. This source relationship is not saved with the exported PNG.","msg":"Planning available · Video generation not yet runnableFound models and cached configuration files are not installed or verified video engines. No video weights, remote inference, GPU jobs, or output files are started from this screen. | Quality-improvement planning available · Processing not availableUpscaling, denoise, restoration, stabilization and motion interpolation still require verified native or model-based execution. Selecting them here does not process your video or contact a provider. | Preparing photo preview… | Captured the visible frame at 00:01.7 into Photo Studio. The frame is session-only; exporting a copy still requires your approval.×","newCaps":1,"dims":[640,360,6701]}
+capture rotated-90-320x180.mp4 @1.2s: {"before":{"t":1.2,"vw":180,"vh":320,"rs":4,"caps":2},"moved":true,"title":"Photo Studio","selected":"video-frame-00-00-01-200.png","origin":"Session-only frame from rotated-90-320x180.mp4 at 00:01.2. This source relationship is not saved with the exported PNG.","msg":"Planning available · Video generation not yet runnableFound models and cached configuration files are not installed or verified video engines. No video weights, remote inference, GPU jobs, or output files are started from this screen. | Quality-improvement planning available · Processing not availableUpscaling, denoise, restoration, stabilization and motion interpolation still require verified native or model-based execution. Selecting them here does not process your video or contact a provider. | Preparing photo preview… | Captured the visible frame at 00:01.2 into Photo Studio. The frame is session-only; exporting a copy still requires your approval.×","newCaps":1,"dims":[180,320,2290]}
+F2 Media Library lineage: ["grid-h264-640x360.mp4 :: Video · 7.1 KB · Session only","grid-vp9-640x360.webm :: Video · 4.6 KB · Session only","rotated-90-320x180.mp4 :: Video · 2.6 KB · Session only","video-frame-00-00-02-300.png :: Photo · 6.7 KB · Session only / Frame captured at 2.300 s from grid-h264-640x360.mp4. Not saved as project provenance.","video-frame-00-00-01-700.png :: Photo · 6.5 KB · Session only / Frame captured at 1.700 s from grid-vp9-640x360.webm. Not saved as project provenance.","video-frame-00-00-01-200.png :: Photo · 2.2 KB · Session only / Frame captured at 1.200 s from rotated-90-320x180.mp4. Not saved as project provenance."]
+F3 Video Studio still on source, unchanged: {"selected":"rotated-90-320x180.mp4","kind":"video","videoSrcIsBlob":true,"rows":["grid-h264-640x360.mp4","grid-vp9-640x360.webm","rotated-90-320x180.mp4"]}
+F4 edit h264 frame 140/120/90: {"selected":"video-frame-00-00-02-300.png","b":"140","c":"120","canvas":[360,640]}
+F5 persistence across routes: {"a":{"sel":"video-frame-00-00-02-300.png","b":"140","c":"120"},"b":{"sel":"video-frame-00-00-01-700.png","b":"100","c":"100"},"a2":{"b":"140","c":"120"},"b2":{"b":"60"}}
+F6 decline export: {"notice":"none","ipc":"see log"}
+IPC after decline: ["generation_outputs","generation_outputs","generation_outputs","generation_outputs","generation_outputs","generation_outputs","generation_outputs","generation_outputs","catalog_capabilities","models_library","catalog_capabilities","models_library","hf_token_status","hf_token_status","generation_outputs"]
+F8 remove source clip keeps the frame: {"videoRows":["grid-vp9-640x360.webm","rotated-90-320x180.mp4"],"library":["grid-vp9-640x360.webm","rotated-90-320x180.mp4","video-frame-00-00-02-300.png","video-frame-00-00-01-700.png","video-frame-00-00-01-200.png"],"frameOpens":true,"b":"140","origin":"Session-only frame from grid-h264-640x360.mp4 at 00:02.3. This source relationship is not saved with the exported PNG.","revokedCount":1}
+IPC: ["generation_outputs","generation_outputs","generation_outputs","generation_outputs","generation_outputs","generation_outputs","generation_outputs","generation_outputs","catalog_capabilities","models_library","catalog_capabilities","models_library","hf_token_status","hf_token_status","generation_outputs","generation_outputs","generation_outputs","generation_outputs"]
+non-IPC requests: []
+== regression: create image -> photo studio (simulated job)
+R1 Create Images: simulated result: {"img":[1200,800],"buttons":["Open in Photo Studio","Save copy (may sync)"]}
+R2 open the result in Photo Studio: {"clicked":"Open in Photo Studio","page":"Photo Studio","selected":"generated-f093d767.png","canvas":[1200,800],"rows":["generated-f093d767.png"]}
+R3 export refused writes nothing: {"notice":"declined: no notice"}
+simulated IPC: models_library, gpu_check, generation_generate, generation_output_image(fixture) | native IPC: generation_outputs
+non-IPC WebView requests: none
+pictures after regressions: 30
+== downloads 1100x700
+1 Models: opt in, search, inspect flagged, start held download: {"page":"Models","cards":[],"detailProgress":"Starting download… Cancel download","alerts":[],"detail":"qa-fixture/flagged-image-model","cancelHit":null}
+2 progress 1 GB (detail shows it once): {"page":"Models","cards":[],"detailProgress":"downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download","alerts":[],"detail":"qa-fixture/flagged-image-model","cancelHit":null}
+3 navigate to Projects: {"page":"Projects","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[89,646,238]}}
+3 navigate to Media Library: {"page":"Media Library","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[89,646,238]}}
+3 navigate to Workflows: {"page":"Workflows","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[89,646,238]}}
+3 navigate to Create Images: {"page":"Create Images","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[89,646,238]}}
+3 navigate to Create Videos: {"page":"Create Videos","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[89,646,238]}}
+3 navigate to Photo Studio: {"page":"Photo Studio","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[89,646,238]}}
+3 navigate to Video Studio: {"page":"Video Studio","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[89,646,238]}}
+3 navigate to Enhance Video: {"page":"Enhance Video","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[89,646,238]}}
+3 navigate to Settings: {"page":"Settings","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[89,646,238]}}
+4 Models again: same session in the detail, no extra card: {"page":"Models","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+5 opt out mid-download: {"page":"Models","cards":["Downloading a model downloading · file 3 of 9 · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+6 Photo Studio while opted out (name hidden): {"page":"Photo Studio","cards":["Downloading a model downloading · file 3 of 9 · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[89,646,238]}}
+7 progress 2 GB arrives on Photo Studio: {"page":"Photo Studio","cards":["Downloading a model downloading · file 3 of 9 · 2.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[89,646,238]}}
+8 Models (discovery off): search and inspect another, safe model: {"page":"Models","cards":["Downloading a model downloading · file 3 of 9 · 2.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":"qa-fixture/safe-image-model","cancelHit":null}
+   flagged result listed while off: false
+   second-install button disabled while one runs: true
+10 Cancel from the Photo Studio rail card: {"page":"Photo Studio","cards":["Downloading a model downloading · file 3 of 9 · 2.00 GB of 4.00 GB Cancelling…"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[89,646,238]}}
+11 install ends (aborted by fixture): {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":["Download of a model stopped Turn on adult discovery to see details. Dismiss"],"detail":null,"cancelHit":null}
+   cancel ids sent: ["19847521-d092-4b7d-82c2-ef1c8bdc7fc7"] | exact live id: true
+12 stale event for the finished id is ignored: {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":["Download of a model stopped Turn on adult discovery to see details. Dismiss"],"detail":null,"cancelHit":null}
+13 dismiss error: {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+14 after WebView reload: adopted from native status: {"page":"Photo Studio","cards":["Downloading a model downloading · file 6 of 9 · 3.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[89,646,238]}}
+15 cancel the adopted download: {"page":"Photo Studio","cards":["Downloading a model downloading · file 6 of 9 · 3.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[89,646,238]}}
+   cancel ids sent: ["19847521-d092-4b7d-82c2-ef1c8bdc7fc7","native-adopted-0001"]
+16 native reports nothing active: card clears (no stuck bar): {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+intercepted IPC: models_library, catalog_search, catalog_inspect, model_install, model_install_status, model_install_cancel
+non-IPC requests from the WebView: none
+== downloads 1280x720
+1 Models: opt in, search, inspect flagged, start held download: {"page":"Models","cards":[],"detailProgress":"Starting download… Cancel download","alerts":[],"detail":"qa-fixture/flagged-image-model","cancelHit":null}
+2 progress 1 GB (detail shows it once): {"page":"Models","cards":[],"detailProgress":"downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download","alerts":[],"detail":"qa-fixture/flagged-image-model","cancelHit":null}
+3 navigate to Projects: {"page":"Projects","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,612,157]}}
+3 navigate to Media Library: {"page":"Media Library","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,612,157]}}
+3 navigate to Workflows: {"page":"Workflows","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,612,157]}}
+3 navigate to Create Images: {"page":"Create Images","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,612,157]}}
+3 navigate to Create Videos: {"page":"Create Videos","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,612,157]}}
+3 navigate to Photo Studio: {"page":"Photo Studio","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,612,157]}}
+3 navigate to Video Studio: {"page":"Video Studio","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,612,157]}}
+3 navigate to Enhance Video: {"page":"Enhance Video","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,612,157]}}
+3 navigate to Settings: {"page":"Settings","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,612,157]}}
+4 Models again: same session in the detail, no extra card: {"page":"Models","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+5 opt out mid-download: {"page":"Models","cards":["Downloading a model downloading · file 3 of 9 · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+6 Photo Studio while opted out (name hidden): {"page":"Photo Studio","cards":["Downloading a model downloading · file 3 of 9 · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,612,157]}}
+7 progress 2 GB arrives on Photo Studio: {"page":"Photo Studio","cards":["Downloading a model downloading · file 3 of 9 · 2.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,612,157]}}
+8 Models (discovery off): search and inspect another, safe model: {"page":"Models","cards":["Downloading a model downloading · file 3 of 9 · 2.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":"qa-fixture/safe-image-model","cancelHit":null}
+   flagged result listed while off: false
+   second-install button disabled while one runs: true
+10 Cancel from the Photo Studio rail card: {"page":"Photo Studio","cards":["Downloading a model downloading · file 3 of 9 · 2.00 GB of 4.00 GB Cancelling…"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,612,157]}}
+11 install ends (aborted by fixture): {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":["Download of a model stopped Turn on adult discovery to see details. Dismiss"],"detail":null,"cancelHit":null}
+   cancel ids sent: ["23f83d48-64e8-4dfd-99a4-a1dc78b3d905"] | exact live id: true
+12 stale event for the finished id is ignored: {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":["Download of a model stopped Turn on adult discovery to see details. Dismiss"],"detail":null,"cancelHit":null}
+13 dismiss error: {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+14 after WebView reload: adopted from native status: {"page":"Photo Studio","cards":["Downloading a model downloading · file 6 of 9 · 3.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,612,157]}}
+15 cancel the adopted download: {"page":"Photo Studio","cards":["Downloading a model downloading · file 6 of 9 · 3.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,612,157]}}
+   cancel ids sent: ["23f83d48-64e8-4dfd-99a4-a1dc78b3d905","native-adopted-0001"]
+16 native reports nothing active: card clears (no stuck bar): {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+intercepted IPC: models_library, catalog_search, catalog_inspect, model_install, model_install_status, model_install_cancel
+non-IPC requests from the WebView: none
+== downloads 1440x900
+1 Models: opt in, search, inspect flagged, start held download: {"page":"Models","cards":[],"detailProgress":"Starting download… Cancel download","alerts":[],"detail":"qa-fixture/flagged-image-model","cancelHit":null}
+2 progress 1 GB (detail shows it once): {"page":"Models","cards":[],"detailProgress":"downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download","alerts":[],"detail":"qa-fixture/flagged-image-model","cancelHit":null}
+3 navigate to Projects: {"page":"Projects","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,771,157]}}
+3 navigate to Media Library: {"page":"Media Library","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,771,157]}}
+3 navigate to Workflows: {"page":"Workflows","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,771,157]}}
+3 navigate to Create Images: {"page":"Create Images","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,771,157]}}
+3 navigate to Create Videos: {"page":"Create Videos","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,771,157]}}
+3 navigate to Photo Studio: {"page":"Photo Studio","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,771,157]}}
+3 navigate to Video Studio: {"page":"Video Studio","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,771,157]}}
+3 navigate to Enhance Video: {"page":"Enhance Video","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,771,157]}}
+3 navigate to Settings: {"page":"Settings","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,771,157]}}
+4 Models again: same session in the detail, no extra card: {"page":"Models","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+5 opt out mid-download: {"page":"Models","cards":["Downloading a model downloading · file 3 of 9 · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+6 Photo Studio while opted out (name hidden): {"page":"Photo Studio","cards":["Downloading a model downloading · file 3 of 9 · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,771,157]}}
+7 progress 2 GB arrives on Photo Studio: {"page":"Photo Studio","cards":["Downloading a model downloading · file 3 of 9 · 2.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,771,157]}}
+8 Models (discovery off): search and inspect another, safe model: {"page":"Models","cards":["Downloading a model downloading · file 3 of 9 · 2.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":"qa-fixture/safe-image-model","cancelHit":null}
+   flagged result listed while off: false
+   second-install button disabled while one runs: true
+10 Cancel from the Photo Studio rail card: {"page":"Photo Studio","cards":["Downloading a model downloading · file 3 of 9 · 2.00 GB of 4.00 GB Cancelling…"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,771,157]}}
+11 install ends (aborted by fixture): {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":["Download of a model stopped Turn on adult discovery to see details. Dismiss"],"detail":null,"cancelHit":null}
+   cancel ids sent: ["12daa347-a1c6-4397-9a19-9d41bb88a94b"] | exact live id: true
+12 stale event for the finished id is ignored: {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":["Download of a model stopped Turn on adult discovery to see details. Dismiss"],"detail":null,"cancelHit":null}
+13 dismiss error: {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+14 after WebView reload: adopted from native status: {"page":"Photo Studio","cards":["Downloading a model downloading · file 6 of 9 · 3.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,771,157]}}
+15 cancel the adopted download: {"page":"Photo Studio","cards":["Downloading a model downloading · file 6 of 9 · 3.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,771,157]}}
+   cancel ids sent: ["12daa347-a1c6-4397-9a19-9d41bb88a94b","native-adopted-0001"]
+16 native reports nothing active: card clears (no stuck bar): {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+intercepted IPC: models_library, catalog_search, catalog_inspect, model_install, model_install_status, model_install_cancel
+non-IPC requests from the WebView: none
+== downloads 1920x1080
+1 Models: opt in, search, inspect flagged, start held download: {"page":"Models","cards":[],"detailProgress":"Starting download… Cancel download","alerts":[],"detail":"qa-fixture/flagged-image-model","cancelHit":null}
+2 progress 1 GB (detail shows it once): {"page":"Models","cards":[],"detailProgress":"downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download","alerts":[],"detail":"qa-fixture/flagged-image-model","cancelHit":null}
+3 navigate to Projects: {"page":"Projects","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,951,157]}}
+3 navigate to Media Library: {"page":"Media Library","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,951,157]}}
+3 navigate to Workflows: {"page":"Workflows","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,951,157]}}
+3 navigate to Create Images: {"page":"Create Images","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,951,157]}}
+3 navigate to Create Videos: {"page":"Create Videos","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,951,157]}}
+3 navigate to Photo Studio: {"page":"Photo Studio","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,951,157]}}
+3 navigate to Video Studio: {"page":"Video Studio","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,951,157]}}
+3 navigate to Enhance Video: {"page":"Enhance Video","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,951,157]}}
+3 navigate to Settings: {"page":"Settings","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,951,157]}}
+4 Models again: same session in the detail, no extra card: {"page":"Models","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+5 opt out mid-download: {"page":"Models","cards":["Downloading a model downloading · file 3 of 9 · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+6 Photo Studio while opted out (name hidden): {"page":"Photo Studio","cards":["Downloading a model downloading · file 3 of 9 · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,951,157]}}
+7 progress 2 GB arrives on Photo Studio: {"page":"Photo Studio","cards":["Downloading a model downloading · file 3 of 9 · 2.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,951,157]}}
+8 Models (discovery off): search and inspect another, safe model: {"page":"Models","cards":["Downloading a model downloading · file 3 of 9 · 2.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":"qa-fixture/safe-image-model","cancelHit":null}
+   flagged result listed while off: false
+   second-install button disabled while one runs: true
+10 Cancel from the Photo Studio rail card: {"page":"Photo Studio","cards":["Downloading a model downloading · file 3 of 9 · 2.00 GB of 4.00 GB Cancelling…"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,951,157]}}
+11 install ends (aborted by fixture): {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":["Download of a model stopped Turn on adult discovery to see details. Dismiss"],"detail":null,"cancelHit":null}
+   cancel ids sent: ["b773a473-b195-4d9f-80f3-2ecf170d368c"] | exact live id: true
+12 stale event for the finished id is ignored: {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":["Download of a model stopped Turn on adult discovery to see details. Dismiss"],"detail":null,"cancelHit":null}
+13 dismiss error: {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+14 after WebView reload: adopted from native status: {"page":"Photo Studio","cards":["Downloading a model downloading · file 6 of 9 · 3.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,951,157]}}
+15 cancel the adopted download: {"page":"Photo Studio","cards":["Downloading a model downloading · file 6 of 9 · 3.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,951,157]}}
+   cancel ids sent: ["b773a473-b195-4d9f-80f3-2ecf170d368c","native-adopted-0001"]
+16 native reports nothing active: card clears (no stuck bar): {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+intercepted IPC: models_library, catalog_search, catalog_inspect, model_install, model_install_status, model_install_cancel
+non-IPC requests from the WebView: none
+DONE
