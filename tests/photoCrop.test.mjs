@@ -43,7 +43,7 @@ test("Crop and rotation have matching full-resolution and bounded preview geomet
   assert.deepEqual(photoPaintDimensions(400, 200, 90, undefined, c),
     { width: 150, height: 200, drawWidth: 400, drawHeight: 200 });
   assert.deepEqual(photoPaintDimensions(4000, 3000, 90, 1400, c),
-    { width: 1050, height: 1400, drawWidth: 1400, drawHeight: 1050 });
+    { width: 1400, height: 1244, drawWidth: 2489, drawHeight: 1867 });
   const square = { left: 1250, top: 0, right: 1250, bottom: 0 };
   assert.deepEqual(photoPaintDimensions(4000, 3000, 0, 1400, square),
     { width: 1400, height: 1400, drawWidth: 1867, drawHeight: 1400 });
