@@ -4,7 +4,7 @@
  * Native execution must be added behind a separately qualified, authenticated
  * capability contract. Catalog metadata and local model files do not suffice.
  */
-export type VideoShotMode = "text-to-video" | "image-to-video";
+export type VideoShotMode = "text-to-video" | "image-to-video" | "video-to-video";
 export type VideoAspect = "16:9" | "9:16" | "1:1" | "4:3";
 export type VisualIntent = "general" | "mature-themes" | "adult-focused";
 
@@ -25,12 +25,12 @@ export const MAX_VIDEO_SHOT_PROMPT = 1200;
 export const MAX_SESSION_VIDEO_SHOTS = 24;
 export const VIDEO_GENERATION_EXECUTION_QUALIFIED = false as const;
 
-const shotModes: VideoShotMode[] = ["text-to-video", "image-to-video"];
+const shotModes: VideoShotMode[] = ["text-to-video", "image-to-video", "video-to-video"];
 const shotAspects: VideoAspect[] = ["16:9", "9:16", "1:1", "4:3"];
 const shotIntents: VisualIntent[] = ["general", "mature-themes", "adult-focused"];
 
 export function normalizeVideoShot(
-  input: VideoShotInput, availableImageIds: readonly string[],
+  input: VideoShotInput, availableImageIds: readonly string[], availableVideoIds: readonly string[],
 ): VideoShotInput {
   const prompt = input.prompt.trim();
   if (!shotModes.includes(input.mode) || !shotAspects.includes(input.aspect) ||
@@ -48,8 +48,13 @@ export function normalizeVideoShot(
       (!referenceId || !availableImageIds.includes(referenceId))) {
     throw new Error("Choose a photo currently in your Media Library as the shot reference.");
   }
-  if (referenceId && !availableImageIds.includes(referenceId)) {
-    throw new Error("This reference photo is no longer open in the Media Library.");
+  const availableIds = input.mode === "video-to-video" ? availableVideoIds : availableImageIds;
+  if (input.mode === "video-to-video" &&
+      (!referenceId || !availableVideoIds.includes(referenceId))) {
+    throw new Error("Choose a local video currently open in the Media Library.");
+  }
+  if (referenceId && !availableIds.includes(referenceId)) {
+    throw new Error("This reference file is no longer open in the Media Library.");
   }
   return { ...input, prompt, referenceId };
 }
@@ -81,4 +86,5 @@ export const videoIntentLabel: Record<VisualIntent, string> = {
 export const videoModeLabel: Record<VideoShotMode, string> = {
   "text-to-video": "Text to video",
   "image-to-video": "Photo to video",
+  "video-to-video": "Video to video",
 };
