@@ -10,7 +10,8 @@
 //! files, are written to a temporary sibling and renamed into place, and are decoded back to
 //! validate them before success is reported.
 //!
-//! Not yet: IPC exposure, project/asset lineage records, proxies, video export, bundled FFmpeg.
+//! Not yet: project/asset lineage records, proxies and a bundled FFmpeg. `video_trim` builds the
+//! first user-facing export on top of this module.
 
 use serde::{Deserialize, Serialize};
 use std::ffi::OsString;
@@ -88,7 +89,7 @@ fn io_err(error: std::io::Error) -> MediaError {
 }
 
 /// Run a tool with a deadline and bounded stdout/stderr. Never invokes a shell.
-fn run_bounded(
+pub(crate) fn run_bounded(
     program: &Path,
     args: &[OsString],
     timeout: Duration,
@@ -164,7 +165,7 @@ fn run_bounded(
     Ok(out)
 }
 
-fn os(values: &[&str]) -> Vec<OsString> {
+pub(crate) fn os(values: &[&str]) -> Vec<OsString> {
     values.iter().map(OsString::from).collect()
 }
 
@@ -192,6 +193,11 @@ pub struct VideoStreamInfo {
     pub time_base: Rational,
     pub average_frame_rate: Option<Rational>,
     pub rotation_degrees: i32,
+    /// Transfer characteristic, e.g. `bt709`, `smpte2084` (PQ HDR) or `arib-std-b67` (HLG).
+    pub color_transfer: Option<String>,
+    pub color_space: Option<String>,
+    pub color_primaries: Option<String>,
+    pub pix_fmt: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -201,6 +207,9 @@ pub struct ProbeResult {
     /// First video stream, if any. For still images this is the image itself.
     pub video: Option<VideoStreamInfo>,
     pub has_audio: bool,
+    /// Number of audio streams and the first one's codec.
+    pub audio_streams: u32,
+    pub audio_codec: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -225,6 +234,10 @@ struct RawStream {
     height: Option<u32>,
     time_base: Option<String>,
     avg_frame_rate: Option<String>,
+    color_transfer: Option<String>,
+    color_space: Option<String>,
+    color_primaries: Option<String>,
+    pix_fmt: Option<String>,
     #[serde(default)]
     side_data_list: Vec<serde_json::Value>,
     #[serde(default)]
@@ -276,6 +289,16 @@ pub fn probe(tools: &Tools, input: &Path) -> Result<ProbeResult, MediaError> {
             .streams
             .iter()
             .any(|s| s.codec_type.as_deref() == Some("audio")),
+        audio_streams: parsed
+            .streams
+            .iter()
+            .filter(|s| s.codec_type.as_deref() == Some("audio"))
+            .count() as u32,
+        audio_codec: parsed
+            .streams
+            .iter()
+            .find(|s| s.codec_type.as_deref() == Some("audio"))
+            .and_then(|s| s.codec_name.clone()),
         video,
     })
 }
@@ -322,6 +345,10 @@ fn video_info(stream: &RawStream) -> Result<VideoStreamInfo, MediaError> {
             .and_then(Rational::parse)
             .filter(|r| r.num > 0),
         rotation_degrees: rotation.round() as i32,
+        color_transfer: stream.color_transfer.clone(),
+        color_space: stream.color_space.clone(),
+        color_primaries: stream.color_primaries.clone(),
+        pix_fmt: stream.pix_fmt.clone(),
     })
 }
 
