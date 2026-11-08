@@ -248,3 +248,19 @@
   .navigation{z-index:20}
   .navigation .download-status.compact{position:fixed;left:78px;bottom:14px;width:260px;margin:0;z-index:40;box-shadow:0 10px 30px #000a}
 }
+
+/* User-triggered cross-media frame capture: visible without implying video
+   timeline rendering or persistent project assets. */
+.video-capability-note .primary.full{
+  width:100%;min-height:42px;margin:10px 0 5px;text-align:center;
+}
+.video-capability-note .primary:disabled{opacity:.7}
+.photo-frame-origin{
+  font-size:11px;line-height:1.55;overflow-wrap:anywhere;
+  background:#23304b;border-left:3px solid #91a7ff;
+  padding:9px 11px;border-radius:5px;color:#d7e4fc;
+}
+.session-media-origin{
+  white-space:normal;overflow-wrap:anywhere;line-height:1.5;
+  color:#aec4e9;
+}
