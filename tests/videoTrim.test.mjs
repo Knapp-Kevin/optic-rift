@@ -65,6 +65,12 @@ test("A changed or lost source is confirmed again in the dialog on the next Save
   assert.ok(source("../src/App.tsx").includes("onGrantInvalid={() => {"));
 });
 
+test("The after-restart interrupted notice can be dismissed", () => {
+  const panel = source("../src/VideoTrimPanel.tsx");
+  assert.ok(panel.includes("{exporter.interruptedNotice}{\" \"}"));
+  assert.ok(panel.includes("onClick={exporter.dismiss}>Dismiss</button>"));
+});
+
 test("Removing a clip from the session withdraws its export permission", () => {
   const app = source("../src/App.tsx");
   assert.match(app, /const grant = videoGrants\[id\];\s*if \(grant\) \{\s*void revokeSource\(grant\.grantId\);/);

@@ -77,7 +77,10 @@ export default function VideoTrimPanel({ clip, ready, inSeconds, outSeconds, gra
       {busy ? "Preparing…" : "Save trimmed video…"}
     </button>
     {notice && <p role="status" className="video-trim-notice">{notice}</p>}
-    {exporter.interruptedNotice && !jobForClip && <p role="status" className="video-trim-notice">{exporter.interruptedNotice}</p>}
+    {exporter.interruptedNotice && !jobForClip && <div role="status" className="video-trim-notice">
+      {exporter.interruptedNotice}{" "}
+      <button type="button" className="inline-link" onClick={exporter.dismiss}>Dismiss</button>
+    </div>}
     {jobForClip && <div className={`video-trim-job state-${jobForClip.state}`} role="status" aria-live="polite">
       <div className="video-trim-job-head"><strong>{jobLabel(jobForClip)}</strong><span>{jobForClip.sourceName}</span></div>
       {!isFinal(jobForClip.state) && <progress max={1} value={jobProgress(jobForClip)} aria-label="Video export progress" />}
