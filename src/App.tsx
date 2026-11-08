@@ -85,6 +85,7 @@ export default function App() {
   }, []);
 
   useEffect(() => { if (view === "create") setCreateOpened(true); }, [view]);
+  useEffect(() => { if (view !== "video") setVideoFrameReady(false); }, [view]);
 
   function selectItem(item: MediaItem) {
     if (item.kind === "image") {
