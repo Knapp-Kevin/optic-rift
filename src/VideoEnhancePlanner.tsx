@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { MediaItem } from "./creativeNavigation";
 import {
   MAX_VIDEO_ENHANCE_NOTES, VIDEO_ENHANCEMENT_EXECUTION_QUALIFIED,
@@ -23,6 +23,17 @@ export default function VideoEnhancePlanner({
   });
   const [reviewed, setReviewed] = useState<VideoEnhancementPlan | null>(null);
   const [notice, setNotice] = useState("");
+
+  // A session source may be removed while the planning route is hidden.
+  // Invalidate any review that refers to a missing clip, rather than
+  // suggesting an unavailable source is still ready for processing.
+  useEffect(() => {
+    if (draft.videoId && !media.some((item) => item.id === draft.videoId && item.kind === "video")) {
+      setDraft((previous) => ({ ...previous, videoId: null }));
+      setReviewed(null);
+      setNotice("The source video was removed from this session. Choose another clip.");
+    }
+  }, [media, draft.videoId]);
 
   function toggle(operation: EnhanceOperation) {
     setReviewed(null);
