@@ -11,6 +11,12 @@ Launch from Windows Start menu or desktop -> open the Studio with **Recent proje
 
 Only expose an action as usable when the underlying operation actually works or when it clearly explains its unavailable prerequisites. An offline local edit never requires model download, Hugging Face sign-in or a network connection.
 
+## Whole-product navigation and current implementation evidence (November 8, 2026)
+
+The owner clarified that the app must account for **all** Photo Studio, Video Studio, cross-media, filmmaker, video generation and enhancement/restoration journeys before freezing the next UI. The ten-destination navigation and its 25-story status/acceptance map are documented in [the creative-workflow matrix](../design/creative-workflow-matrix-20261108.md) and surfaced in the draft `Workflows` screen. This matrix expands the original interaction model; this document remains the primary architectural owner.
+
+**Important distinctions:** A session storyboard is not a persisted project. A planned AI shot is not a generated video. Video-model metadata caching is not a verified adapter. A proposed denoise/upscale/stabilization treatment does not actually improve footage. Only available/qualified operations should expose executable primary actions, with independent content-intent, licensing, adult discovery, output location, and execution policy checks. Audio creation and mixing remain excluded from Optic Rift.
+
 ## Main surfaces (one project, not separate apps)
 
 | Surface | Primary user intention | Owned interaction |
