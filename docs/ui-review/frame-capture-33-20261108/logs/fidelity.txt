@@ -1,0 +1,14 @@
+e33/capture/cap-h264-t2.3.png {"frameIndexFromGrey":23,"truthIndex":23,"vsGeneratorWhole":{"max":186,"mean":5.616,"samples":230400},"vsGeneratorFlat":{"max":22,"mean":4.738,"samples":190026},"vsFfmpegDecodeWhole":{"max":160,"mean":5.367,"samples":230400},"vsFfmpegDecodeFlat":{"max":21,"mean":4.632,"samples":190026}}
+e33/capture/cap-vp9-t1.7.png {"frameIndexFromGrey":17,"truthIndex":17,"vsGeneratorWhole":{"max":183,"mean":1.285,"samples":230400},"vsGeneratorFlat":{"max":2,"mean":0.332,"samples":190026},"vsFfmpegDecodeWhole":{"max":157,"mean":1.365,"samples":230400},"vsFfmpegDecodeFlat":{"max":2,"mean":0.561,"samples":190026}}
+rotated {"max":100,"mean":5.787,"samples":57600}
+rotated corners TL,TR,BL,BR [[20,255,9],[0,0,0],[252,255,10],[233,0,2]]
+ffmpeg autorotate corners TL,TR,BL,BR [[0,254,0],[0,0,0],[253,253,0],[254,0,0]]
+ffmpeg decode vs generator, flat grid max: 4
+(40,40) truth 0,0,0 ffmpeg 0,0,0 capture 0,0,0
+(120,40) truth 255,0,0 ffmpeg 254,0,0 capture 233,0,2
+(200,40) truth 0,255,0 ffmpeg 0,254,0 capture 20,255,9
+(280,40) truth 255,255,0 ffmpeg 253,253,0 capture 252,255,10
+(360,120) truth 0,0,0 ffmpeg 0,0,0 capture 0,0,0
+(440,200) truth 255,0,255 ffmpeg 253,0,253 capture 233,0,246
+(100,300) truth 115,115,115 ffmpeg 115,115,115 capture 115,115,115
+(480,300) truth 200,200,40 ffmpeg 198,198,40 capture 198,211,47

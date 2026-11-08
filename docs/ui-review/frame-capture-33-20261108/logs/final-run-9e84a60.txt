@@ -1,0 +1,173 @@
+﻿HEAD 9e84a6052dcd5555a030cf85a299d3ee9f10c8a6
+       Built application at: C:\dev\mythologiq\optic-rift\src-tauri\target\debug\optic-rift.exe
+exe sha256 2D21AD94D8D2D1FE0E991A7A080C3FA99289F46E105BF0F49CEB272E605D36B9
+pictures before: 30
+client=1440x900 dpi=96
+F0 Video Studio empty: {"btn":"Capture frame to Photo Studio","disabled":true,"note":"Video frame to photo\n\nPause or seek to a frame, then open a PNG copy in Photo Studio. No model, audio processing, file export, or cloud upload is involved.\n\nCapture frame to Photo Studio\n\nThis frame is held only for this session. The original video is unchanged. Use Photo Studio's separate Save action to export a PNG.\n\nVideo timeline editing is not yet available.\n\nYou can play a local clip, seek in 0.1-second steps, and mark an in/out range. Markers are preview-only. Clip assembly, transitions and video export still need qualified native implementation."}
+F1 loading state: {"rows":["grid-h264-640x360.mp4","grid-vp9-640x360.webm","rotated-90-320x180.mp4"],"disabledWhileLoading":false,"title":"Capture this frame into Photo Studio"}
+capture grid-h264-640x360.mp4 @2.3s: {"before":{"t":2.3,"vw":640,"vh":360,"rs":4,"caps":0},"moved":true,"title":"Photo Studio","selected":"video-frame-00-00-02-300.png","origin":"Session-only frame from grid-h264-640x360.mp4 at 00:02.3. This source relationship is not saved with the exported PNG.","msg":"Captured the visible frame at 00:02.3 into Photo Studio. The frame is session-only; exporting a copy still requires your approval.×","newCaps":1,"dims":[640,360,6826]}
+capture grid-vp9-640x360.webm @1.7s: {"before":{"t":1.7,"vw":640,"vh":360,"rs":4,"caps":1},"moved":true,"title":"Photo Studio","selected":"video-frame-00-00-01-700.png","origin":"Session-only frame from grid-vp9-640x360.webm at 00:01.7. This source relationship is not saved with the exported PNG.","msg":"Preparing photo preview… | Captured the visible frame at 00:01.7 into Photo Studio. The frame is session-only; exporting a copy still requires your approval.×","newCaps":1,"dims":[640,360,6701]}
+capture rotated-90-320x180.mp4 @1.2s: {"before":{"t":1.2,"vw":180,"vh":320,"rs":4,"caps":2},"moved":true,"title":"Photo Studio","selected":"video-frame-00-00-01-200.png","origin":"Session-only frame from rotated-90-320x180.mp4 at 00:01.2. This source relationship is not saved with the exported PNG.","msg":"Preparing photo preview… | Captured the visible frame at 00:01.2 into Photo Studio. The frame is session-only; exporting a copy still requires your approval.×","newCaps":1,"dims":[180,320,2290]}
+F2 Media Library lineage: ["grid-h264-640x360.mp4 :: Video · 7.1 KB · Session only","grid-vp9-640x360.webm :: Video · 4.6 KB · Session only","rotated-90-320x180.mp4 :: Video · 2.6 KB · Session only","video-frame-00-00-02-300.png :: Photo · 6.7 KB · Session only / Frame captured at 2.300 s from grid-h264-640x360.mp4. Not saved as project provenance.","video-frame-00-00-01-700.png :: Photo · 6.5 KB · Session only / Frame captured at 1.700 s from grid-vp9-640x360.webm. Not saved as project provenance.","video-frame-00-00-01-200.png :: Photo · 2.2 KB · Session only / Frame captured at 1.200 s from rotated-90-320x180.mp4. Not saved as project provenance."]
+F3 Video Studio still on source, unchanged: {"selected":"rotated-90-320x180.mp4","kind":"video","videoSrcIsBlob":true,"rows":["grid-h264-640x360.mp4","grid-vp9-640x360.webm","rotated-90-320x180.mp4"]}
+F4 edit h264 frame 140/120/90: {"selected":"video-frame-00-00-02-300.png","b":"140","c":"120","canvas":[360,640]}
+F5 persistence across routes: {"a":{"sel":"video-frame-00-00-02-300.png","b":"140","c":"120"},"b":{"sel":"video-frame-00-00-01-700.png","b":"100","c":"100"},"a2":{"b":"140","c":"120"},"b2":{"b":"60"}}
+F6 decline export: {"notice":"none","ipc":"see log"}
+IPC after decline: ["generation_outputs","generation_outputs","generation_outputs","generation_outputs","generation_outputs","generation_outputs","generation_outputs","generation_outputs","catalog_capabilities","models_library","catalog_capabilities","models_library","hf_token_status","hf_token_status","generation_outputs"]
+F8 remove source clip keeps the frame: {"videoRows":["grid-vp9-640x360.webm","rotated-90-320x180.mp4"],"library":["grid-vp9-640x360.webm","rotated-90-320x180.mp4","video-frame-00-00-02-300.png","video-frame-00-00-01-700.png","video-frame-00-00-01-200.png"],"frameOpens":true,"b":"140","origin":"Session-only frame from grid-h264-640x360.mp4 at 00:02.3. This source relationship is not saved with the exported PNG.","revokedCount":1}
+IPC: ["generation_outputs","generation_outputs","generation_outputs","generation_outputs","generation_outputs","generation_outputs","generation_outputs","generation_outputs","catalog_capabilities","models_library","catalog_capabilities","models_library","hf_token_status","hf_token_status","generation_outputs","generation_outputs","generation_outputs","generation_outputs"]
+non-IPC requests: []
+pictures after capture + declined export: 30
+client=1280x720 dpi=96
+L 1280x720 setup: grid-vp9-640x360.webm,rotated-90-320x180.mp4
+L 1280x720 focus start: ▶Video Studio
+L 1280x720 capture button: {"tabsToReach":1,"focused":false,"outline":"none 3px","rect":[1023,290,223,46],"inViewport":true,"topmost":true,"pageScroll":[1280,1280],"panelScroll":[null,null]}
+client=1440x900 dpi=96
+L 1440x900 setup: grid-vp9-640x360.webm,rotated-90-320x180.mp4
+L 1440x900 focus start: ▶Video Studio
+L 1440x900 capture button: {"tabsToReach":1,"focused":false,"outline":"none 3px","rect":[1183,290,223,46],"inViewport":true,"topmost":true,"pageScroll":[1440,1440],"panelScroll":[null,null]}
+client=1920x1080 dpi=96
+L 1920x1080 setup: grid-vp9-640x360.webm,rotated-90-320x180.mp4
+L 1920x1080 focus start: ▶Video Studio
+L 1920x1080 capture button: {"tabsToReach":1,"focused":false,"outline":"none 3px","rect":[1663,290,223,46],"inViewport":true,"topmost":true,"pageScroll":[1920,1920],"panelScroll":[null,null]}
+client=1100x700 dpi=96
+L 1100x700 setup: grid-vp9-640x360.webm,rotated-90-320x180.mp4
+L 1100x700 focus start: ▶Video Studio
+L 1100x700 capture button: {"tabsToReach":1,"focused":false,"outline":"none 3px","rect":[104,976,210,46],"inViewport":false,"topmost":false,"pageScroll":[1085,1100],"panelScroll":[null,null]}
+client=1440x900 dpi=96
+"after restart: {\"sessionCards\":[],\"frameText\":false}"
+saved <local path>
+N1 unsupported codec (MPEG-4 Part 2): {"ready":false,"failed":"⚠ Can't preview unsupported-mpeg4.mp4  This video can't be previewed here. Its codec may be unsupported by the preview, or the file may be damaged.","btnDisabled":true,"dims":null,"title":"Video Studio","newCaps":0,"msg":"This video can't be previewed here. Its codec may be unsupported by the preview, or the file may be damaged.×"}
+N2 corrupt file: {"ready":false,"failed":"⚠ Can't preview corrupt.mp4  This video can't be previewed here. Its codec may be unsupported by the preview, or the file may be damaged.","btnDisabled":true,"dims":null,"title":"Video Studio","newCaps":0,"msg":"This video can't be previewed here. Its codec may be unsupported by the preview, or the file may be damaged.×"}
+N3 8193 px edge: {"ready":true,"btnDisabled":false,"dims":[8193,16],"title":"Video Studio","newCaps":0,"msg":"This video frame is too large to edit safely (limit: 20 megapixels, 8192 px per edge).×"}
+N4 20.01 MP (5000x4002): {"ready":true,"btnDisabled":false,"dims":[5000,4002],"title":"Video Studio","newCaps":0,"msg":"This video frame is too large to edit safely (limit: 20 megapixels, 8192 px per edge).×"}
+N5 8192 px edge (boundary, accepted): {"ready":true,"dims":[8192,16],"title":"Photo Studio","newCaps":1,"msg":"Captured the visible frame at 00:00.0 into Photo Studio. The frame is session-only; exporting a copy still requires your approval.×"}
+N6 tainted/failed draw (injected SecurityError): {"title":"Video Studio","newCaps":0,"msg":"This video frame could not be read. Its format or protections may prevent capture.×","btn":"Capture frame to Photo Studio","btnDisabled":false}
+N7 encoder returns null (injected): {"title":"Video Studio","newCaps":0,"msg":"Could not encode this frame as a PNG.×","btn":"Capture frame to Photo Studio","btnDisabled":false}
+N8 encoder returns wrong type (injected): {"title":"Video Studio","newCaps":0,"msg":"Could not encode this frame as a valid PNG.×","btn":"Capture frame to Photo Studio","btnDisabled":false}
+N9 encoder returns empty PNG (injected): {"title":"Video Studio","newCaps":0,"msg":"Could not encode this frame as a valid PNG.×","btn":"Capture frame to Photo Studio","btnDisabled":false}
+N10 encoder returns 33 MiB PNG (injected): {"title":"Video Studio","newCaps":0,"msg":"The captured PNG exceeds the supported 32 MB limit.×","btn":"Capture frame to Photo Studio","btnDisabled":false}
+N11 seek then capture in the same task: {"seekingAtClick":true,"title":"Video Studio","newCaps":0,"msg":"Wait until the selected video frame is ready, then capture again.×"}
+N12 button disabled while seeking (state): {"disabledDuringSeek":false,"enabledAfter":true}
+N13 double click captures once: {"newCaps":1,"title":"Photo Studio"}
+N14 navigate away while encoding: {"busyLabel":"Capturing frame…","title":"Media Library","selected":null,"newCaps":0,"msg":"","btn":null}
+N15 switch clip while encoding: {"busyLabel":"Capturing frame…","title":"Video Studio","selected":"grid-h264-640x360.mp4","newCaps":0,"msg":"","btn":"Capture frame to Photo Studio"}
+N16 leave and return to Video Studio while encoding: {"busyLabel":"Capturing frame…","title":"Video Studio","selected":"grid-vp9-640x360.webm","newCaps":0,"msg":"","btn":"Capture frame to Photo Studio"}
+N17 remove the source clip while encoding: {"busyLabel":"Capturing frame…","title":"Video Studio","selected":"grid-h264-640x360.mp4","newCaps":0,"msg":"","btn":"Capture frame to Photo Studio"}
+N18 library after negatives: ["grid-h264-640x360.mp4","unsupported-mpeg4.mp4","corrupt.mp4","edge-8193x16.webm","edge-8192x16.webm","pixels-5000x4002.webm","video-frame-00-00-00-000.png","video-frame-00-00-00-400.png","grid-vp9-640x360.webm"]
+IPC: ["generation_outputs","generation_outputs","generation_outputs","generation_outputs","generation_outputs","project_list","project_list","generation_outputs","generation_outputs"]
+non-IPC requests: []
+client=1100x700 dpi=96
+== downloads 1100x700
+1 Models: opt in, search, inspect flagged, start held download: {"page":"Models","cards":[],"detailProgress":"Starting download… Cancel download","alerts":[],"detail":"qa-fixture/flagged-image-model","cancelHit":null}
+2 progress 1 GB (detail shows it once): {"page":"Models","cards":[],"detailProgress":"downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download","alerts":[],"detail":"qa-fixture/flagged-image-model","cancelHit":null}
+3 navigate to Projects: {"page":"Projects","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[89,646,238]}}
+3 navigate to Media Library: {"page":"Media Library","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[89,646,238]}}
+3 navigate to Create Images: {"page":"Create Images","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[89,646,238]}}
+3 navigate to Photo Studio: {"page":"Photo Studio","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[89,646,238]}}
+3 navigate to Video Studio: {"page":"Video Studio","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[89,646,238]}}
+3 navigate to Settings: {"page":"Settings","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[89,646,238]}}
+4 Models again: same session in the detail, no extra card: {"page":"Models","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+5 opt out mid-download: {"page":"Models","cards":["Downloading a model downloading · file 3 of 9 · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+6 Photo Studio while opted out (name hidden): {"page":"Photo Studio","cards":["Downloading a model downloading · file 3 of 9 · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[89,646,238]}}
+7 progress 2 GB arrives on Photo Studio: {"page":"Photo Studio","cards":["Downloading a model downloading · file 3 of 9 · 2.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[89,646,238]}}
+8 Models (discovery off): search and inspect another, safe model: {"page":"Models","cards":["Downloading a model downloading · file 3 of 9 · 2.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":"qa-fixture/safe-image-model","cancelHit":null}
+   flagged result listed while off: false
+   second-install button disabled while one runs: true
+10 Cancel from the Photo Studio rail card: {"page":"Photo Studio","cards":["Downloading a model downloading · file 3 of 9 · 2.00 GB of 4.00 GB Cancelling…"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[89,646,238]}}
+11 install ends (aborted by fixture): {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":["Download of a model stopped Turn on adult discovery to see details. Dismiss"],"detail":null,"cancelHit":null}
+   cancel ids sent: ["1cc22f7b-eca8-45ff-bd9d-ba58ac2857f2"] | exact live id: true
+12 stale event for the finished id is ignored: {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":["Download of a model stopped Turn on adult discovery to see details. Dismiss"],"detail":null,"cancelHit":null}
+13 dismiss error: {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+14 after WebView reload: adopted from native status: {"page":"Photo Studio","cards":["Downloading a model downloading · file 6 of 9 · 3.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[89,646,238]}}
+15 cancel the adopted download: {"page":"Photo Studio","cards":["Downloading a model downloading · file 6 of 9 · 3.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[89,646,238]}}
+   cancel ids sent: ["1cc22f7b-eca8-45ff-bd9d-ba58ac2857f2","native-adopted-0001"]
+16 native reports nothing active: card clears (no stuck bar): {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+intercepted IPC: models_library, catalog_search, catalog_inspect, model_install, model_install_status, model_install_cancel
+non-IPC requests from the WebView: none
+client=1280x720 dpi=96
+== downloads 1280x720
+1 Models: opt in, search, inspect flagged, start held download: {"page":"Models","cards":[],"detailProgress":"Starting download… Cancel download","alerts":[],"detail":"qa-fixture/flagged-image-model","cancelHit":null}
+2 progress 1 GB (detail shows it once): {"page":"Models","cards":[],"detailProgress":"downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download","alerts":[],"detail":"qa-fixture/flagged-image-model","cancelHit":null}
+3 navigate to Projects: {"page":"Projects","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,612,157]}}
+3 navigate to Media Library: {"page":"Media Library","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,612,157]}}
+3 navigate to Create Images: {"page":"Create Images","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,612,157]}}
+3 navigate to Photo Studio: {"page":"Photo Studio","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,612,157]}}
+3 navigate to Video Studio: {"page":"Video Studio","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,612,157]}}
+3 navigate to Settings: {"page":"Settings","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,612,157]}}
+4 Models again: same session in the detail, no extra card: {"page":"Models","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+5 opt out mid-download: {"page":"Models","cards":["Downloading a model downloading · file 3 of 9 · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+6 Photo Studio while opted out (name hidden): {"page":"Photo Studio","cards":["Downloading a model downloading · file 3 of 9 · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,612,157]}}
+7 progress 2 GB arrives on Photo Studio: {"page":"Photo Studio","cards":["Downloading a model downloading · file 3 of 9 · 2.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,612,157]}}
+8 Models (discovery off): search and inspect another, safe model: {"page":"Models","cards":["Downloading a model downloading · file 3 of 9 · 2.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":"qa-fixture/safe-image-model","cancelHit":null}
+   flagged result listed while off: false
+   second-install button disabled while one runs: true
+10 Cancel from the Photo Studio rail card: {"page":"Photo Studio","cards":["Downloading a model downloading · file 3 of 9 · 2.00 GB of 4.00 GB Cancelling…"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,612,157]}}
+11 install ends (aborted by fixture): {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":["Download of a model stopped Turn on adult discovery to see details. Dismiss"],"detail":null,"cancelHit":null}
+   cancel ids sent: ["5b9c404f-0b0d-4475-a807-264de6b6ced0"] | exact live id: true
+12 stale event for the finished id is ignored: {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":["Download of a model stopped Turn on adult discovery to see details. Dismiss"],"detail":null,"cancelHit":null}
+13 dismiss error: {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+14 after WebView reload: adopted from native status: {"page":"Photo Studio","cards":["Downloading a model downloading · file 6 of 9 · 3.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,612,157]}}
+15 cancel the adopted download: {"page":"Photo Studio","cards":["Downloading a model downloading · file 6 of 9 · 3.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,612,157]}}
+   cancel ids sent: ["5b9c404f-0b0d-4475-a807-264de6b6ced0","native-adopted-0001"]
+16 native reports nothing active: card clears (no stuck bar): {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+intercepted IPC: models_library, catalog_search, catalog_inspect, model_install, model_install_status, model_install_cancel
+non-IPC requests from the WebView: none
+client=1440x900 dpi=96
+== downloads 1440x900
+1 Models: opt in, search, inspect flagged, start held download: {"page":"Models","cards":[],"detailProgress":"Starting download… Cancel download","alerts":[],"detail":"qa-fixture/flagged-image-model","cancelHit":null}
+2 progress 1 GB (detail shows it once): {"page":"Models","cards":[],"detailProgress":"downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download","alerts":[],"detail":"qa-fixture/flagged-image-model","cancelHit":null}
+3 navigate to Projects: {"page":"Projects","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,771,157]}}
+3 navigate to Media Library: {"page":"Media Library","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,771,157]}}
+3 navigate to Create Images: {"page":"Create Images","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,771,157]}}
+3 navigate to Photo Studio: {"page":"Photo Studio","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,771,157]}}
+3 navigate to Video Studio: {"page":"Video Studio","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,771,157]}}
+3 navigate to Settings: {"page":"Settings","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,771,157]}}
+4 Models again: same session in the detail, no extra card: {"page":"Models","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+5 opt out mid-download: {"page":"Models","cards":["Downloading a model downloading · file 3 of 9 · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+6 Photo Studio while opted out (name hidden): {"page":"Photo Studio","cards":["Downloading a model downloading · file 3 of 9 · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,771,157]}}
+7 progress 2 GB arrives on Photo Studio: {"page":"Photo Studio","cards":["Downloading a model downloading · file 3 of 9 · 2.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,771,157]}}
+8 Models (discovery off): search and inspect another, safe model: {"page":"Models","cards":["Downloading a model downloading · file 3 of 9 · 2.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":"qa-fixture/safe-image-model","cancelHit":null}
+   flagged result listed while off: false
+   second-install button disabled while one runs: true
+10 Cancel from the Photo Studio rail card: {"page":"Photo Studio","cards":["Downloading a model downloading · file 3 of 9 · 2.00 GB of 4.00 GB Cancelling…"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,771,157]}}
+11 install ends (aborted by fixture): {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":["Download of a model stopped Turn on adult discovery to see details. Dismiss"],"detail":null,"cancelHit":null}
+   cancel ids sent: ["ce918547-fb7f-4c98-bb78-04f3217ec9da"] | exact live id: true
+12 stale event for the finished id is ignored: {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":["Download of a model stopped Turn on adult discovery to see details. Dismiss"],"detail":null,"cancelHit":null}
+13 dismiss error: {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+14 after WebView reload: adopted from native status: {"page":"Photo Studio","cards":["Downloading a model downloading · file 6 of 9 · 3.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,771,157]}}
+15 cancel the adopted download: {"page":"Photo Studio","cards":["Downloading a model downloading · file 6 of 9 · 3.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,771,157]}}
+   cancel ids sent: ["ce918547-fb7f-4c98-bb78-04f3217ec9da","native-adopted-0001"]
+16 native reports nothing active: card clears (no stuck bar): {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+intercepted IPC: models_library, catalog_search, catalog_inspect, model_install, model_install_status, model_install_cancel
+non-IPC requests from the WebView: none
+client=1920x1080 dpi=96
+== downloads 1920x1080
+1 Models: opt in, search, inspect flagged, start held download: {"page":"Models","cards":[],"detailProgress":"Starting download… Cancel download","alerts":[],"detail":"qa-fixture/flagged-image-model","cancelHit":null}
+2 progress 1 GB (detail shows it once): {"page":"Models","cards":[],"detailProgress":"downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download","alerts":[],"detail":"qa-fixture/flagged-image-model","cancelHit":null}
+3 navigate to Projects: {"page":"Projects","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,951,157]}}
+3 navigate to Media Library: {"page":"Media Library","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,951,157]}}
+3 navigate to Create Images: {"page":"Create Images","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,951,157]}}
+3 navigate to Photo Studio: {"page":"Photo Studio","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,951,157]}}
+3 navigate to Video Studio: {"page":"Video Studio","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,951,157]}}
+3 navigate to Settings: {"page":"Settings","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,951,157]}}
+4 Models again: same session in the detail, no extra card: {"page":"Models","cards":["Downloading qa-fixture/flagged-image-model downloading · unet/diffusion_pytorch_model.safetensors (3/9) · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+5 opt out mid-download: {"page":"Models","cards":["Downloading a model downloading · file 3 of 9 · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+6 Photo Studio while opted out (name hidden): {"page":"Photo Studio","cards":["Downloading a model downloading · file 3 of 9 · 1.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,951,157]}}
+7 progress 2 GB arrives on Photo Studio: {"page":"Photo Studio","cards":["Downloading a model downloading · file 3 of 9 · 2.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,951,157]}}
+8 Models (discovery off): search and inspect another, safe model: {"page":"Models","cards":["Downloading a model downloading · file 3 of 9 · 2.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":"qa-fixture/safe-image-model","cancelHit":null}
+   flagged result listed while off: false
+   second-install button disabled while one runs: true
+10 Cancel from the Photo Studio rail card: {"page":"Photo Studio","cards":["Downloading a model downloading · file 3 of 9 · 2.00 GB of 4.00 GB Cancelling…"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,951,157]}}
+11 install ends (aborted by fixture): {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":["Download of a model stopped Turn on adult discovery to see details. Dismiss"],"detail":null,"cancelHit":null}
+   cancel ids sent: ["9fb59e4c-a290-40dd-beab-e0fed9b8d0ed"] | exact live id: true
+12 stale event for the finished id is ignored: {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":["Download of a model stopped Turn on adult discovery to see details. Dismiss"],"detail":null,"cancelHit":null}
+13 dismiss error: {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+14 after WebView reload: adopted from native status: {"page":"Photo Studio","cards":["Downloading a model downloading · file 6 of 9 · 3.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,951,157]}}
+15 cancel the adopted download: {"page":"Photo Studio","cards":["Downloading a model downloading · file 6 of 9 · 3.00 GB of 4.00 GB Cancel download"],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":{"inViewport":true,"topmost":true,"box":[25,951,157]}}
+   cancel ids sent: ["9fb59e4c-a290-40dd-beab-e0fed9b8d0ed","native-adopted-0001"]
+16 native reports nothing active: card clears (no stuck bar): {"page":"Photo Studio","cards":[],"detailProgress":null,"alerts":[],"detail":null,"cancelHit":null}
+intercepted IPC: models_library, catalog_search, catalog_inspect, model_install, model_install_status, model_install_cancel
+non-IPC requests from the WebView: none
+pictures end: 30
+DONE
