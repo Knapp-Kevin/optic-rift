@@ -264,3 +264,75 @@
   white-space:normal;overflow-wrap:anywhere;line-height:1.5;
   color:#aec4e9;
 }
+
+/* Video generation planning, enhancement planning, and workflow catalog.
+   No unqualified renderer or audio production controls are exposed. */
+.video-compose-page{padding:30px clamp(20px,3.2vw,44px);height:calc(100vh - 68px);min-height:0;overflow-y:auto;overscroll-behavior:contain;color:#e3ecff}
+.video-compose-page[hidden]{display:none!important}
+.video-compose-page .lead{max-width:960px}
+.video-compose-page button:focus-visible,.video-compose-page select:focus-visible,.video-compose-page input:focus-visible,.video-compose-page textarea:focus-visible{outline:2px solid #8eabff;outline-offset:2px}
+.video-compose-status{max-width:1150px;border:1px solid #526b9a;background:#1e2c48;border-radius:11px;padding:13px 17px;margin:18px 0;color:#d6e4fb}
+.video-compose-status strong{font-size:13px}
+.video-compose-status p{font-size:12px;line-height:1.65;margin:7px 0 0;color:#bbcae5}
+.video-compose-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:16px 0}
+.video-compose-actions button{min-height:39px;padding:9px 13px;border-radius:8px}
+.video-compose-layout{display:grid;grid-template-columns:minmax(300px,450px) minmax(320px,1fr);gap:19px;align-items:start;max-width:1300px;padding-bottom:28px}
+.video-compose-form,.video-shot-board{min-width:0;border:1px solid #374764;border-radius:12px;background:#172339;padding:19px}
+.video-compose-form h2,.video-shot-board h2{font-size:17px;margin:0 0 17px}
+.video-compose-form label{display:flex;flex-direction:column;gap:7px;font-size:12px;color:#c8d5ee;margin-bottom:13px;min-width:0}
+.video-compose-form select,.video-compose-form textarea,.workflow-explorer-filters select,.workflow-explorer-filters input{
+  display:block;width:100%;min-width:0;box-sizing:border-box;border:1px solid #52627e;background:#101b31;
+  color:#eaf0ff;border-radius:8px;padding:10px 11px;font:inherit;font-size:13px;line-height:1.4
+}
+.video-compose-form textarea{resize:vertical;min-height:86px}
+.video-compose-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 12px}
+.video-form-hint{color:#adbfdf;font-size:11px;line-height:1.6;overflow-wrap:anywhere}
+.video-compose-notice{font-size:12px;border:1px solid #5473a4;background:#223355;border-radius:8px;padding:10px 12px;overflow-wrap:anywhere}
+.video-shot-board-head{display:flex;justify-content:space-between;align-items:start;gap:12px}
+.video-shot-board-head p{color:#b4c4e2;font-size:12px;margin:-9px 0 14px}
+.video-planning-tag{border:1px solid #6b7b9d;border-radius:7px;padding:5px 9px;font-size:10px;letter-spacing:.08em;white-space:nowrap;color:#c6d7f5}
+.video-shot-empty{border:1px dashed #506486;background:#1c2a43;padding:22px;border-radius:9px;color:#cbd9f1;font-size:13px;line-height:1.6}
+.video-shot-empty p{font-size:12px;color:#afc0df}
+.video-shot-list{display:flex;flex-direction:column;gap:11px;list-style:none;margin:0;padding:0}
+.video-shot-card{border:1px solid #455c80;border-radius:9px;background:#1f2d48;padding:13px;overflow-wrap:anywhere}
+.video-shot-number{font-size:10px;letter-spacing:.1em;color:#a1b8e8;margin-bottom:7px}
+.video-shot-card strong{display:block;font-size:13px}
+.video-shot-card p{margin:9px 0;color:#d8e3f9;line-height:1.5;font-size:12px;white-space:pre-wrap}
+.video-shot-card small{display:block;font-size:11px;color:#afc3e4;margin:5px 0}
+.video-shot-buttons{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.video-shot-buttons button{background:#2a3c60;border:1px solid #566d96;border-radius:6px;color:#e1eafc;font-size:11px;padding:7px 9px}
+.video-shot-buttons button:disabled{opacity:.45}
+.video-compose-unsupported{margin-top:17px;border:1px solid #616d83;border-radius:9px;background:#202a3b;padding:13px;color:#d4e1f8;font-size:12px}
+.video-compose-unsupported strong{display:block;margin-bottom:6px}
+.video-compose-unsupported p{color:#b8c7e0;line-height:1.6;margin:0}
+.video-enhance-choices{border:1px solid #405170;border-radius:9px;padding:11px 13px;margin:10px 0 17px}
+.video-enhance-choices legend{padding:0 6px;color:#cbd9f2;font-size:12px}
+.video-compose-form .video-enhance-option{flex-direction:row;align-items:start;gap:10px;padding:7px 0;margin:0}
+.video-enhance-option input{width:17px;height:17px;margin:2px 0 0;flex-shrink:0}
+.video-enhance-option strong{display:block;font-size:12px;color:#e8f0ff}
+.video-enhance-option small{display:block;font-size:11px;color:#abc0e1;line-height:1.5;margin-top:3px}
+.video-enhance-review{font-size:12px;line-height:1.65;color:#ceddf5;overflow-wrap:anywhere}
+.video-enhance-review ol{padding-left:22px}
+.video-enhance-review li{margin:10px 0}
+.video-enhance-review li span{display:block;color:#acbdde;font-size:11px}
+.workflow-explorer-filters{display:flex;flex-wrap:wrap;align-items:end;gap:12px;margin:20px 0 10px}
+.workflow-explorer-filters label{display:flex;flex:1;min-width:180px;max-width:320px;flex-direction:column;gap:7px;color:#c7d5ef;font-size:12px}
+.workflow-count{color:#b1c4e4;font-size:12px}
+.workflow-explorer-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,315px),1fr));gap:13px;max-width:1450px;padding-bottom:25px}
+.workflow-journey-card{min-width:0;border:1px solid #354766;border-radius:10px;background:#1a2841;padding:16px;display:flex;flex-direction:column;gap:9px}
+.workflow-journey-meta{display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;color:#aebfe1;font-size:10px}
+.workflow-state{padding:4px 8px;border:1px solid #607196;border-radius:6px;color:#cbdaf3}
+.workflow-journey-card h2{font-size:15px;line-height:1.3;margin:0}
+.workflow-journey-card p{color:#c6d6ee;font-size:12px;line-height:1.6;margin:0}
+.workflow-journey-card dl{font-size:11px;line-height:1.5;margin:3px 0 9px;flex:1}
+.workflow-journey-card dt{color:#a7c3ed;font-weight:600;margin-top:8px}
+.workflow-journey-card dd{margin:4px 0 0;color:#cbd7ed}
+.workflow-journey-card button{align-self:start;margin-top:auto;padding:9px 12px}
+@media(max-width:1000px){
+ .video-compose-layout{grid-template-columns:minmax(0,1fr)}
+ .video-compose-page{height:auto;min-height:calc(100vh - 68px)}
+}
+@media(max-width:560px){
+ .video-compose-fields{grid-template-columns:minmax(0,1fr)}
+ .video-compose-page{padding:20px 13px}
+}
