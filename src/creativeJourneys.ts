@@ -19,10 +19,10 @@ export type CreativeJourney = {
  */
 export const creativeJourneys: readonly CreativeJourney[] = [
   { id: "P01", area: "Photo", title: "Import, correct and export a photo", outcome: "Fix a photo and save a new PNG. Your original stays the same.",
-    current: "You can change brightness, contrast and rotation, then save a PNG. There are no layers or color profiles yet.", state: "working-slice", route: "photo",
+    current: "Brightness, contrast, rotation and crop are in the editor branch. Crop still needs Windows tests. Layers are not ready.", state: "working-slice", route: "photo",
     acceptance: "Edit a real photo, save it, restart, and reopen it. The saved pixels and file hashes must match." },
   { id: "P02", area: "Photo", title: "Full non-destructive photo editor", outcome: "Crop, fix perspective, use curves, layers and masks, heal, clone and keep versions.",
-    current: "Only basic changes and PNG saving work today.", state: "not-implemented", route: null,
+    current: "Crop controls are added but not yet tested on Windows. Layers, masks and color tools are still missing.", state: "not-implemented", route: null,
     acceptance: "A layered project with masks must reopen after a restart. Full-size export must keep correct color." },
   { id: "P03", area: "Photo", title: "Generate concept art and variants", outcome: "Make new images and refine them. Earlier results are kept.",
     current: "Local text-to-image and image-to-image work on development branches.", state: "working-slice", route: "create",
