@@ -987,6 +987,18 @@ fn encode_args(grant: &Grant, plan: &TrimPlan, output: &Path) -> Vec<OsString> {
     args
 }
 
+/// A user-facing reason for an FFmpeg exit. No FFmpeg message means the tool was stopped from
+/// outside (crash, kill), which is not a problem with the video.
+fn failure_text(code: Option<i32>, last_line: &str) -> String {
+    let code = code.map_or("no exit code".to_string(), |c| format!("exit code {c}"));
+    let line = last_line.trim().trim_end_matches('.');
+    if line.is_empty() {
+        format!("FFmpeg stopped unexpectedly before the export finished ({code}).")
+    } else {
+        format!("FFmpeg could not encode this video: {line} ({code}).")
+    }
+}
+
 enum EncodeEnd {
     Done,
     Cancelled,
@@ -1102,10 +1114,7 @@ fn encode(
                 .chars()
                 .take(200)
                 .collect::<String>();
-            EncodeEnd::Failed(format!(
-                "FFmpeg could not encode this video (exit {:?}). {last}",
-                status.code()
-            ))
+            EncodeEnd::Failed(failure_text(status.code(), &last))
         }
     }
 }
@@ -2114,6 +2123,23 @@ mod tests {
         assert!(published(&dir).is_empty());
         assert!(revoke(&grant.grant_id));
         assert!(!revoke(&grant.grant_id));
+    }
+
+    #[test]
+    fn failure_messages_are_plain() {
+        assert_eq!(
+            failure_text(Some(-1), "  "),
+            "FFmpeg stopped unexpectedly before the export finished (exit code -1)."
+        );
+        assert_eq!(
+            failure_text(None, ""),
+            "FFmpeg stopped unexpectedly before the export finished (no exit code)."
+        );
+        assert_eq!(
+            failure_text(Some(1), "Invalid data found."),
+            "FFmpeg could not encode this video: Invalid data found (exit code 1)."
+        );
+        assert!(!failure_text(Some(-1), "").contains("Some("));
     }
 
     #[test]
