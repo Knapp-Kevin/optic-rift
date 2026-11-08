@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { loadPhotoBitmap, paintAdjustedPhoto } from "./photoEdits";
+import { loadPhotoBitmap, paintAdjustedPhoto, type PhotoCrop } from "./photoEdits";
 
 type Props = {
   sourceUrl: string;
@@ -7,6 +7,8 @@ type Props = {
   brightness: number;
   contrast: number;
   rotation: number;
+  crop?: PhotoCrop;
+  onDimensions?: (dimensions: { width: number; height: number }) => void;
   onError: (message: string) => void;
 };
 
@@ -16,11 +18,13 @@ type Props = {
  * No intermediate PNG files or URLs are written to disk.
  */
 export default function PhotoCanvasPreview({
-  sourceUrl, label, brightness, contrast, rotation, onError,
+  sourceUrl, label, brightness, contrast, rotation, crop, onDimensions, onError,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const onErrorRef = useRef(onError);
+  const onDimensionsRef = useRef(onDimensions);
   onErrorRef.current = onError;
+  onDimensionsRef.current = onDimensions;
 
   const [decoded, setDecoded] = useState<{ sourceUrl: string; bitmap: ImageBitmap } | null>(null);
   const [ready, setReady] = useState(false);
@@ -38,6 +42,7 @@ export default function PhotoCanvasPreview({
         return;
       }
       ownedBitmap = bitmap;
+      onDimensionsRef.current?.({ width: bitmap.width, height: bitmap.height });
       setDecoded({ sourceUrl, bitmap });
     }).catch((reason: unknown) => {
       if (!active) return;
@@ -63,7 +68,7 @@ export default function PhotoCanvasPreview({
       const canvas = canvasRef.current;
       if (!canvas) return;
       try {
-        paintAdjustedPhoto(decoded.bitmap, { brightness, contrast, rotation }, canvas, 1400);
+        paintAdjustedPhoto(decoded.bitmap, { brightness, contrast, rotation, crop }, canvas, 1400);
         setReady(true);
         setError("");
       } catch (reason) {
@@ -74,7 +79,7 @@ export default function PhotoCanvasPreview({
       }
     }, 90);
     return () => window.clearTimeout(handle);
-  }, [decoded, sourceUrl, brightness, contrast, rotation]);
+  }, [decoded, sourceUrl, brightness, contrast, rotation, crop?.left, crop?.top, crop?.right, crop?.bottom]);
 
   const shown = ready && decoded?.sourceUrl === sourceUrl && !error;
   return <>
