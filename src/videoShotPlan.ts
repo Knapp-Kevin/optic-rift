@@ -7,6 +7,7 @@
 export type VideoShotMode = "text-to-video" | "image-to-video" | "video-to-video";
 export type VideoAspect = "16:9" | "9:16" | "1:1" | "4:3";
 export type VisualIntent = "general" | "mature-themes" | "adult-focused";
+export type CameraMotion = "static" | "pan" | "tracking" | "handheld";
 
 export type VideoShotInput = {
   mode: VideoShotMode;
@@ -15,6 +16,7 @@ export type VideoShotInput = {
   aspect: VideoAspect;
   durationSeconds: number;
   intent: VisualIntent;
+  camera: CameraMotion;
 };
 
 export type VideoShot = VideoShotInput & {
@@ -28,13 +30,14 @@ export const VIDEO_GENERATION_EXECUTION_QUALIFIED = false as const;
 const shotModes: VideoShotMode[] = ["text-to-video", "image-to-video", "video-to-video"];
 const shotAspects: VideoAspect[] = ["16:9", "9:16", "1:1", "4:3"];
 const shotIntents: VisualIntent[] = ["general", "mature-themes", "adult-focused"];
+const cameraMotions: CameraMotion[] = ["static", "pan", "tracking", "handheld"];
 
 export function normalizeVideoShot(
   input: VideoShotInput, availableImageIds: readonly string[], availableVideoIds: readonly string[],
 ): VideoShotInput {
   const prompt = input.prompt.trim();
   if (!shotModes.includes(input.mode) || !shotAspects.includes(input.aspect) ||
-      !shotIntents.includes(input.intent) ||
+      !shotIntents.includes(input.intent) || !cameraMotions.includes(input.camera) ||
       !Number.isInteger(input.durationSeconds) ||
       input.durationSeconds < 2 || input.durationSeconds > 12) {
     throw new Error("This shot has unsupported planning settings.");
@@ -81,6 +84,13 @@ export const videoIntentLabel: Record<VisualIntent, string> = {
   general: "General themes",
   "mature-themes": "Mature / PG-13-style themes",
   "adult-focused": "Adult-focused (18+) intent",
+};
+
+export const cameraMotionLabel: Record<CameraMotion, string> = {
+  static: "Locked-off camera",
+  pan: "Pan / tilt",
+  tracking: "Tracking movement",
+  handheld: "Handheld look",
 };
 
 export const videoModeLabel: Record<VideoShotMode, string> = {
