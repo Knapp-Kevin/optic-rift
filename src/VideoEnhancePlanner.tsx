@@ -7,6 +7,7 @@ import {
 } from "./videoEnhancementPlan";
 
 type Props = {
+  visible: boolean;
   media: readonly MediaItem[];
   onOpenLibrary: () => void;
   onOpenVideoStudio: () => void;
@@ -14,7 +15,7 @@ type Props = {
 };
 
 export default function VideoEnhancePlanner({
-  media, onOpenLibrary, onOpenVideoStudio, onBrowseModels,
+  media, onOpenLibrary, onOpenVideoStudio, onBrowseModels, visible,
 }: Props) {
   const videos = media.filter((item) => item.kind === "video");
   const [draft, setDraft] = useState<VideoEnhancementPlan>({
@@ -44,7 +45,7 @@ export default function VideoEnhancePlanner({
     }
   }
 
-  return <main className="video-compose-page video-enhance-page">
+  return <main className="video-compose-page video-enhance-page" hidden={!visible}>
     <div className="page-eyebrow">VIDEO QUALITY & RESTORATION</div>
     <h1>Improve the footage, preserve the original.</h1>
     <p className="lead">Choose the quality problems you want to address. The plan helps specify
