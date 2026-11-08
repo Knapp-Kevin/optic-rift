@@ -99,7 +99,8 @@ test("Video Studio is a real preview but never promises editing, clip export or 
   // Marks set in 0.1 s steps must be distinguishable: labels show tenths after rounding away float drift.
   assert.match(app, /const tenths = Math\.round\(/);
   assert.match(app, /s\.toFixed\(1\)\.padStart\(4, "0"\)/);
-  assert.match(app, /Video editing is not yet available/);
+  assert.match(app, /Video timeline editing is not yet available/);
+  assert.match(app, /Capture frame to Photo Studio/);
   assert.match(app, /Clip assembly, transitions and video export still need qualified native implementation/);
   assert.match(app, /view === "photo" && editablePhoto && !previewFailed/);
   assert.match(app, /Save adjusted PNG copy/);
