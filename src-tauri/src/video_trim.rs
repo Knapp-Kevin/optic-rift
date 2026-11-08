@@ -797,6 +797,10 @@ pub fn start(roots: &ExportRoots, request: StartRequest) -> Result<JobStatus, St
     if !request.accept_pictures_export {
         return Err("Approve saving to Pictures before any file is written.".into());
     }
+    // One writer: the running-job check and the registration of the new job happen under one
+    // lock, so two simultaneous requests can never both start.
+    static STARTING: Mutex<()> = Mutex::new(());
+    let _starting = STARTING.lock().unwrap_or_else(|p| p.into_inner());
     {
         let all = jobs().lock().unwrap_or_else(|p| p.into_inner());
         if all.iter().any(|job| !job.status().state.is_final()) {
@@ -2110,6 +2114,52 @@ mod tests {
         assert!(published(&dir).is_empty());
         assert!(revoke(&grant.grant_id));
         assert!(!revoke(&grant.grant_id));
+    }
+
+    #[test]
+    fn simultaneous_starts_run_only_one_job() {
+        let _serial = serial();
+        let t = trusted();
+        let dir = Scratch::new();
+        let source = counter(&t, &dir, "c.mp4", &[]);
+        let request = request_for(&source);
+        let grant = grant_picked(&t, &request, &source).unwrap();
+        let r = Arc::new(roots(&dir));
+        let barrier = Arc::new(std::sync::Barrier::new(4));
+        let handles: Vec<_> = (0..4)
+            .map(|_| {
+                let (r, b, g, a) = (
+                    r.clone(),
+                    barrier.clone(),
+                    grant.grant_id.clone(),
+                    request.asset_id.clone(),
+                );
+                thread::spawn(move || {
+                    b.wait();
+                    start(
+                        &r,
+                        StartRequest {
+                            grant_id: g,
+                            asset_id: a,
+                            in_seconds: 0.0,
+                            out_seconds: Some(1.0),
+                            expected_first_index: 0,
+                            expected_last_index: 30,
+                            accept_pictures_export: true,
+                        },
+                    )
+                })
+            })
+            .collect();
+        let results: Vec<_> = handles.into_iter().map(|h| h.join().unwrap()).collect();
+        let started: Vec<_> = results.iter().filter_map(|r| r.as_ref().ok()).collect();
+        assert_eq!(started.len(), 1, "{results:?}");
+        assert!(results
+            .iter()
+            .filter_map(|r| r.as_ref().err())
+            .all(|e| e.contains("Another video export")));
+        assert_eq!(wait(&started[0].job_id).state, JobState::Succeeded);
+        assert_eq!(published(&dir).len(), 2);
     }
 
     #[test]
