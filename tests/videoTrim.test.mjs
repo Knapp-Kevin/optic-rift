@@ -59,6 +59,12 @@ test("A notice about one clip is cleared when another clip is selected", () => {
   assert.match(source("../src/VideoTrimPanel.tsx"), /useEffect\(\(\) => \{ setNotice\(""\); \}, \[clip\?\.id\]\);/);
 });
 
+test("A changed or lost source is confirmed again in the dialog on the next Save", () => {
+  const panel = source("../src/VideoTrimPanel.tsx");
+  assert.ok(panel.includes("if (/changed on disk|not authorized/.test(text)) onGrantInvalid();"));
+  assert.ok(source("../src/App.tsx").includes("onGrantInvalid={() => {"));
+});
+
 test("Removing a clip from the session withdraws its export permission", () => {
   const app = source("../src/App.tsx");
   assert.match(app, /const grant = videoGrants\[id\];\s*if \(grant\) \{\s*void revokeSource\(grant\.grantId\);/);

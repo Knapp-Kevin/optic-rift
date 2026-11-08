@@ -12,12 +12,14 @@ type Props = {
   outSeconds: number | null;
   grant: GrantInfo | undefined;
   onGrant: (grant: GrantInfo) => void;
+  /** The native side no longer honours this clip's grant; forget it so Save asks again. */
+  onGrantInvalid: () => void;
   exporter: VideoExport;
   formatTime: (seconds: number) => string;
 };
 
 /** Save trimmed video: an explicit, consent-gated native export of the in/out range. */
-export default function VideoTrimPanel({ clip, ready, inSeconds, outSeconds, grant, onGrant, exporter, formatTime }: Props) {
+export default function VideoTrimPanel({ clip, ready, inSeconds, outSeconds, grant, onGrant, onGrantInvalid, exporter, formatTime }: Props) {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const { job, running } = exporter;
@@ -54,7 +56,10 @@ export default function VideoTrimPanel({ clip, ready, inSeconds, outSeconds, gra
         ...request, expectedFirstIndex: plan.first.index, expectedLastIndex: plan.last.index,
       });
     } catch (reason) {
-      setNotice(videoExportError(reason));
+      const text = videoExportError(reason);
+      // A changed source or a lost grant must be confirmed again in the dialog next time.
+      if (/changed on disk|not authorized/.test(text)) onGrantInvalid();
+      setNotice(text);
     } finally {
       setBusy(false);
     }

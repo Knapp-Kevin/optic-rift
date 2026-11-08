@@ -435,6 +435,13 @@ export default function App() {
                 <VideoTrimPanel clip={isVideo && selected ? selected : null} ready={isVideo}
                   inSeconds={trimIn} outSeconds={trimOut} grant={selected ? videoGrants[selected.id] : undefined}
                   onGrant={(grant) => setVideoGrants((previous) => ({ ...previous, [grant.assetId]: grant }))}
+                  onGrantInvalid={() => {
+                    const id = selected?.id;
+                    const stale = id ? videoGrants[id] : undefined;
+                    if (!id || !stale) return;
+                    void revokeSource(stale.grantId);
+                    setVideoGrants((previous) => { const next = { ...previous }; delete next[id]; return next; });
+                  }}
                   exporter={videoExport} formatTime={formatTime} />
                 <strong>Video timeline editing is not yet available.</strong>
                 <p>You can play a local clip, seek in 0.1-second steps, mark an in/out range and save that range as a new MP4. Clip assembly, transitions and multi-clip export still need qualified native implementation.</p>
