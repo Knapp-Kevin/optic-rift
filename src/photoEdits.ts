@@ -58,10 +58,10 @@ export function centeredPhotoCrop(
     throw new Error("The requested crop aspect is unsupported.");
   }
   if (size.width / size.height > ratio) {
-    const side = Math.min(4999, Math.max(0, Math.round((1 - ratio * size.height / size.width) * 5000)));
+    const side = Math.min(4975, Math.max(0, Math.round((1 - ratio * size.height / size.width) * 5000 / 25) * 25));
     return validatePhotoCrop({ left: side, right: side, top: 0, bottom: 0 });
   }
-  const side = Math.min(4999, Math.max(0, Math.round((1 - size.width / ratio / size.height) * 5000)));
+  const side = Math.min(4975, Math.max(0, Math.round((1 - size.width / ratio / size.height) * 5000 / 25) * 25));
   return validatePhotoCrop({ left: 0, right: 0, top: side, bottom: side });
 }
 
