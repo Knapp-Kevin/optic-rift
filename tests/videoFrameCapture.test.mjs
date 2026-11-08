@@ -106,14 +106,15 @@ test("real capture renders the selected paused frame to a bounded in-memory PNG"
 
 test("canvas failures, invalid encodings and oversized PNGs do not yield an asset", async () => {
   const video = sampleVideo();
-  for (const options of [
-    { failDraw: true },
-    { blob: null },
-    { blob: new Blob(["jpeg"], { type: "image/jpeg" }) },
-    { blob: { type: "image/png", size: MAX_CAPTURE_PNG_BYTES + 1 } },
+  for (const [options, message] of [
+    [{ failDraw: true }, /could not be read/],
+    [{ blob: null }, /Could not encode this frame as a PNG/],
+    [{ blob: new Blob(["jpeg"], { type: "image/jpeg" }) }, /valid PNG/],
+    [{ blob: new Blob([], { type: "image/png" }) }, /valid PNG/],
+    [{ blob: { type: "image/png", size: MAX_CAPTURE_PNG_BYTES + 1 } }, /exceeds the supported 32 MB limit\.$/],
   ]) {
     const mock = fakeCanvas(options);
-    await assert.rejects(withCanvas(mock, () => captureVideoFrame(video, video.currentSrc)));
+    await assert.rejects(withCanvas(mock, () => captureVideoFrame(video, video.currentSrc)), message);
   }
 });
 
