@@ -410,3 +410,12 @@
 .photo-compare-toggle[aria-pressed="true"]{background:#bfd0ff;color:#14213f}
 .photo-compare-toggle:focus-visible{outline:2px solid #b0c5ff;outline-offset:2px}
 .photo-comparison-toolbar span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Conventional downscale-only PNG sizing, separate from source/crop settings. */
+.photo-resize-tools{min-width:0;margin:12px 0 16px;padding:12px;border:1px solid #405476;border-radius:10px;background:#1b2941}
+.photo-resize-tools legend{color:#d9e5fb;padding:0 5px;font-size:12px;font-weight:700}
+.adjustments .photo-resize-tools p{font-size:11px;line-height:1.5;color:#b7c8e7}
+.photo-resize-presets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:10px 0 14px}
+.photo-resize-presets .secondary{font-size:11px;min-height:36px;padding:8px 5px;min-width:0}
+.photo-resize-tools button:disabled{opacity:.5;cursor:not-allowed}
+.photo-resize-tools button:focus-visible,.photo-resize-tools input:focus-visible{outline:2px solid #a4baff;outline-offset:2px}

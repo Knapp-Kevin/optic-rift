@@ -25,6 +25,7 @@ function equals(a: PhotoAdjustments, b: PhotoAdjustments): boolean {
   return a.brightness === b.brightness && a.contrast === b.contrast &&
     (a.saturation ?? 100) === (b.saturation ?? 100) &&
     a.rotation === b.rotation && (a.straightenTenths ?? 0) === (b.straightenTenths ?? 0) &&
+    (a.resizeLongEdge ?? 0) === (b.resizeLongEdge ?? 0) &&
     (a.flipHorizontal ?? false) === (b.flipHorizontal ?? false) &&
     (a.flipVertical ?? false) === (b.flipVertical ?? false) &&
     ac.left === bc.left && ac.top === bc.top &&

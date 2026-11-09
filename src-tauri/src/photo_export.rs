@@ -44,6 +44,9 @@ pub struct PhotoExportRequest {
     /// Fine clockwise leveling in tenths of degrees; neutral for old clients.
     #[serde(default)]
     pub straighten_tenths: i16,
+    /// WebView-requested longest output edge; absent for original-size exports.
+    #[serde(default)]
+    pub resize_long_edge: Option<u32>,
     pub crop: Option<PhotoCrop>,
     /// Optional for older callers; strict booleans prevent forged IPC shapes.
     #[serde(default)]
@@ -105,6 +108,13 @@ fn validate_request(r: &PhotoExportRequest) -> Result<(), String> {
         || u64::from(r.width) * u64::from(r.height) > MAX_PNG_PIXELS
     {
         return Err("Export dimensions exceed the supported limit.".into());
+    }
+    if let Some(longest) = r.resize_long_edge {
+        // PNG dimensions are verified against bytes below. Resize intent is
+        // WebView-reported and must not contradict the output bitmap.
+        if !(32..=MAX_PNG_EDGE).contains(&longest) || r.width.max(r.height) > longest {
+            return Err("The requested output resize is outside the supported range.".into());
+        }
     }
     // Prevent allocating an unbounded decoded payload from a forged IPC call.
     if r.png_base64.len() > MAX_PNG_BYTES.div_ceil(3) * 4 + 4 {
@@ -222,6 +232,7 @@ pub fn export_to_pictures(
             "saturation_percent": request.saturation_percent,
             "rotation_degrees_clockwise": request.rotation,
             "straighten_tenths_degrees_clockwise": request.straighten_tenths,
+            "resize_long_edge_requested_webview_reported": request.resize_long_edge,
             "crop_insets_basis_points_of_rotated_image": &request.crop,
             "flip_display_horizontal": request.flip_horizontal,
             "flip_display_vertical": request.flip_vertical
@@ -284,6 +295,7 @@ mod tests {
             saturation_percent: 100,
             rotation: 0,
             straighten_tenths: 0,
+            resize_long_edge: None,
             crop: None,
             flip_horizontal: false,
             flip_vertical: false,
@@ -350,6 +362,7 @@ mod tests {
         let mut flipped = fixture();
         flipped.saturation_percent = 75;
         flipped.straighten_tenths = -75;
+        flipped.resize_long_edge = Some(128);
         flipped.flip_horizontal = true;
         flipped.flip_vertical = true;
         let second = export_to_pictures(&root, flipped).unwrap();
@@ -372,6 +385,10 @@ mod tests {
         assert_eq!(
             receipt_json["adjustments"]["straighten_tenths_degrees_clockwise"].as_i64(),
             Some(-75)
+        );
+        assert_eq!(
+            receipt_json["adjustments"]["resize_long_edge_requested_webview_reported"].as_u64(),
+            Some(128)
         );
         assert_ne!(first.path, second.path);
         assert_eq!(fs::read(&original).unwrap(), original_bytes);
@@ -433,6 +450,31 @@ mod tests {
             "no folder or file before validation passes"
         );
         fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn resize_defaults_to_original_and_refuses_mismatched_or_forged_dimensions() {
+        let payload = serde_json::json!({
+            "png_base64": "", "source_sha256": "a".repeat(64),
+            "brightness": 100, "contrast": 100, "rotation": 0,
+            "width": 1, "height": 1, "accept_pictures_export": true
+        });
+        let old: PhotoExportRequest = serde_json::from_value(payload.clone()).unwrap();
+        assert_eq!(old.resize_long_edge, None);
+        let mut forged = payload.clone();
+        forged["resize_long_edge"] = serde_json::json!("512");
+        assert!(serde_json::from_value::<PhotoExportRequest>(forged).is_err());
+        let mut invalid = fixture();
+        invalid.resize_long_edge = Some(31);
+        assert!(decode_verified_png(&invalid).is_err());
+        invalid.resize_long_edge = Some(8193);
+        assert!(decode_verified_png(&invalid).is_err());
+        invalid.resize_long_edge = Some(32);
+        assert!(decode_verified_png(&invalid).is_ok());
+        // Claimed output must fit requested longest edge.
+        invalid.resize_long_edge = Some(32);
+        invalid.width = 64;
+        assert!(decode_verified_png(&invalid).is_err());
     }
 
     #[test]
