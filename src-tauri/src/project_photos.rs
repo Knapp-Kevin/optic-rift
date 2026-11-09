@@ -262,23 +262,25 @@ fn latest_document(root: &Path, project: &Uuid, asset: &Uuid) -> Result<PhotoDoc
     let dir = asset_dir(root, project, asset);
     real_directory(&dir)?;
     let mut latest = 0;
-    let mut scanned = 0usize;
+    let mut incomplete = 0usize;
     for entry in fs::read_dir(&dir).map_err(|_| "Cannot inspect photo revisions.")? {
         let entry = entry.map_err(|_| "Cannot inspect photo revision.")?;
-        scanned += 1;
-        if scanned > MAX_REVISIONS as usize + MAX_UNCOMMITTED_ENTRIES {
-            return Err("Too many photo revision or incomplete save entries; recovery is required.".into());
-        }
-        // A crash can leave .<revision>.<uuid>.partial files here. They
-        // must not consume the committed revision quota or hide a valid photo.
         let name = entry.file_name().to_string_lossy().into_owned();
-        let Some(raw) = name.strip_prefix('r').and_then(|s| s.strip_suffix(".json")) else {
-            continue;
-        };
-        let Ok(revision) = raw.parse::<u32>() else { continue };
-        if revision == 0 || revision > MAX_REVISIONS
-            || revision_filename(revision) != name { continue }
-        latest = latest.max(revision);
+        // original.png is the one expected non-revision file. Interrupted
+        // revision saves leave scratch files; count them separately.
+        if name == "original.png" { continue; }
+        let revision = name.strip_prefix('r').and_then(|s| s.strip_suffix(".json"))
+            .and_then(|raw| raw.parse::<u32>().ok())
+            .filter(|revision| (1..=MAX_REVISIONS).contains(revision)
+                && revision_filename(*revision) == name);
+        if let Some(revision) = revision {
+            latest = latest.max(revision);
+        } else {
+            incomplete += 1;
+            if incomplete > MAX_UNCOMMITTED_ENTRIES {
+                return Err("Too many incomplete photo revision entries; recovery is required.".into());
+            }
+        }
     }
     if latest == 0 {
         return Err("Photo has no committed edit revision.".into());
@@ -387,19 +389,20 @@ pub fn list(root: &Path, project_id: &str) -> Result<PhotoListing, String> {
         return Ok(PhotoListing::default());
     }
     let mut listing = PhotoListing::default();
-    let mut scanned = 0usize;
     let mut committed = 0usize;
+    let mut incomplete = 0usize;
     for entry in fs::read_dir(project_dir(root, &project))
         .map_err(|_| "Cannot list project photo assets.")? {
         let entry = entry.map_err(|_| "Cannot inspect project asset.")?;
-        scanned += 1;
-        if scanned > MAX_ASSETS + MAX_UNCOMMITTED_ENTRIES {
-            return Err("Too many project media or incomplete save entries; recovery is required.".into());
-        }
         let raw = entry.file_name().to_string_lossy().into_owned();
-        // An interrupted initial save leaves a hidden .<uuid>.partial
-        // directory; it is not a committed asset and must not use a slot.
-        let Ok(asset) = checked_id(&raw) else { continue };
+        // Interrupted initial saves are not committed UUID-named assets.
+        let Ok(asset) = checked_id(&raw) else {
+            incomplete += 1;
+            if incomplete > MAX_UNCOMMITTED_ENTRIES {
+                return Err("Too many incomplete project media entries; recovery is required.".into());
+            }
+            continue;
+        };
         committed += 1;
         if committed > MAX_ASSETS {
             return Err("Project has too many committed media assets to list safely.".into());
@@ -600,6 +603,24 @@ mod tests {
         // Recovery never destroys the incomplete data without a policy.
         assert_eq!(fs::read_dir(&project_folder).unwrap().count(), 14);
         assert_eq!(fs::read_dir(&asset_folder).unwrap().count(), 16);
+    }
+
+    #[test]
+    fn excessive_staging_fails_bounded_without_deleting_committed_media() {
+        let root = TestRoot::new();
+        let project = crate::project_store::create(root.path(), "Lake").unwrap();
+        let saved = save(root.path(), request(&project.id)).unwrap();
+        let folder = project_dir(root.path(), &checked_id(&project.id).unwrap());
+        for i in 0..=MAX_UNCOMMITTED_ENTRIES {
+            fs::create_dir(folder.join(format!(".recovery-{i}.partial"))).unwrap();
+        }
+        assert!(list(root.path(), &project.id).unwrap_err()
+            .contains("Too many incomplete project media entries"));
+        // A damaged directory listing cannot make a valid, directly
+        // addressed asset disappear or trigger a destructive cleanup.
+        assert_eq!(open(root.path(), &project.id, &saved.asset_id)
+            .unwrap().document.revision, 1);
+        assert_eq!(fs::read_dir(folder).unwrap().count(), MAX_UNCOMMITTED_ENTRIES + 2);
     }
 
     #[test]
