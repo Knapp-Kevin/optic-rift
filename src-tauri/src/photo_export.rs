@@ -35,6 +35,11 @@ pub struct PhotoExportRequest {
     pub contrast: u16,
     pub rotation: u16,
     pub crop: Option<PhotoCrop>,
+    /// Optional for older callers; strict booleans prevent forged IPC shapes.
+    #[serde(default)]
+    pub flip_horizontal: bool,
+    #[serde(default)]
+    pub flip_vertical: bool,
     pub width: u32,
     pub height: u32,
     pub accept_pictures_export: bool,
@@ -203,7 +208,9 @@ pub fn export_to_pictures(
             "brightness_percent": request.brightness,
             "contrast_percent": request.contrast,
             "rotation_degrees_clockwise": request.rotation,
-            "crop_insets_basis_points_of_rotated_image": &request.crop
+            "crop_insets_basis_points_of_rotated_image": &request.crop,
+            "flip_display_horizontal": request.flip_horizontal,
+            "flip_display_vertical": request.flip_vertical
         },
         "output": {
             "sha256": &receipt.sha256,
@@ -211,7 +218,7 @@ pub fn export_to_pictures(
             "height": receipt.height,
             "bytes": receipt.bytes
         },
-        "note": "Exported copy only; not a project-owned asset. Source hash is reported by WebView, not verified against a project file."
+        "note": "Exported copy only; not a project-owned asset. Source hash and transform settings are WebView-reported, not independently verified against the immutable original."
     });
     let metadata = serde_json::to_vec_pretty(&record)
         .map_err(|_| "Could not serialize the photo export receipt.".to_string())?;
@@ -262,6 +269,8 @@ mod tests {
             contrast: 100,
             rotation: 0,
             crop: None,
+            flip_horizontal: false,
+            flip_vertical: false,
             width: 2,
             height: 1,
             accept_pictures_export: true,
@@ -322,7 +331,15 @@ mod tests {
         let original_bytes = decode_verified_png(&fixture()).unwrap();
         fs::write(&original, &original_bytes).unwrap();
         let first = export_to_pictures(&root, fixture()).unwrap();
-        let second = export_to_pictures(&root, fixture()).unwrap();
+        let mut flipped = fixture();
+        flipped.flip_horizontal = true;
+        flipped.flip_vertical = true;
+        let second = export_to_pictures(&root, flipped).unwrap();
+        let receipt_json: serde_json::Value = serde_json::from_slice(
+            &fs::read(second.path.with_extension("provenance.json")).unwrap()
+        ).unwrap();
+        assert_eq!(receipt_json["adjustments"]["flip_display_horizontal"].as_bool(), Some(true));
+        assert_eq!(receipt_json["adjustments"]["flip_display_vertical"].as_bool(), Some(true));
         assert_ne!(first.path, second.path);
         assert_eq!(fs::read(&original).unwrap(), original_bytes);
         assert_eq!(fs::read(&first.path).unwrap(), original_bytes);
@@ -383,6 +400,26 @@ mod tests {
             "no folder or file before validation passes"
         );
         fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn flip_fields_default_false_and_refuse_wrong_type() {
+        let payload = serde_json::json!({
+            "png_base64": "",
+            "source_sha256": "a".repeat(64),
+            "brightness": 100, "contrast": 100, "rotation": 0,
+            "width": 1, "height": 1, "accept_pictures_export": true
+        });
+        let old: PhotoExportRequest = serde_json::from_value(payload.clone()).unwrap();
+        assert!(!old.flip_horizontal && !old.flip_vertical);
+        let mut invalid = payload.clone();
+        invalid["flip_horizontal"] = serde_json::json!("true");
+        assert!(serde_json::from_value::<PhotoExportRequest>(invalid).is_err());
+        let mut valid = payload;
+        valid["flip_horizontal"] = serde_json::json!(true);
+        valid["flip_vertical"] = serde_json::json!(false);
+        let request: PhotoExportRequest = serde_json::from_value(valid).unwrap();
+        assert!(request.flip_horizontal && !request.flip_vertical);
     }
 
     #[test]

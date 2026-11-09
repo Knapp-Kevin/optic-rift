@@ -23,7 +23,9 @@ function equals(a: PhotoAdjustments, b: PhotoAdjustments): boolean {
   const ac = a.crop ?? EMPTY_PHOTO_CROP;
   const bc = b.crop ?? EMPTY_PHOTO_CROP;
   return a.brightness === b.brightness && a.contrast === b.contrast &&
-    a.rotation === b.rotation && ac.left === bc.left && ac.top === bc.top &&
+    a.rotation === b.rotation && (a.flipHorizontal ?? false) === (b.flipHorizontal ?? false) &&
+    (a.flipVertical ?? false) === (b.flipVertical ?? false) &&
+    ac.left === bc.left && ac.top === bc.top &&
     ac.right === bc.right && ac.bottom === bc.bottom;
 }
 
