@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 1420",
     "build": "tsc --noEmit && vite build",
-    "test:content": "node --experimental-strip-types --test tests/modelContent.test.mjs tests/webviewPrivacy.test.mjs tests/projects.test.mjs tests/mediaFormat.test.mjs tests/brandingFavicon.test.mjs tests/models.test.mjs tests/exportPrivacy.test.mjs tests/videoMetadata.test.mjs tests/downloadState.test.mjs tests/imageToImage.test.mjs tests/createStudio.test.mjs tests/creativeNavigation.test.mjs tests/photoEdits.test.mjs tests/photoCrop.test.mjs tests/videoFrameCapture.test.mjs tests/videoPlanning.test.mjs tests/photoHistory.test.mjs tests/photoViewport.test.mjs tests/photoComparison.test.mjs tests/photoSaturation.test.mjs tests/photoStraighten.test.mjs",
+    "test:content": "node --experimental-strip-types --test tests/modelContent.test.mjs tests/webviewPrivacy.test.mjs tests/projects.test.mjs tests/mediaFormat.test.mjs tests/brandingFavicon.test.mjs tests/models.test.mjs tests/exportPrivacy.test.mjs tests/videoMetadata.test.mjs tests/downloadState.test.mjs tests/imageToImage.test.mjs tests/createStudio.test.mjs tests/creativeNavigation.test.mjs tests/photoEdits.test.mjs tests/photoCrop.test.mjs tests/videoFrameCapture.test.mjs tests/videoPlanning.test.mjs tests/photoHistory.test.mjs tests/photoViewport.test.mjs tests/photoComparison.test.mjs tests/photoSaturation.test.mjs tests/photoStraighten.test.mjs tests/photoResize.test.mjs",
     "preview": "vite preview",
     "tauri": "tauri"
   },
