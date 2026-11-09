@@ -14,7 +14,7 @@ test("undo and redo restore exact non-destructive photo edit values", () => {
   assert.deepEqual(undoPhotoEdit(cropped).present, rotated.present);
   assert.deepEqual(undoPhotoEdit(undoPhotoEdit(cropped)).present, tone.present);
   assert.deepEqual(redoPhotoEdit(undoPhotoEdit(cropped)).present, cropped.present);
-  assert.deepEqual(initial.present, { brightness: 100, contrast: 100, rotation: 0 });
+  assert.deepEqual(initial.present, { brightness: 100, contrast: 100, saturation: 100, rotation: 0 });
 });
 
 test("multiple slider updates in one drag create exactly one undo step", () => {
