@@ -1,6 +1,6 @@
 /**
- * Bounded, CPU-only export of the three adjustments that Photo Studio already
- * previews. Originals and browser object URLs are read-only. The editor is not
+ * Bounded, CPU-only export of Photo Studio's shared image adjustments.
+ * The preview and export use the same bounded renderer. Originals and browser object URLs are read-only. The editor is not
  * yet a layer/mask editor, and exporting does not save the project.
  */
 export type PhotoCrop = {
@@ -14,6 +14,8 @@ export type PhotoCrop = {
 export type PhotoAdjustments = {
   brightness: number;
   contrast: number;
+  /** Saturation as a percentage, 0 = monochrome, 100 = unchanged, 200 = doubled. */
+  saturation?: number;
   rotation: number;
   crop?: PhotoCrop;
   /** Flip along the displayed photo axes after rotation. */
@@ -145,16 +147,18 @@ export function probePhotoDimensions(bytes: Uint8Array, mime: string): { width: 
 }
 
 export function validatePhotoAdjustments(value: PhotoAdjustments): PhotoAdjustments {
-  const { brightness, contrast, rotation, flipHorizontal, flipVertical } = value;
+  const { brightness, contrast, saturation = 100, rotation, flipHorizontal, flipVertical } = value;
   const crop = validatePhotoCrop(value.crop);
   if (!Number.isInteger(brightness) || brightness < 25 || brightness > 175 ||
       !Number.isInteger(contrast) || contrast < 25 || contrast > 175 ||
+      !Number.isInteger(saturation) || saturation < 0 || saturation > 200 ||
       !Number.isInteger(rotation) || ![0, 90, 180, 270].includes(rotation) ||
       (flipHorizontal !== undefined && typeof flipHorizontal !== "boolean") ||
       (flipVertical !== undefined && typeof flipVertical !== "boolean")) {
     throw new Error("Photo adjustment values are outside the supported export range.");
   }
-  return { brightness, contrast, rotation, ...(value.crop ? { crop } : {}),
+  return { brightness, contrast, rotation,
+    ...(value.saturation !== undefined ? { saturation } : {}), ...(value.crop ? { crop } : {}),
     ...(flipHorizontal !== undefined ? { flipHorizontal } : {}),
     ...(flipVertical !== undefined ? { flipVertical } : {}) };
 }
@@ -218,7 +222,7 @@ export function paintAdjustedPhoto(
   bitmap: ImageBitmap, edits: PhotoAdjustments,
   canvas: HTMLCanvasElement, maxPreviewEdge?: number,
 ): { width: number; height: number } {
-  const { brightness, contrast, rotation, crop, flipHorizontal, flipVertical } = validatePhotoAdjustments(edits);
+  const { brightness, contrast, saturation = 100, rotation, crop, flipHorizontal, flipVertical } = validatePhotoAdjustments(edits);
   const rotated = photoExportDimensions(bitmap.width, bitmap.height, rotation);
   const bounds = photoCropBounds(rotated.width, rotated.height, crop);
   const { width, height } =
@@ -241,7 +245,9 @@ export function paintAdjustedPhoto(
     // Omitting identity scale preserves legacy preview/export behavior exactly.
     if (flipHorizontal || flipVertical) ctx.scale(flipHorizontal ? -1 : 1, flipVertical ? -1 : 1);
     ctx.rotate(rotation * Math.PI / 180);
-    ctx.filter = `brightness(${brightness}%) contrast(${contrast}%)`;
+    // Neutral saturation intentionally preserves the legacy filter string and pixels.
+    ctx.filter = `brightness(${brightness}%) contrast(${contrast}%)` +
+      (saturation === 100 ? "" : ` saturate(${saturation}%)`);
     ctx.drawImage(bitmap, -bitmap.width / 2, -bitmap.height / 2);
   } finally {
     ctx.restore();
