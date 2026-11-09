@@ -41,6 +41,7 @@ export default function PhotoCanvasPreview({
   const [viewport, setViewport] = useState<PhotoSize>(EMPTY_SIZE);
   const [image, setImage] = useState<PhotoSize>(EMPTY_SIZE);
   const [zoom, setZoom] = useState(1);
+  const [showOriginal, setShowOriginal] = useState(false);
   const [pan, setPan] = useState<PhotoPoint>(ZERO);
   const [dragging, setDragging] = useState(false);
 
@@ -64,6 +65,7 @@ export default function PhotoCanvasPreview({
     setDragging(false);
     setZoom(1);
     setPan(ZERO);
+    setShowOriginal(false);
     setImage(EMPTY_SIZE);
     setDecoded(null);
     setReady(false);
@@ -98,7 +100,11 @@ export default function PhotoCanvasPreview({
       const canvas = canvasRef.current;
       if (!canvas) return;
       try {
-        const dims = paintAdjustedPhoto(decoded.bitmap, { brightness, contrast, rotation, crop, flipHorizontal, flipVertical }, canvas, 1400);
+        // Compare by rendering the immutable source through the *same* bounded
+        // renderer, never by changing the active edit recipe or exported PNG.
+        const dims = showOriginal
+          ? paintAdjustedPhoto(decoded.bitmap, { brightness: 100, contrast: 100, rotation: 0 }, canvas, 1400)
+          : paintAdjustedPhoto(decoded.bitmap, { brightness, contrast, rotation, crop, flipHorizontal, flipVertical }, canvas, 1400);
         setImage((old) => old.width === dims.width && old.height === dims.height ? old : dims);
         setReady(true);
         setError("");
@@ -110,7 +116,7 @@ export default function PhotoCanvasPreview({
       }
     }, 90);
     return () => window.clearTimeout(handle);
-  }, [decoded, sourceUrl, brightness, contrast, rotation, crop?.left, crop?.top, crop?.right, crop?.bottom, flipHorizontal, flipVertical]);
+  }, [decoded, sourceUrl, brightness, contrast, rotation, crop?.left, crop?.top, crop?.right, crop?.bottom, flipHorizontal, flipVertical, showOriginal]);
 
   useEffect(() => {
     setPan((current) => {
@@ -197,6 +203,14 @@ export default function PhotoCanvasPreview({
       }} />
     {!shown && !error && <div className="photo-preview-status" role="status">Preparing photo preview…</div>}
     {error && <p className="photo-preview-status" role="alert">{error}</p>}
+    {shown && <div className="photo-comparison-toolbar">
+      <button type="button" className="photo-compare-toggle" aria-label="Show unedited original"
+        aria-pressed={showOriginal} title="Toggle the original photo for comparison"
+        onClick={() => { setReady(false); setShowOriginal((current) => !current); }}>
+        Original
+      </button>
+      <span aria-live="polite">{showOriginal ? "Viewing original" : "Viewing edited"}</span>
+    </div>}
     {shown && <div className="photo-zoom-toolbar" role="toolbar" aria-label="Photo zoom controls">
       <button type="button" disabled={zoom <= 1} onClick={() => adjustZoom(-1)} aria-label="Zoom out" title="Zoom out (-)">−</button>
       <button type="button" onClick={fitToWindow} aria-label="Fit photo to window" title="Fit photo (0 or F)">Fit</button>
