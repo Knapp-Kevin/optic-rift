@@ -8,7 +8,8 @@
     "build": "tsc --noEmit && vite build",
     "test:content": "node --experimental-strip-types --test tests/modelContent.test.mjs tests/webviewPrivacy.test.mjs tests/brandingFavicon.test.mjs tests/projects.test.mjs tests/mediaFormat.test.mjs tests/models.test.mjs tests/exportPrivacy.test.mjs tests/imageToImage.test.mjs tests/createStudio.test.mjs tests/creativeNavigation.test.mjs tests/photoEdits.test.mjs tests/photoCrop.test.mjs tests/videoMetadata.test.mjs tests/videoFrameCapture.test.mjs tests/videoPlanning.test.mjs tests/videoTrim.test.mjs tests/downloadState.test.mjs",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "release:windows:ffmpeg": "python scripts/verify_ffmpeg_release.py && tauri build --config src-tauri/tauri.ffmpeg.bundle.conf.json"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.0.0",
