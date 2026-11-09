@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import ProjectChooser from "./ProjectChooser";
+import type { ProjectRecord } from "./projects";
+import { formatSize, IMAGE_PREVIEW_FAILED, VIDEO_PREVIEW_FAILED } from "./mediaFormat";
 
-type View = "studio" | "models" | "settings";
+type View = "projects" | "studio" | "models" | "settings";
 type MediaKind = "image" | "video";
 type MediaItem = { id: string; name: string; kind: MediaKind; url: string; size: number };
 type RuntimeStatus = { application: string; stage: string; generation_ready: boolean; project_storage_ready: boolean };
@@ -12,10 +15,10 @@ const formatTime = (seconds: number) => {
   const s = Math.floor(safe % 60);
   return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
 };
-const compactSize = (size: number) => (size / (1024 * 1024)).toFixed(1) + " MB";
 
 export default function App() {
-  const [view, setView] = useState<View>("studio");
+  const [view, setView] = useState<View>("projects");
+  const [project, setProject] = useState<ProjectRecord | null>(null);
   const [items, setItems] = useState<MediaItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [prompt, setPrompt] = useState("");
@@ -30,11 +33,17 @@ export default function App() {
   const [trimIn, setTrimIn] = useState(0);
   const [trimOut, setTrimOut] = useState<number | null>(null);
   const [status, setStatus] = useState<RuntimeStatus | null>(null);
+  const [failedIds, setFailedIds] = useState<ReadonlySet<string>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const objectUrls = useRef<string[]>([]);
   const selected = items.find((item) => item.id === selectedId) ?? null;
-  const isVideo = selected?.kind === "video";
+  const previewFailed = selected ? failedIds.has(selected.id) : false;
+  const isVideo = selected?.kind === "video" && !previewFailed;
+  function markFailed(id: string, text: string) {
+    setFailedIds((previous) => new Set(previous).add(id));
+    setMessage(text);
+  }
 
   useEffect(() => {
     void invoke<RuntimeStatus>("runtime_status")
@@ -105,6 +114,7 @@ export default function App() {
         <div className="brand"><span className="brand-icon">◉</span><span>OPTIC <b>RIFT</b><small>VISUAL STUDIO</small></span></div>
         <div className="nav-group">
           <div className="group-label">WORKSPACE</div>
+          <button className={view === "projects" ? "nav selected" : "nav"} onClick={() => setView("projects")}>▤ <span>Projects</span></button>
           <button className={view === "studio" ? "nav selected" : "nav"} onClick={() => setView("studio")}>▣ <span>Studio</span></button>
           <button className={view === "models" ? "nav selected" : "nav"} onClick={() => setView("models")}>◈ <span>Models</span></button>
           <button className={view === "settings" ? "nav selected" : "nav"} onClick={() => setView("settings")}>⚙ <span>Settings</span></button>
@@ -117,9 +127,11 @@ export default function App() {
 
       <div className="shell">
         <header className="topbar">
-          <div className="breadcrumbs">OPTIC RIFT <span>/</span> {view === "studio" ? "Creative studio" : view === "models" ? "Model library" : "Preferences"}</div>
-          <div className="top-actions"><span className="pill">PRE-ALPHA</span><button className="top-button" onClick={() => setView("models")}>Model manager</button></div>
+          <div className="breadcrumbs">OPTIC RIFT <span>/</span> {view === "projects" ? "Projects" : view === "studio" ? "Creative studio" : view === "models" ? "Model library" : "Preferences"}</div>
+          <div className="top-actions"><button className="project-pill" onClick={() => setView("projects")} title="Choose a project">{project ? "Project: " + project.name : "No project open"}</button><span className="pill">PRE-ALPHA</span><button className="top-button" onClick={() => setView("models")}>Model manager</button></div>
         </header>
+
+        {view === "projects" && <ProjectChooser current={project} onOpened={(opened) => { setProject(opened); setView("studio"); }} />}
 
         {view === "studio" && <main className="workspace">
           <section className="media-panel">
@@ -130,24 +142,25 @@ export default function App() {
               {items.length === 0 && <div className="empty-library">Your canvas starts here.<br /><span>Import a video or image to preview it.</span></div>}
               {items.map((item) => <div className={selectedId === item.id ? "media-row active" : "media-row"} key={item.id}>
                 <button onClick={() => selectItem(item.id)} className="media-pick">
-                  <span className="media-kind">{item.kind === "video" ? "▶" : "▧"}</span><span className="media-label"><strong title={item.name}>{item.name}</strong><small>{item.kind} · {compactSize(item.size)}</small></span>
+                  <span className="media-kind">{item.kind === "video" ? "▶" : "▧"}</span><span className="media-label"><strong title={item.name}>{item.name}</strong><small>{item.kind} · {formatSize(item.size)}{failedIds.has(item.id) ? " · can't preview" : ""}</small></span>
                 </button>
                 <button className="remove-item" aria-label={"Remove " + item.name} title="Remove from this session" onClick={() => removeItem(item.id)}>×</button>
               </div>)}
             </div>
-            <div className="sidebar-note">Imported files stay on your computer. This preview does not save projects across restarts.</div>
+            <div className="sidebar-note">Imported files stay on your computer. Imported media is open for this session only and is not saved into projects yet.</div>
           </section>
 
           <section className="studio-center">
             <div className="canvas-header"><div><strong>Preview</strong><span>{selected ? selected.name : "No media selected"}</span></div><span className="preview-label">{selected?.kind ?? "READY"}</span></div>
             <div className="canvas">
-              {selected?.kind === "image" && <img key={selected.id} src={selected.url} alt={selected.name} style={{ filter: "brightness(" + brightness + "%) contrast(" + contrast + "%)", transform: "rotate(" + rotation + "deg)" }} />}
-              {selected?.kind === "video" && <video key={selected.id} ref={videoRef} src={selected.url} controls preload="metadata" playsInline onLoadedMetadata={(event) => { const length = event.currentTarget.duration; setDuration(Number.isFinite(length) ? length : 0); setPlayhead(0); }} onTimeUpdate={(event) => setPlayhead(event.currentTarget.currentTime)} onError={() => setMessage("This video's codec may not be supported by the preview. Native proxy handling is planned.")} />}
+              {selected && previewFailed && <div className="empty-canvas preview-failed" role="alert"><div className="empty-icon">⚠</div><h1>Can't preview {selected.name}</h1><p>{selected.kind === "image" ? IMAGE_PREVIEW_FAILED : VIDEO_PREVIEW_FAILED}</p></div>}
+              {selected?.kind === "image" && !previewFailed && <img key={selected.id} onError={() => markFailed(selected.id, IMAGE_PREVIEW_FAILED)} src={selected.url} alt={selected.name} style={{ filter: "brightness(" + brightness + "%) contrast(" + contrast + "%)", transform: "rotate(" + rotation + "deg)" }} />}
+              {selected?.kind === "video" && !previewFailed && <video key={selected.id} ref={videoRef} src={selected.url} controls preload="metadata" playsInline onLoadedMetadata={(event) => { const length = event.currentTarget.duration; setDuration(Number.isFinite(length) ? length : 0); setPlayhead(0); }} onTimeUpdate={(event) => setPlayhead(event.currentTarget.currentTime)} onError={() => markFailed(selected.id, VIDEO_PREVIEW_FAILED)} />}
               {!selected && <div className="empty-canvas"><div className="empty-icon">◉</div><h1>Make something extraordinary.</h1><p>Start with a photo or video. Explore AI generation as compatible models become available.</p><button className="primary" onClick={() => inputRef.current?.click()}>Import your first clip</button></div>}
             </div>
             <div className="player-controls">
               {isVideo ? <><button className="control" onClick={() => seek(playhead - 0.1)} title="Step back 0.1 seconds">↶ 0.1s</button><button className="control" onClick={() => seek(playhead + 0.1)} title="Step forward 0.1 seconds">0.1s ↷</button><span className="time">{formatTime(playhead)} / {formatTime(duration)}</span></> :
-                <span className="time">{selected ? "Image preview" : "Import media to begin"}</span>}
+                <span className="time">{previewFailed ? "Preview unavailable" : selected ? "Image preview" : "Import media to begin"}</span>}
               <span className="control-hint">Originals never modified</span>
             </div>
             <div className="timeline-panel"><div className="timeline-heading"><strong>Timeline preview</strong><span>Non-destructive markers only</span></div>
@@ -170,7 +183,7 @@ export default function App() {
             <div className="model-info"><strong>No model connected</strong><p>We will discover models through Hugging Face and clearly show compatibility and license terms before download.</p></div>
             <button className="primary full" disabled>Generate · Engine required</button>
             <button className="secondary full" onClick={() => setView("models")}>Explore model setup</button>
-            {selected?.kind === "image" && <div className="adjustments">
+            {selected?.kind === "image" && !previewFailed && <div className="adjustments">
               <h3>Image preview adjustments</h3>
               <label>Brightness <output>{brightness}%</output><input type="range" min="25" max="175" value={brightness} onChange={(event) => setBrightness(Number(event.target.value))} /></label>
               <label>Contrast <output>{contrast}%</output><input type="range" min="25" max="175" value={contrast} onChange={(event) => setContrast(Number(event.target.value))} /></label>
@@ -197,7 +210,7 @@ export default function App() {
           </div>
           <div className="feature-grid"><div className="feature"><span className="feature-icon">⌕</span><h3>Discover by capability</h3><p>Browse text-to-image, image-to-video, video-to-video, inpainting, restoration, and more.</p><strong>Planned</strong></div><div className="feature"><span className="feature-icon">◈</span><h3>Know before you download</h3><p>Review model audience labels, content warnings, gating, licensing, disk requirements, and hardware compatibility.</p><strong>Planned</strong></div><div className="feature"><span className="feature-icon">▣</span><h3>Install only what you want</h3><p>Separate model dependencies, explicit consent, and measured worker readiness.</p><strong>Planned</strong></div></div><p className="disclosure">Model discovery and execution are not connected in this pre-alpha shell. No Hugging Face token is requested or stored.</p></main>}
 
-        {view === "settings" && <main className="content-page"><div className="page-eyebrow">PREFERENCES</div><h1>Your studio stays on your computer.</h1><p className="lead">Local files, user-controlled AI models, and clear permission boundaries come first.</p><div className="setting-row"><span><strong>Application shell</strong><small>{status?.stage ?? "Browser preview: native Rust bridge unavailable"}</small></span><strong>{status ? "Tauri / Rust" : "Browser-only preview"}</strong></div><div className="setting-row"><span><strong>Model execution</strong><small>Independent Python engines; none connected yet</small></span><strong>Not ready</strong></div><div className="setting-row"><span><strong>Persistent projects</strong><small>Native non-destructive media/project storage is planned</small></span><strong>Not ready</strong></div><div className="setting-row"><span><strong>Local/cloud policy</strong><small>No cloud generation is enabled or silently selected</small></span><strong>Local first</strong></div></main>}
+        {view === "settings" && <main className="content-page"><div className="page-eyebrow">PREFERENCES</div><h1>Your studio stays on your computer.</h1><p className="lead">Local files, user-controlled AI models, and clear permission boundaries come first.</p><div className="setting-row"><span><strong>Application shell</strong><small>{status?.stage ?? "Browser preview: native Rust bridge unavailable"}</small></span><strong>{status ? "Tauri / Rust" : "Browser-only preview"}</strong></div><div className="setting-row"><span><strong>Model execution</strong><small>Independent Python engines; none connected yet</small></span><strong>Not ready</strong></div><div className="setting-row"><span><strong>Persistent projects</strong><small>Named projects are saved locally and reopen after restart. Imported media is not saved into projects yet.</small></span><strong>Names only</strong></div><div className="setting-row"><span><strong>Local/cloud policy</strong><small>No cloud generation is enabled or silently selected</small></span><strong>Local first</strong></div></main>}
       </div>
     </div>
   );
