@@ -126,7 +126,8 @@ export default function PhotoCanvasPreview({
   }, [image, viewport, zoom]);
 
   const fitted = photoViewportFit(image, viewport);
-  const shown = ready && decoded?.sourceUrl === sourceUrl && !error && fitted.width > 0;
+  const canCompare = decoded?.sourceUrl === sourceUrl && !error && fitted.width > 0;
+  const shown = ready && canCompare;
   const actualPan = photoClampPan(pan, image, viewport, zoom);
 
   function adjustZoom(direction: -1 | 1) {
@@ -203,7 +204,7 @@ export default function PhotoCanvasPreview({
       }} />
     {!shown && !error && <div className="photo-preview-status" role="status">Preparing photo preview…</div>}
     {error && <p className="photo-preview-status" role="alert">{error}</p>}
-    {shown && <div className="photo-comparison-toolbar">
+    {canCompare && <div className="photo-comparison-toolbar">
       <button type="button" className="photo-compare-toggle" aria-label="Show unedited original"
         aria-pressed={showOriginal} title="Toggle the original photo for comparison"
         onClick={() => { setReady(false); setShowOriginal((current) => !current); }}>
