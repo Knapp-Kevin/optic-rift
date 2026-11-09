@@ -41,6 +41,9 @@ pub struct PhotoExportRequest {
     #[serde(default = "neutral_saturation_percent")]
     pub saturation_percent: u16,
     pub rotation: u16,
+    /// Fine clockwise leveling in tenths of degrees; neutral for old clients.
+    #[serde(default)]
+    pub straighten_tenths: i16,
     pub crop: Option<PhotoCrop>,
     /// Optional for older callers; strict booleans prevent forged IPC shapes.
     #[serde(default)]
@@ -87,6 +90,7 @@ fn validate_request(r: &PhotoExportRequest) -> Result<(), String> {
         || !(25..=175).contains(&r.contrast)
         || r.saturation_percent > 200
         || !matches!(r.rotation, 0 | 90 | 180 | 270)
+        || !(-150..=150).contains(&r.straighten_tenths)
         || !valid_source_hash(&r.source_sha256)
     {
         return Err("Photo edit settings or source digest are invalid.".into());
@@ -217,6 +221,7 @@ pub fn export_to_pictures(
             "contrast_percent": request.contrast,
             "saturation_percent": request.saturation_percent,
             "rotation_degrees_clockwise": request.rotation,
+            "straighten_tenths_degrees_clockwise": request.straighten_tenths,
             "crop_insets_basis_points_of_rotated_image": &request.crop,
             "flip_display_horizontal": request.flip_horizontal,
             "flip_display_vertical": request.flip_vertical
@@ -278,6 +283,7 @@ mod tests {
             contrast: 100,
             saturation_percent: 100,
             rotation: 0,
+            straighten_tenths: 0,
             crop: None,
             flip_horizontal: false,
             flip_vertical: false,
@@ -343,6 +349,7 @@ mod tests {
         let first = export_to_pictures(&root, fixture()).unwrap();
         let mut flipped = fixture();
         flipped.saturation_percent = 75;
+        flipped.straighten_tenths = -75;
         flipped.flip_horizontal = true;
         flipped.flip_vertical = true;
         let second = export_to_pictures(&root, flipped).unwrap();
@@ -361,6 +368,10 @@ mod tests {
         assert_eq!(
             receipt_json["adjustments"]["saturation_percent"].as_u64(),
             Some(75)
+        );
+        assert_eq!(
+            receipt_json["adjustments"]["straighten_tenths_degrees_clockwise"].as_i64(),
+            Some(-75)
         );
         assert_ne!(first.path, second.path);
         assert_eq!(fs::read(&original).unwrap(), original_bytes);
@@ -422,6 +433,28 @@ mod tests {
             "no folder or file before validation passes"
         );
         fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn straighten_defaults_neutral_and_refuses_out_of_range_or_forged_values() {
+        let payload = serde_json::json!({
+            "png_base64": "", "source_sha256": "a".repeat(64),
+            "brightness": 100, "contrast": 100, "rotation": 0,
+            "width": 1, "height": 1, "accept_pictures_export": true
+        });
+        let previous: PhotoExportRequest = serde_json::from_value(payload.clone()).unwrap();
+        assert_eq!(previous.straighten_tenths, 0);
+        let mut forged = payload;
+        forged["straighten_tenths"] = serde_json::json!("5");
+        assert!(serde_json::from_value::<PhotoExportRequest>(forged).is_err());
+        for value in [-151, -150, 0, 150, 151] {
+            let mut request = fixture();
+            request.straighten_tenths = value;
+            assert_eq!(
+                decode_verified_png(&request).is_ok(),
+                (-150..=150).contains(&value)
+            );
+        }
     }
 
     #[test]

@@ -82,6 +82,7 @@ export default function App() {
   const contrast = edits?.contrast ?? 100;
   const saturation = edits?.saturation ?? 100;
   const rotation = edits?.rotation ?? 0;
+  const straightenTenths = edits?.straightenTenths ?? 0;
   const flipHorizontal = edits?.flipHorizontal ?? false;
   const flipVertical = edits?.flipVertical ?? false;
   const crop = edits?.crop ?? EMPTY_PHOTO_CROP;
@@ -273,11 +274,12 @@ export default function App() {
     setPhotoExportBusy(true);
     setPhotoExportNotice("Rendering and validating your edited photo…");
     try {
-      const png = await renderAdjustedPhoto(selected.url, { brightness, contrast, saturation, rotation, crop, flipHorizontal, flipVertical });
+      const png = await renderAdjustedPhoto(selected.url, { brightness, contrast, saturation, rotation, straightenTenths, crop, flipHorizontal, flipVertical });
       const receipt = await invoke<{ path: string; sha256: string; width: number; height: number }>("photo_export_copy", {
         request: {
           ...png, brightness, contrast, rotation,
           saturation_percent: saturation,
+          straighten_tenths: straightenTenths,
           crop: { ...crop },
           flip_horizontal: flipHorizontal,
           flip_vertical: flipVertical,
@@ -468,7 +470,8 @@ export default function App() {
               {selected && previewFailed && <div className="empty-canvas preview-failed" role="alert"><div className="empty-icon">⚠</div><h1>Can't preview {selected.name}</h1><p>{selected.kind === "image" ? IMAGE_PREVIEW_FAILED : VIDEO_PREVIEW_FAILED}</p></div>}
               {editablePhoto && !previewFailed && <PhotoCanvasPreview key={selected.id}
                 sourceUrl={selected.url} label={selected.name}
-                brightness={brightness} contrast={contrast} saturation={saturation} rotation={rotation} crop={crop}
+                brightness={brightness} contrast={contrast} saturation={saturation} rotation={rotation}
+                straightenTenths={straightenTenths} crop={crop}
                 flipHorizontal={flipHorizontal} flipVertical={flipVertical}
                 onDimensions={(dims) => setPhotoDimensions((previous) =>
                   previous[selected.id]?.width === dims.width && previous[selected.id]?.height === dims.height
@@ -513,7 +516,7 @@ export default function App() {
                 <button type="button" className="secondary" disabled={photoExportBusy || !editHistory?.future.length}
                   title="Redo edit (Ctrl+Y or Ctrl+Shift+Z)" onClick={() => stepPhotoHistory("redo")}>Redo</button>
                 <button type="button" className="secondary" disabled={photoExportBusy ||
-                  (brightness === 100 && contrast === 100 && saturation === 100 && rotation === 0 &&
+                  (brightness === 100 && contrast === 100 && saturation === 100 && rotation === 0 && straightenTenths === 0 &&
                    !flipHorizontal && !flipVertical && Object.values(crop).every((n) => n === 0))}
                   onClick={() => updatePhotoAdjustments({ ...DEFAULT_PHOTO_EDITS, crop: { ...EMPTY_PHOTO_CROP },
                     flipHorizontal: false, flipVertical: false })}>Reset all</button>
@@ -537,6 +540,13 @@ export default function App() {
                 onKeyUp={finishPhotoSlider} onBlur={finishPhotoSlider} /></label>
               <button className="secondary full" disabled={photoExportBusy}
                 onClick={() => updatePhotoAdjustments({ rotation: (rotation + 90) % 360 })}>Rotate photo 90°</button>
+              <label>Fine straighten <output>{(straightenTenths / 10).toFixed(1)}°</output>
+                <input type="range" min="-150" max="150" step="5" value={straightenTenths}
+                  aria-label="Fine straighten degrees clockwise" disabled={photoExportBusy}
+                  onChange={(event) => updatePhotoAdjustments({ straightenTenths: Number(event.target.value) }, "straighten")}
+                  onPointerUp={finishPhotoSlider} onPointerCancel={finishPhotoSlider}
+                  onKeyUp={finishPhotoSlider} onBlur={finishPhotoSlider} /></label>
+              <p className="control-hint">Levels by up to 15°. The image automatically zooms to cover empty corners and may crop its edges.</p>
               <div className="photo-flip-actions" role="group" aria-label="Flip image">
                 <button type="button" className="secondary" aria-pressed={flipHorizontal} disabled={photoExportBusy}
                   onClick={() => updatePhotoAdjustments({ flipHorizontal: !flipHorizontal })}>Flip horizontal</button>
@@ -552,12 +562,9 @@ export default function App() {
                 <legend>Crop photo</legend>
                 <p>Crop the rotated image. The preview and exported PNG use the same cropped pixels; the original is unchanged.</p>
                 <div className="photo-crop-presets" role="group" aria-label="Crop aspect presets">
-                  <button type="button" className="secondary" disabled={photoExportBusy || !selectedPhotoDimensions}
-                    onClick={() => applyCropAspect(1)}>Square 1:1</button>
-                  <button type="button" className="secondary" disabled={photoExportBusy || !selectedPhotoDimensions}
-                    onClick={() => applyCropAspect(16 / 9)}>Wide 16:9</button>
-                  <button type="button" className="secondary" disabled={photoExportBusy || !selectedPhotoDimensions}
-                    onClick={() => applyCropAspect(4 / 5)}>Portrait 4:5</button>
+                  <button type="button" className="secondary" disabled={!selectedPhotoDimensions || photoExportBusy} onClick={() => applyCropAspect(1)}>Square 1:1</button>
+                  <button type="button" className="secondary" disabled={!selectedPhotoDimensions || photoExportBusy} onClick={() => applyCropAspect(16 / 9)}>Wide 16:9</button>
+                  <button type="button" className="secondary" disabled={!selectedPhotoDimensions || photoExportBusy} onClick={() => applyCropAspect(4 / 5)}>Portrait 4:5</button>
                   <button type="button" className="secondary" disabled={photoExportBusy}
                     onClick={() => updatePhotoAdjustments({ crop: { ...EMPTY_PHOTO_CROP } })}>Reset crop</button>
                 </div>

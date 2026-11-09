@@ -17,6 +17,8 @@ export type PhotoAdjustments = {
   /** Saturation as a percentage, 0 = monochrome, 100 = unchanged, 200 = doubled. */
   saturation?: number;
   rotation: number;
+  /** Fine clockwise leveling, in tenths of a degree (-15.0° to +15.0°). */
+  straightenTenths?: number;
   crop?: PhotoCrop;
   /** Flip along the displayed photo axes after rotation. */
   flipHorizontal?: boolean;
@@ -147,18 +149,21 @@ export function probePhotoDimensions(bytes: Uint8Array, mime: string): { width: 
 }
 
 export function validatePhotoAdjustments(value: PhotoAdjustments): PhotoAdjustments {
-  const { brightness, contrast, saturation = 100, rotation, flipHorizontal, flipVertical } = value;
+  const { brightness, contrast, saturation = 100, rotation, straightenTenths = 0, flipHorizontal, flipVertical } = value;
   const crop = validatePhotoCrop(value.crop);
   if (!Number.isInteger(brightness) || brightness < 25 || brightness > 175 ||
       !Number.isInteger(contrast) || contrast < 25 || contrast > 175 ||
       !Number.isInteger(saturation) || saturation < 0 || saturation > 200 ||
       !Number.isInteger(rotation) || ![0, 90, 180, 270].includes(rotation) ||
+      !Number.isInteger(straightenTenths) || straightenTenths < -150 || straightenTenths > 150 ||
       (flipHorizontal !== undefined && typeof flipHorizontal !== "boolean") ||
       (flipVertical !== undefined && typeof flipVertical !== "boolean")) {
     throw new Error("Photo adjustment values are outside the supported export range.");
   }
   return { brightness, contrast, rotation,
-    ...(value.saturation !== undefined ? { saturation } : {}), ...(value.crop ? { crop } : {}),
+    ...(value.saturation !== undefined ? { saturation } : {}),
+    ...(value.straightenTenths !== undefined ? { straightenTenths } : {}),
+    ...(value.crop ? { crop } : {}),
     ...(flipHorizontal !== undefined ? { flipHorizontal } : {}),
     ...(flipVertical !== undefined ? { flipVertical } : {}) };
 }
@@ -192,6 +197,23 @@ function pngBase64(blob: Blob): Promise<string> {
   });
 }
 
+/** Minimum uniform cover scale to avoid blank corners when leveling the photo.
+ * Coordinates are the displayed dimensions after the 90° rotation; output
+ * dimensions remain unchanged, so preview and export share the same crop.
+ * This inherently crops edges. Extreme panoramas may require substantial zoom.
+ */
+export function photoStraightenCoverScale(width: number, height: number, tenths: number): number {
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0 ||
+      !Number.isInteger(tenths) || tenths < -150 || tenths > 150) {
+    throw new Error("Straighten geometry or angle is outside the supported range.");
+  }
+  if (tenths === 0) return 1;
+  const theta = Math.abs(tenths) * Math.PI / 1800;
+  const cosine = Math.cos(theta);
+  const sine = Math.sin(theta);
+  return Math.max(cosine + sine * height / width, cosine + sine * width / height);
+}
+
 /**
  * Shared raster pipeline for display and export. The only difference is the
  * preview's bounded output resolution; canvas color/filter order is identical.
@@ -222,7 +244,7 @@ export function paintAdjustedPhoto(
   bitmap: ImageBitmap, edits: PhotoAdjustments,
   canvas: HTMLCanvasElement, maxPreviewEdge?: number,
 ): { width: number; height: number } {
-  const { brightness, contrast, saturation = 100, rotation, crop, flipHorizontal, flipVertical } = validatePhotoAdjustments(edits);
+  const { brightness, contrast, saturation = 100, rotation, straightenTenths = 0, crop, flipHorizontal, flipVertical } = validatePhotoAdjustments(edits);
   const rotated = photoExportDimensions(bitmap.width, bitmap.height, rotation);
   const bounds = photoCropBounds(rotated.width, rotated.height, crop);
   const { width, height } =
@@ -241,6 +263,13 @@ export function paintAdjustedPhoto(
     // and native-bound PNG use the identical transform, never CSS clipping.
     ctx.translate(-bounds.x, -bounds.y);
     ctx.translate(rotated.width / 2, rotated.height / 2);
+    // Level along the displayed axes. A uniform center zoom covers all output
+    // corners; image dimensions and the explicit crop recipe remain unchanged.
+    if (straightenTenths !== 0) {
+      const cover = photoStraightenCoverScale(rotated.width, rotated.height, straightenTenths);
+      ctx.rotate(straightenTenths * Math.PI / 1800);
+      ctx.scale(cover, cover);
+    }
     // Flip on the displayed (post-rotation) axes, before rotating source pixels.
     // Omitting identity scale preserves legacy preview/export behavior exactly.
     if (flipHorizontal || flipVertical) ctx.scale(flipHorizontal ? -1 : 1, flipVertical ? -1 : 1);

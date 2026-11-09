@@ -34,7 +34,7 @@ test('zoom steps have fixed bounded values', () => {
 test('view component uses one raster renderer; all inspection transforms remain CSS only', async () => {
   const {readFileSync}=await import('node:fs');
   const source=readFileSync(new URL('../src/PhotoCanvasPreview.tsx',import.meta.url),'utf8');
-  assert.match(source, /paintAdjustedPhoto\(decoded\.bitmap, \{ brightness, contrast, saturation, rotation, crop, flipHorizontal, flipVertical \}, canvas, 1400\)/);
+  assert.match(source, /paintAdjustedPhoto\(decoded\.bitmap, \{ brightness, contrast, saturation, rotation, straightenTenths, crop, flipHorizontal, flipVertical \}, canvas, 1400\)/);
   assert.match(source, /transform: `translate\(\$\{actualPan\.x\}px, \$\{actualPan\.y\}px\) scale\(\$\{zoom\}\)`/);
   assert.match(source, /setPointerCapture\(event\.pointerId\)/);
   assert.match(source, /releasePointerCapture\(event\.pointerId\)/);
