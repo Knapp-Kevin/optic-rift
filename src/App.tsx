@@ -7,6 +7,7 @@ import { DownloadProvider, DownloadStatus } from "./downloads";
 import GeneratePanel from "./GeneratePanel";
 import GenerationHistory from "./GenerationHistory";
 import type { ProjectRecord } from "./projects";
+import { projectPhotosClient, editsFromRecipe, restoredPngBlob, type ProjectPhotoDocument, type ProjectPhotoProblem } from "./projectPhotos";
 import { navigation, routeTitle, editorFor, mediaForEditor, type View, type MediaItem } from "./creativeNavigation";
 import { formatSize, IMAGE_PREVIEW_FAILED, VIDEO_PREVIEW_FAILED } from "./mediaFormat";
 import {
@@ -41,6 +42,10 @@ export default function App() {
   const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
   const [photoHistories, setPhotoHistories] = useState<Record<string, PhotoEditHistory>>({});
   const [photoDimensions, setPhotoDimensions] = useState<Record<string, { width: number; height: number }>>({});
+  const [savedProjectPhotos, setSavedProjectPhotos] = useState<ProjectPhotoDocument[]>([]);
+  const [savedPhotoProblems, setSavedPhotoProblems] = useState<ProjectPhotoProblem[]>([]);
+  const [projectPhotoBusy, setProjectPhotoBusy] = useState(false);
+  const [projectPhotoNotice, setProjectPhotoNotice] = useState("");
   const [prompt, setPrompt] = useState("");
   const [createOpened, setCreateOpened] = useState(false);
   const [videoCreateOpened, setVideoCreateOpened] = useState(false);
@@ -68,6 +73,9 @@ export default function App() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const frameCaptureBusyRef = useRef(false);
   const objectUrls = useRef<string[]>([]);
+  const activeProjectRef = useRef<string | null>(null);
+  activeProjectRef.current = project?.id ?? null;
+  const photosClient = projectPhotosClient(invoke);
   const editorItems = mediaForEditor(items, view);
   const selectedId = view === "video" ? selectedVideoId : selectedPhotoId;
   const selected = editorItems.find((item) => item.id === selectedId) ?? null;
@@ -107,6 +115,26 @@ export default function App() {
       objectUrls.current = [];
     };
   }, []);
+
+  useEffect(() => {
+    const projectId = project?.id;
+    let active = true;
+    setSavedProjectPhotos([]);
+    setSavedPhotoProblems([]);
+    setProjectPhotoNotice("");
+    if (projectId) {
+      void photosClient.list(projectId).then((response) => {
+        if (!active || activeProjectRef.current !== projectId) return;
+        if (response.ok) {
+          setSavedProjectPhotos(response.value.photos);
+          setSavedPhotoProblems(response.value.problems);
+        } else {
+          setProjectPhotoNotice("Could not list saved project photos: " + response.error);
+        }
+      });
+    }
+    return () => { active = false; };
+  }, [project?.id]);
 
   useEffect(() => {
     if (view === "create") setCreateOpened(true);
@@ -264,6 +292,102 @@ export default function App() {
     setMessage("Generated image opened in this session. Its file and provenance stay in Optic Rift's output folder; use Save to Pictures to keep a copy elsewhere.");
   }
 
+  async function savePhotoToProject() {
+    const source = selected;
+    const targetProject = project;
+    if (!source || source.kind !== "image" || !targetProject ||
+        source.mimeType !== "image/png" || !editablePhoto ||
+        photoExportBusy || projectPhotoBusy) return;
+    setProjectPhotoBusy(true);
+    setProjectPhotoNotice("Verifying and saving a local project-owned PNG copy…");
+    try {
+      const managed = source.projectPhoto?.projectId === targetProject.id ? source.projectPhoto : undefined;
+      const response = await photosClient.save({
+        projectId: targetProject.id, assetId: managed?.assetId, expectedRevision: managed?.revision,
+        sourceName: source.name, sourceUrl: source.url,
+        edits: edits ?? createPhotoHistory().present,
+      });
+      if (!response.ok) {
+        setProjectPhotoNotice("Project photo not saved: " + response.error);
+        return;
+      }
+      const doc = response.value;
+      setItems((previous) => previous.map((item) =>
+        item.id === source.id ? {
+          ...item,
+          projectPhoto: { projectId: doc.project_id, assetId: doc.asset_id, revision: doc.revision },
+        } : item
+      ));
+      if (activeProjectRef.current === targetProject.id) {
+        const refreshed = await photosClient.list(targetProject.id);
+        if (refreshed.ok) {
+          setSavedProjectPhotos(refreshed.value.photos);
+          setSavedPhotoProblems(refreshed.value.problems);
+        } else {
+          setProjectPhotoNotice("Photo saved, but project listing failed: " + refreshed.error);
+          return;
+        }
+      }
+      setProjectPhotoNotice(`Saved PNG and edit recipe in project "${targetProject.name}" (revision ${doc.revision}).`);
+    } catch (error) {
+      setProjectPhotoNotice("Project save did not complete: " + (error instanceof Error ? error.message : String(error)));
+    } finally {
+      setProjectPhotoBusy(false);
+    }
+  }
+
+  async function openProjectPhoto(assetId: string) {
+    const targetProject = project;
+    if (!targetProject || projectPhotoBusy) return;
+    const already = items.find((item) => item.projectPhoto?.projectId === targetProject.id &&
+      item.projectPhoto.assetId === assetId);
+    if (already) { openMedia(already); return; }
+    setProjectPhotoBusy(true);
+    setProjectPhotoNotice("Verifying saved PNG and edit document…");
+    let newUrl: string | null = null;
+    try {
+      const response = await photosClient.open(targetProject.id, assetId);
+      if (!response.ok) {
+        setProjectPhotoNotice("Could not reopen photo: " + response.error);
+        return;
+      }
+      const doc = response.value.document;
+      if (doc.project_id !== targetProject.id || doc.asset_id !== assetId) {
+        throw new Error("Returned project photo identity does not match.");
+      }
+      const restoredEdits = editsFromRecipe(doc.edits);
+      const blob = restoredPngBlob(response.value.source_png_base64);
+      newUrl = URL.createObjectURL(blob);
+      // Reapply normal PNG header/decode limits before the restored source is
+      // exposed to the editor. Native checked SHA-256 and source dimensions.
+      const check = await loadPhotoBitmap(newUrl);
+      check.bitmap.close();
+      if (activeProjectRef.current !== targetProject.id) {
+        throw new Error("The active project changed while opening the photo.");
+      }
+      const id = crypto.randomUUID();
+      objectUrls.current.push(newUrl);
+      const item: MediaItem = {
+        id, kind: "image", name: doc.source_name, url: newUrl,
+        size: blob.size, mimeType: "image/png",
+        projectPhoto: { projectId: doc.project_id, assetId: doc.asset_id, revision: doc.revision },
+      };
+      newUrl = null;
+      setItems((previous) => [...previous, item]);
+      setPhotoHistories((previous) => ({
+        ...previous, [id]: { past: [], present: restoredEdits, future: [], gesture: null },
+      }));
+      setSelectedPhotoId(id);
+      setView("photo");
+      setProjectPhotoNotice(`Reopened "${doc.source_name}" at saved edit revision ${doc.revision}.`);
+    } catch (error) {
+      if (newUrl) URL.revokeObjectURL(newUrl);
+      setProjectPhotoNotice("Could not reopen project photo: " + (error instanceof Error ? error.message : String(error)));
+    } finally {
+      setProjectPhotoBusy(false);
+    }
+  }
+
   async function exportAdjustedPhoto() {
     if (!selected || !editablePhoto || previewFailed || photoExportBusy) return;
     // Pictures can be redirected to OneDrive. Deliberately ask before even
@@ -415,7 +539,10 @@ export default function App() {
         {view === "library" && <SessionMediaLibrary items={items} projectName={project?.name ?? null}
           notification={message} onDismissNotification={() => setMessage("")}
           historyVersion={historyVersion} onImport={() => inputRef.current?.click()}
-          onOpen={openMedia} onRemove={removeItem} onGeneratedResult={addGenerated} />}
+          onOpen={openMedia} onRemove={removeItem} onGeneratedResult={addGenerated}
+          savedPhotos={savedProjectPhotos} savedPhotoProblems={savedPhotoProblems}
+          savedPhotoBusy={projectPhotoBusy} savedPhotoNotice={projectPhotoNotice}
+          onOpenSavedPhoto={(assetId) => void openProjectPhoto(assetId)} />}
 
         {/* Create stays mounted once opened, so a running job, its progress/Cancel and the current result
             survive a switch to Photo Studio or another page. Hidden content is not rendered visibly. */}
@@ -574,6 +701,19 @@ export default function App() {
                 {photoExportBusy ? "Saving adjusted PNG…" : "Save adjusted PNG copy"}
               </button>
               {photoExportNotice && <p role="status" className="photo-export-notice">{photoExportNotice}</p>}
+              {project && <div className="project-photo-actions">
+                <button type="button" className="secondary full"
+                  disabled={photoExportBusy || projectPhotoBusy || selected?.mimeType !== "image/png"}
+                  onClick={() => void savePhotoToProject()}>
+                  {projectPhotoBusy ? "Saving project PNG…" :
+                    selected?.projectPhoto?.projectId === project.id
+                      ? "Save new edit revision to project" : "Save PNG and edits to project"}
+                </button>
+                <p>Explicit local managed copy. PNG only. Project data stays on this computer;
+                  not a portable bundle, vault, or automatic save.</p>
+                {projectPhotoNotice && <p role="status">{projectPhotoNotice}</p>}
+              </div>}
+
               <fieldset className="photo-crop-tools">
                 <legend>Crop photo</legend>
                 <p>Crop the rotated image. The preview and exported PNG use the same cropped pixels; the original is unchanged.</p>
