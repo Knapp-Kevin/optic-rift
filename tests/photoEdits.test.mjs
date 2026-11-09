@@ -162,3 +162,22 @@ test("A generated result is shown only when the native reader returns a PNG", ()
   const check = panel.indexOf("if (!url.startsWith(\"data:image/png;base64,\")) {", read);
   assert.ok(read > 0 && check > read && check < panel.indexOf("setResult({ provenance, url });", read), "PNG check precedes setResult");
 });
+
+
+test("Flip settings are strictly boolean and share a native provenance contract", () => {
+  const base = {brightness: 100, contrast: 100, rotation: 90};
+  assert.deepEqual(validatePhotoAdjustments({...base, flipHorizontal: true, flipVertical: false}),
+    {...base, flipHorizontal: true, flipVertical: false});
+  assert.throws(() => validatePhotoAdjustments({...base, flipHorizontal: null}));
+  assert.throws(() => validatePhotoAdjustments({...base, flipVertical: "yes"}));
+  const app = here("../src/App.tsx");
+  const native = here("../src-tauri/src/photo_export.rs");
+  assert.match(app, /Flip horizontal/);
+  assert.match(app, /Flip vertical/);
+  assert.match(app, /flip_horizontal: flipHorizontal/);
+  assert.match(app, /flip_vertical: flipVertical/);
+  assert.match(native, /flip_display_horizontal/);
+  assert.match(native, /flip_display_vertical/);
+  assert.match(native, /#\[serde\(default\)\]/);
+});
+
