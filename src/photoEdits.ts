@@ -16,6 +16,9 @@ export type PhotoAdjustments = {
   contrast: number;
   rotation: number;
   crop?: PhotoCrop;
+  /** Flip along the displayed photo axes after rotation. */
+  flipHorizontal?: boolean;
+  flipVertical?: boolean;
 };
 
 export const EMPTY_PHOTO_CROP: Readonly<PhotoCrop> = Object.freeze({
@@ -142,14 +145,18 @@ export function probePhotoDimensions(bytes: Uint8Array, mime: string): { width: 
 }
 
 export function validatePhotoAdjustments(value: PhotoAdjustments): PhotoAdjustments {
-  const { brightness, contrast, rotation } = value;
+  const { brightness, contrast, rotation, flipHorizontal, flipVertical } = value;
   const crop = validatePhotoCrop(value.crop);
   if (!Number.isInteger(brightness) || brightness < 25 || brightness > 175 ||
       !Number.isInteger(contrast) || contrast < 25 || contrast > 175 ||
-      !Number.isInteger(rotation) || ![0, 90, 180, 270].includes(rotation)) {
+      !Number.isInteger(rotation) || ![0, 90, 180, 270].includes(rotation) ||
+      (flipHorizontal !== undefined && typeof flipHorizontal !== "boolean") ||
+      (flipVertical !== undefined && typeof flipVertical !== "boolean")) {
     throw new Error("Photo adjustment values are outside the supported export range.");
   }
-  return { brightness, contrast, rotation, ...(value.crop ? { crop } : {}) };
+  return { brightness, contrast, rotation, ...(value.crop ? { crop } : {}),
+    ...(flipHorizontal !== undefined ? { flipHorizontal } : {}),
+    ...(flipVertical !== undefined ? { flipVertical } : {}) };
 }
 
 export function photoExportDimensions(width: number, height: number, rotation: number) {
@@ -211,7 +218,7 @@ export function paintAdjustedPhoto(
   bitmap: ImageBitmap, edits: PhotoAdjustments,
   canvas: HTMLCanvasElement, maxPreviewEdge?: number,
 ): { width: number; height: number } {
-  const { brightness, contrast, rotation, crop } = validatePhotoAdjustments(edits);
+  const { brightness, contrast, rotation, crop, flipHorizontal, flipVertical } = validatePhotoAdjustments(edits);
   const rotated = photoExportDimensions(bitmap.width, bitmap.height, rotation);
   const bounds = photoCropBounds(rotated.width, rotated.height, crop);
   const { width, height } =
@@ -230,6 +237,9 @@ export function paintAdjustedPhoto(
     // and native-bound PNG use the identical transform, never CSS clipping.
     ctx.translate(-bounds.x, -bounds.y);
     ctx.translate(rotated.width / 2, rotated.height / 2);
+    // Flip on the displayed (post-rotation) axes, before rotating source pixels.
+    // Omitting identity scale preserves legacy preview/export behavior exactly.
+    if (flipHorizontal || flipVertical) ctx.scale(flipHorizontal ? -1 : 1, flipVertical ? -1 : 1);
     ctx.rotate(rotation * Math.PI / 180);
     ctx.filter = `brightness(${brightness}%) contrast(${contrast}%)`;
     ctx.drawImage(bitmap, -bitmap.width / 2, -bitmap.height / 2);
