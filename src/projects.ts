@@ -1,5 +1,5 @@
 // Client side of the native project metadata store (src-tauri/src/project_store.rs).
-// Projects currently hold only a name and identity; imported media is NOT saved into them yet.
+// Project metadata itself remains a small name/identity record. Optional managed PNG media and edit revisions live in the separately verified project_photos native store.
 
 export type ProjectRecord = { schema_version: number; id: string; name: string; created_unix_ms: number };
 export type ProjectSummary = { id: string; name: string; created_unix_ms: number };
