@@ -717,8 +717,8 @@ export default function App() {
                     selected?.projectPhoto?.projectId === project.id
                       ? "Save new edit revision to project" : "Save PNG and edits to project"}
                 </button>
-                <p>Explicit local managed copy. PNG only. Project data stays on this computer;
-                  not a portable bundle, vault, or automatic save.</p>
+                <p>Explicit local managed copy. PNG only. Stored under local app data; OS backups or sync software may copy it.
+                  Not a portable bundle, vault, or automatic save.</p>
                 {projectPhotoNotice && <p role="status">{projectPhotoNotice}</p>}
               </div>}
 
