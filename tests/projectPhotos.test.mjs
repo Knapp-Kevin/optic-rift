@@ -98,3 +98,59 @@ test("Native project photo implementation owns file authority and refuses source
   assert.match(app, /restoredPngBlob\(/);
   assert.doesNotMatch(app, /localStorage\.setItem/);
 });
+
+
+test("Explicit save sends source bytes and all edits through the real IPC request shape", async () => {
+  const png = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg==",
+    "base64",
+  );
+  const original = {
+    fetch: globalThis.fetch,
+    createImageBitmap: globalThis.createImageBitmap,
+    FileReader: globalThis.FileReader,
+  };
+  const calls = [];
+  let closed = false;
+  try {
+    globalThis.fetch = async () => new Response(new Blob([png], { type: "image/png" }));
+    globalThis.createImageBitmap = async () => ({
+      width: 1, height: 1, close() { closed = true; },
+    });
+    globalThis.FileReader = class {
+      result = null;
+      onload = null;
+      onerror = null;
+      readAsDataURL(blob) {
+        void blob.arrayBuffer().then((data) => {
+          this.result = "data:image/png;base64," + Buffer.from(data).toString("base64");
+          this.onload?.();
+        }).catch(() => this.onerror?.());
+      }
+    };
+    const invoke = async (name, args) => {
+      calls.push({ name, args });
+      return { asset_id: "asset-1", project_id: "project-1", revision: 1 };
+    };
+    const result = await projectPhotosClient(invoke).save({
+      projectId: "project-1",
+      sourceName: "Sample.png",
+      sourceUrl: "blob:sample",
+      edits,
+    });
+    assert.equal(result.ok, true);
+    assert.equal(closed, true);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].name, "project_photo_save");
+    assert.equal(calls[0].args.request.project_id, "project-1");
+    assert.equal(calls[0].args.request.asset_id, null);
+    assert.equal(calls[0].args.request.expected_revision, null);
+    assert.equal(calls[0].args.request.source_png_base64, png.toString("base64"));
+    assert.deepEqual(calls[0].args.request.edits, recipeFromEdits(edits));
+  } finally {
+    globalThis.fetch = original.fetch;
+    globalThis.createImageBitmap = original.createImageBitmap;
+    globalThis.FileReader = original.FileReader;
+  }
+});
+
