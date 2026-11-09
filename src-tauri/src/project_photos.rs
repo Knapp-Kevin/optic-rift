@@ -19,6 +19,9 @@ const MAX_EDGE: u32 = 8192;
 const MAX_PIXELS: u64 = 20_000_000;
 const MAX_DOCUMENT_BYTES: u64 = 16 * 1024;
 const MAX_ASSETS: usize = 2048;
+// Separate committed-asset/revision quotas from a small, bounded allowance for
+// crash-left staging artifacts. Never delete unknown app-data during enumeration.
+const MAX_UNCOMMITTED_ENTRIES: usize = 128;
 const MAX_REVISIONS: u32 = 1000;
 static SAVE_LOCK: Mutex<()> = Mutex::new(());
 
@@ -263,9 +266,11 @@ fn latest_document(root: &Path, project: &Uuid, asset: &Uuid) -> Result<PhotoDoc
     for entry in fs::read_dir(&dir).map_err(|_| "Cannot inspect photo revisions.")? {
         let entry = entry.map_err(|_| "Cannot inspect photo revision.")?;
         scanned += 1;
-        if scanned > MAX_REVISIONS as usize + 12 {
-            return Err("Too many photo revision records.".into());
+        if scanned > MAX_REVISIONS as usize + MAX_UNCOMMITTED_ENTRIES {
+            return Err("Too many photo revision or incomplete save entries; recovery is required.".into());
         }
+        // A crash can leave .<revision>.<uuid>.partial files here. They
+        // must not consume the committed revision quota or hide a valid photo.
         let name = entry.file_name().to_string_lossy().into_owned();
         let Some(raw) = name.strip_prefix('r').and_then(|s| s.strip_suffix(".json")) else {
             continue;
@@ -382,16 +387,23 @@ pub fn list(root: &Path, project_id: &str) -> Result<PhotoListing, String> {
         return Ok(PhotoListing::default());
     }
     let mut listing = PhotoListing::default();
-    let mut count = 0usize;
+    let mut scanned = 0usize;
+    let mut committed = 0usize;
     for entry in fs::read_dir(project_dir(root, &project))
         .map_err(|_| "Cannot list project photo assets.")? {
         let entry = entry.map_err(|_| "Cannot inspect project asset.")?;
-        count += 1;
-        if count > MAX_ASSETS {
-            return Err("Project has too many media entries to list safely.".into());
+        scanned += 1;
+        if scanned > MAX_ASSETS + MAX_UNCOMMITTED_ENTRIES {
+            return Err("Too many project media or incomplete save entries; recovery is required.".into());
         }
         let raw = entry.file_name().to_string_lossy().into_owned();
+        // An interrupted initial save leaves a hidden .<uuid>.partial
+        // directory; it is not a committed asset and must not use a slot.
         let Ok(asset) = checked_id(&raw) else { continue };
+        committed += 1;
+        if committed > MAX_ASSETS {
+            return Err("Project has too many committed media assets to list safely.".into());
+        }
         match latest_document(root, &project, &asset) {
             Ok(doc) => listing.photos.push(doc),
             Err(error) => listing.problems.push(PhotoProblem { asset_id: raw, error }),
@@ -558,6 +570,36 @@ mod tests {
         fs::create_dir(folder.join(format!(".{}.partial", Uuid::new_v4()))).unwrap();
         assert_eq!(list(root.path(), &project.id).unwrap().photos.len(), 1);
         assert_eq!(open(root.path(), &project.id, &saved.asset_id).unwrap().document.revision, 1);
+    }
+
+    #[test]
+    fn crash_left_staging_does_not_hide_committed_photo_or_prevent_new_revision() {
+        let root = TestRoot::new();
+        let project = crate::project_store::create(root.path(), "Lake").unwrap();
+        let saved = save(root.path(), request(&project.id)).unwrap();
+        let project_folder = project_dir(root.path(), &checked_id(&project.id).unwrap());
+        let asset_folder = asset_dir(root.path(), &checked_id(&project.id).unwrap(),
+            &checked_id(&saved.asset_id).unwrap());
+        // Previously 13 orphaned revision files prevented reopening. Neither
+        // incomplete asset folders nor revision scratch files are user saves.
+        for _ in 0..13 {
+            fs::create_dir(project_folder.join(format!(".{}.partial", Uuid::new_v4()))).unwrap();
+            fs::write(asset_folder.join(format!(".1.{}.partial", Uuid::new_v4())),
+                b"incomplete").unwrap();
+        }
+        let listing = list(root.path(), &project.id).unwrap();
+        assert_eq!(listing.photos.len(), 1);
+        assert!(listing.problems.is_empty());
+        assert_eq!(open(root.path(), &project.id, &saved.asset_id)
+            .unwrap().document.revision, 1);
+        let mut next = request(&project.id);
+        next.asset_id = Some(saved.asset_id.clone());
+        next.expected_revision = Some(1);
+        next.edits.saturation = 125;
+        assert_eq!(save(root.path(), next).unwrap().revision, 2);
+        // Recovery never destroys the incomplete data without a policy.
+        assert_eq!(fs::read_dir(&project_folder).unwrap().count(), 14);
+        assert_eq!(fs::read_dir(&asset_folder).unwrap().count(), 16);
     }
 
     #[test]
