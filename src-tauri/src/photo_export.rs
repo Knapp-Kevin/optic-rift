@@ -132,16 +132,16 @@ fn decode_verified_png(r: &PhotoExportRequest) -> Result<Vec<u8>, String> {
 }
 
 #[cfg(windows)]
-fn is_reparse(metadata: &fs::Metadata) -> bool {
+pub(crate) fn is_reparse(metadata: &fs::Metadata) -> bool {
     use std::os::windows::fs::MetadataExt;
     metadata.file_attributes() & 0x400 != 0
 }
 #[cfg(not(windows))]
-fn is_reparse(_metadata: &fs::Metadata) -> bool {
+pub(crate) fn is_reparse(_metadata: &fs::Metadata) -> bool {
     false
 }
 
-fn check_directory(path: &Path) -> Result<(), String> {
+pub(crate) fn check_directory(path: &Path) -> Result<(), String> {
     let meta = fs::symlink_metadata(path)
         .map_err(|_| "The Pictures export directory is unavailable.".to_string())?;
     if !meta.is_dir() || meta.file_type().is_symlink() || is_reparse(&meta) {
@@ -289,13 +289,28 @@ mod tests {
         request.png_base64 = "not-a-png".into();
         assert!(decode_verified_png(&request).is_err());
         request = fixture();
-        request.crop = Some(PhotoCrop { left: 9501, top: 0, right: 0, bottom: 0 });
+        request.crop = Some(PhotoCrop {
+            left: 9501,
+            top: 0,
+            right: 0,
+            bottom: 0,
+        });
         assert!(decode_verified_png(&request).unwrap_err().contains("crop"));
         request = fixture();
-        request.crop = Some(PhotoCrop { left: 9500, top: 0, right: 500, bottom: 0 });
+        request.crop = Some(PhotoCrop {
+            left: 9500,
+            top: 0,
+            right: 500,
+            bottom: 0,
+        });
         assert!(decode_verified_png(&request).unwrap_err().contains("crop"));
         request = fixture();
-        request.crop = Some(PhotoCrop { left: 1000, top: 2500, right: 0, bottom: 0 });
+        request.crop = Some(PhotoCrop {
+            left: 1000,
+            top: 2500,
+            right: 0,
+            bottom: 0,
+        });
         assert!(decode_verified_png(&request).is_ok());
     }
 
