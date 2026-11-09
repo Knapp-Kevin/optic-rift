@@ -114,3 +114,21 @@ test("Crop gestures coalesce by edge, but not across different edges or pointer 
   }, "crop-right");
   assert.equal(released.past.length, 3);
 });
+
+
+test("Flips are independent, undoable, and reset invalidates redo", () => {
+  const source = createPhotoHistory();
+  const horizontal = applyPhotoEdit(source, {flipHorizontal: true});
+  const both = applyPhotoEdit(horizontal, {flipVertical: true});
+  assert.equal(both.present.flipHorizontal, true);
+  assert.equal(both.present.flipVertical, true);
+  assert.equal(undoPhotoEdit(both).present.flipVertical, undefined);
+  assert.equal(undoPhotoEdit(both).present.flipHorizontal, true);
+  assert.equal(redoPhotoEdit(undoPhotoEdit(both)).present.flipVertical, true);
+  const restored = applyPhotoEdit(both, {flipHorizontal: false, flipVertical: false});
+  assert.equal(restored.present.flipHorizontal, false);
+  assert.equal(restored.present.flipVertical, false);
+  assert.equal(undoPhotoEdit(restored).present.flipHorizontal, true);
+  assert.throws(() => applyPhotoEdit(source, {flipHorizontal: "yes"}));
+});
+
