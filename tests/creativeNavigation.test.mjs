@@ -89,24 +89,24 @@ test("Editor navigation preserves per-asset photo edits and separate video selec
   const app = source("../src/App.tsx");
   assert.match(app, /const \[selectedPhotoId, setSelectedPhotoId\]/);
   assert.match(app, /const \[selectedVideoId, setSelectedVideoId\]/);
-  assert.match(app, /const \[photoAdjustments, setPhotoAdjustments\]/);
-  // Since the crop work, updatePhotoAdjustments captures the photo id in a local `id`.
-  assert.match(app, /\[id\]: \{ \.\.\.\(previous\[id\] \?\? \{ brightness: 100, contrast: 100, rotation: 0 \}\), \.\.\.changes \}/);
+  assert.match(app, /const \[photoHistories, setPhotoHistories\]/);
+  // Edits are scoped per asset through the immutable session history reducer.
+  assert.match(app, /const history = previous\[id\] \?\? createPhotoHistory\(\)/);
   assert.match(app, /editorItems\.map\(\(item\)/);
   assert.match(app, /mediaForEditor\(items, view\)/);
 });
 
-test("Video Studio saves single-range trims but never promises timeline editing or audio work", () => {
+test("Video Studio honestly labels preview-only trim controls and no audio tools", () => {
   const app = source("../src/App.tsx");
   assert.match(app, /view === "video" && <div className="timeline-panel"/);
-  assert.match(app, /Markers set the range for Save trimmed video/);
-  assert.match(app, /<VideoTrimPanel /);
+  assert.match(app, /Preview markers only; exporting trims is not available yet/);
+  assert.doesNotMatch(app, /<VideoTrimPanel /);
   // Marks set in 0.1 s steps must be distinguishable: labels show tenths after rounding away float drift.
   assert.match(app, /const tenths = Math\.round\(/);
   assert.match(app, /s\.toFixed\(1\)\.padStart\(4, "0"\)/);
   assert.match(app, /Video timeline editing is not yet available/);
   assert.match(app, /Capture frame to Photo Studio/);
-  assert.match(app, /Clip assembly, transitions and multi-clip export still need qualified native implementation/);
+  assert.match(app, /Clip assembly, transitions and video export still need qualified native implementation/);
   assert.match(app, /view === "photo" && editablePhoto && !previewFailed/);
   assert.match(app, /Save adjusted PNG copy/);
   assert.doesNotMatch(app, /exportVideo\(|generateAudio\(|mixSoundtrack\(/);
