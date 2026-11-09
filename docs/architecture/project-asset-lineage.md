@@ -1,3 +1,17 @@
+## Experimental managed-PNG photo slice (branch pending qualification, 2026-11-09)
+
+This section describes an **implementation candidate**, not a final owner-accepted general asset policy. The first photo-project save path is an **explicit opt-in managed copy**, not a default for imported media. It is separate from user exports to Pictures, external linked media, and generated-output caches.
+
+- The existing project record v1 remains an immutable name/ID JSON in `app_data/projects/<uuid>.json`.
+- A specifically saved original PNG is staged under `app_data/project-media/<project-uuid>/.<asset-uuid>.partial/`, validated with a bounded full PNG decode, SHA-256 hashed by Rust, and atomically published as `project-media/<project-uuid>/<asset-uuid>/original.png`. Image source bytes are never overwritten by edit operations.
+- Versioned photo edit records live as immutable `r000001.json`, `r000002.json`, etc. A native `SAVE_LOCK` and caller-supplied `expected_revision` avoid silent stale writes; older revisions remain available on disk but the initial interface opens the most recent. Revision count is capped at 1000.
+- The saved record v1 holds project/asset UUIDs, original PNG name, **native-calculated** SHA-256, dimensions, record version, sequence and bounded edit values: brightness, contrast, saturation, quarter-turn rotation, straighten angle, crop, flips and longest-edge resize. Viewport zoom/pan and original-comparison toggle are explicitly excluded.
+- The native open command checks project identity, canonical asset UUID, regular non-reparse directories/files, bounds, original SHA-256, and PNG decode/dimensions **before** returning source bytes for a new WebView blob URL. The WebView repeats its normal image preflight. Corrupt documents are visible as problems; partial staging directories are never advertised as committed media.
+- Current scope: **PNG only**, explicit save in the selected project, app-data-local storage, single-device; no JPEG/WebP video persistence, portable project bundle, relink workflow, autosave, source deletion, cross-device transfer, vault or cloud sync guarantees.
+- Security and usability acceptance remains open until full Rust + IPC tests, actual Windows save/kill/restart/reopen, undo after reopening, disk-full/staging fault injection, native file-permission/symlink tests, and owner-approved storage choice are complete. This experimental slice does not close [Wayfinder decision #5](https://github.com/Knapp-Kevin/optic-rift/issues/5), [photo document #40](https://github.com/Knapp-Kevin/optic-rift/issues/40), or [Photo Studio delivery #42](https://github.com/Knapp-Kevin/optic-rift/issues/42).
+
+---
+
 # Project, asset lineage and non-destructive revisions
 
 Status: Proposed. Domain sketch and candidate storage paths; not a published schema.
