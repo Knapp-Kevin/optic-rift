@@ -68,6 +68,11 @@ class IconGenerationTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "required icon sizes"):
                 icons.verify(source, output, require_approved=False)
 
+    def test_committed_native_windows_icons_are_approved(self) -> None:
+        """Packaging gate: existing placeholder ICO is not a passing artifact."""
+        source = icons.MASTER if icons.MASTER.is_file() else icons.FALLBACK
+        icons.verify(source, icons.DEFAULT_OUT)
+
     def test_only_canonical_approved_art_can_run_in_normal_mode(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
