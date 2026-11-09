@@ -9,6 +9,7 @@ mod hf_catalog;
 mod model_commands;
 mod model_store;
 mod photo_export;
+mod project_photos;
 mod process_tree;
 mod project_store;
 mod runtime;
@@ -63,6 +64,35 @@ async fn project_open<R: tauri::Runtime>(
     project_store::open(&store_root(&app)?, &id)
 }
 
+/// Managed project photos: native project ID and immutable source authority.
+/// All potentially large decode/file operations run away from the UI thread.
+#[tauri::command]
+async fn project_photo_save<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>, request: project_photos::SavePhotoRequest,
+) -> Result<project_photos::PhotoDocument, String> {
+    let root = store_root(&app)?;
+    tauri::async_runtime::spawn_blocking(move || project_photos::save(&root, request))
+        .await.map_err(|_| "Project photo save task ended unexpectedly.".to_string())?
+}
+
+#[tauri::command]
+async fn project_photo_list<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>, project_id: String,
+) -> Result<project_photos::PhotoListing, String> {
+    let root = store_root(&app)?;
+    tauri::async_runtime::spawn_blocking(move || project_photos::list(&root, &project_id))
+        .await.map_err(|_| "Project photo listing task ended unexpectedly.".to_string())?
+}
+
+#[tauri::command]
+async fn project_photo_open<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>, project_id: String, asset_id: String,
+) -> Result<project_photos::OpenedPhoto, String> {
+    let root = store_root(&app)?;
+    tauri::async_runtime::spawn_blocking(move || project_photos::open(&root, &project_id, &asset_id))
+        .await.map_err(|_| "Project photo open task ended unexpectedly.".to_string())?
+}
+
 /// Explicit, CPU-only image export. No model/GPU, arbitrary output path, or
 /// implicit cloud-sync permission. A native check repeats the client's consent.
 #[tauri::command]
@@ -86,6 +116,9 @@ pub fn with_commands<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Bu
         project_create,
         project_list,
         project_open,
+        project_photo_save,
+        project_photo_list,
+        project_photo_open,
         hf_access::hf_token_status,
         hf_access::hf_token_save,
         hf_access::hf_token_remove,
