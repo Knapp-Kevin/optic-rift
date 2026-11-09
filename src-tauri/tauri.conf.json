@@ -17,7 +17,7 @@
         "height": 900,
         "minWidth": 1024,
         "minHeight": 680,
-        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,msLoadOneAuthInBackground,msOneAuthWAM,msImplicitSignin,msEnableProfileAADAccountSSO,msM365LinksImplicitSignin,msSSOBrowserHint,msSSOBrowserHintPhase2,msSendSSODiagnostics --enable-features=msLazyLoadOneAuthInWebView --disable-background-networking --disable-component-update --no-pings"
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,msLoadOneAuthInBackground,msOneAuthWAM,msImplicitSignin,msEnableProfileAADAccountSSO,msM365LinksImplicitSignin,msSSOBrowserHint,msSSOBrowserHintPhase2,msSendSSODiagnostics,msForceOneAuthWAM --enable-features=msLazyLoadOneAuthInWebView --disable-background-networking --disable-component-update --no-pings"
       }
     ],
     "security": {

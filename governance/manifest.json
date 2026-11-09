@@ -51,7 +51,17 @@
     },
     {
       "pattern": "docs/README.md",
-      "reason": "Canonical architectural filing index",
+      "reason": "Documentation entrypoint and canonical index navigation (not the architecture index)",
+      "review": "maintainer_required"
+    },
+    {
+      "pattern": "docs/ARCHITECTURE_INDEX.md",
+      "reason": "Explicit canonical architecture index and product-truth routing",
+      "review": "maintainer_required"
+    },
+    {
+      "pattern": "docs/architecture/**",
+      "reason": "Architecture designs, ADRs and scoped decision owners",
       "review": "maintainer_required"
     },
     {
@@ -88,6 +98,61 @@
       "pattern": "src-tauri/Cargo.toml",
       "reason": "Native dependency and build configuration",
       "review": "security_required"
+    },
+    {
+      "pattern": "src-tauri/workers/**",
+      "reason": "Bundled Python inference worker and model execution",
+      "review": "security_required"
+    },
+    {
+      "pattern": "src-tauri/tauri.conf.json",
+      "reason": "Native WebView2 privacy and desktop trust configuration",
+      "review": "security_required"
+    },
+    {
+      "pattern": "src-tauri/build.rs",
+      "reason": "Native build-time code execution",
+      "review": "security_required"
+    },
+    {
+      "pattern": "src-tauri/Cargo.lock",
+      "reason": "Native dependency integrity and reproducibility",
+      "review": "security_required"
+    },
+    {
+      "pattern": "package-lock.json",
+      "reason": "Frontend dependency integrity and reproducibility",
+      "review": "maintainer_required"
+    },
+    {
+      "pattern": "src/GeneratePanel.tsx",
+      "reason": "GPU-sharing confirmation and generated-output export consent UI",
+      "review": "human_required"
+    },
+    {
+      "pattern": "src/ModelBrowser.tsx",
+      "reason": "Model license, gated-access and download-consent UI",
+      "review": "human_required"
+    },
+    {
+      "pattern": "src/models.ts",
+      "reason": "Model compatibility and generation-state presentation logic",
+      "review": "human_required"
+    },
+    {
+      "pattern": "src/exportPrivacy.ts",
+      "reason": "Cloud-sync disclosure and output export consent",
+      "review": "human_required"
+    },
+    {
+      "pattern": "tests/**",
+      "reason": "Automated regression and security gate definitions",
+      "review": "maintainer_required"
+    },
+    {
+      "pattern": "src/GenerationHistory.tsx",
+      "reason": "Local generation history, prompt visibility and user-controlled export consent",
+      "review": "human_required"
     }
   ],
   "sensitiveSurfaces": [
