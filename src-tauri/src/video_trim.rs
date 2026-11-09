@@ -141,8 +141,8 @@ pub(crate) fn path_is_linked(path: &Path) -> bool {
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ToolIdentity {
-    /// Where the binaries came from. A PATH install is a developer setup, not a packaged
-    /// trust boundary; bundling and licensing an FFmpeg build is still open.
+    /// Where the binaries came from. PATH and the env override exist only in debug builds;
+    /// choosing, licensing and bundling an FFmpeg build for release is still open.
     pub source: String,
     pub ffmpeg_version: String,
     pub ffmpeg_sha256: String,
@@ -213,8 +213,9 @@ fn identify_tools(tools: Tools, source: &str) -> Result<TrustedTools, String> {
     })
 }
 
-/// Discover FFmpeg once per session (bundled resource folder first), then on every later call
-/// verify that the same binaries are still there, byte for byte.
+/// Find FFmpeg once per session under the build's [`ToolPolicy`], then on every later call
+/// verify that the same binaries are still there, byte for byte. Release builds run only the
+/// bundled copy whose hashes were compiled in; debug builds may also use PATH.
 pub fn trusted_tools(resource_dir: Option<&Path>) -> Result<TrustedTools, String> {
     let mut pinned = pinned_tools().lock().unwrap_or_else(|p| p.into_inner());
     if let Some(trusted) = pinned.as_ref() {
@@ -228,33 +229,113 @@ pub fn trusted_tools(resource_dir: Option<&Path>) -> Result<TrustedTools, String
         }
         return Ok(trusted.clone());
     }
+    let (tools, source) = locate_tools(BUILD_POLICY, resource_dir)?;
+    // Check the compiled-in hashes before running the binary at all.
+    let ffmpeg = sha256_file(&tools.ffmpeg)?;
+    let ffprobe = sha256_file(&tools.ffprobe)?;
+    check_build_pins(BUILD_POLICY, BUILD_PINS, &ffmpeg, &ffprobe)?;
+    let trusted = identify_tools(tools, source)?;
+    if trusted.identity.ffmpeg_sha256 != ffmpeg || trusted.identity.ffprobe_sha256 != ffprobe {
+        return Err("FFmpeg changed on disk while it was being checked; export refused.".into());
+    }
+    *pinned = Some(trusted.clone());
+    Ok(trusted)
+}
+
+/// Which FFmpeg binaries a build may run.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ToolPolicy {
+    /// Release builds: only the copy bundled in the app's resource folder, and only when its
+    /// SHA-256 equals the value compiled into this build. No PATH, no environment override.
+    ReleasePinned,
+    /// Debug builds: bundled copy first, then `OPTIC_RIFT_FFMPEG_DIR`, then PATH. The hash is
+    /// pinned on first use for the session (a developer convenience, not a trust boundary).
+    Developer,
+}
+
+pub(crate) const BUILD_POLICY: ToolPolicy = if cfg!(debug_assertions) {
+    ToolPolicy::Developer
+} else {
+    ToolPolicy::ReleasePinned
+};
+
+/// Expected SHA-256 of the bundled binaries, fixed when the app is compiled
+/// (`OPTIC_RIFT_FFMPEG_SHA256` / `OPTIC_RIFT_FFPROBE_SHA256` in the build environment).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct ToolPins {
+    pub ffmpeg: Option<&'static str>,
+    pub ffprobe: Option<&'static str>,
+}
+
+pub(crate) const BUILD_PINS: ToolPins = ToolPins {
+    ffmpeg: option_env!("OPTIC_RIFT_FFMPEG_SHA256"),
+    ffprobe: option_env!("OPTIC_RIFT_FFPROBE_SHA256"),
+};
+
+const NO_APPROVED_FFMPEG: &str =
+    "This build of Optic Rift does not include an approved FFmpeg, so videos cannot be trimmed.";
+
+pub(crate) fn locate_tools(
+    policy: ToolPolicy,
+    resource_dir: Option<&Path>,
+) -> Result<(Tools, &'static str), String> {
     let exe = |name: &str| format!("{name}{}", std::env::consts::EXE_SUFFIX);
     let bundled = resource_dir
         .map(|dir| dir.join("ffmpeg"))
         .filter(|dir| dir.join(exe("ffmpeg")).is_file() && dir.join(exe("ffprobe")).is_file());
-    let (tools, source) = match bundled {
-        Some(dir) => (
+    if let Some(dir) = bundled {
+        return Ok((
             Tools {
                 ffmpeg: dir.join(exe("ffmpeg")),
                 ffprobe: dir.join(exe("ffprobe")),
             },
             "bundled with Optic Rift",
-        ),
-        None => (
-            Tools::discover().map_err(|_| {
-                "FFmpeg is not installed for Optic Rift, so videos cannot be trimmed yet."
-                    .to_string()
-            })?,
-            if std::env::var_os("OPTIC_RIFT_FFMPEG_DIR").is_some() {
-                "OPTIC_RIFT_FFMPEG_DIR (developer setting)"
-            } else {
-                "PATH (developer setup, not a packaged build)"
-            },
-        ),
+        ));
+    }
+    if policy == ToolPolicy::ReleasePinned {
+        return Err(NO_APPROVED_FFMPEG.into());
+    }
+    let tools = Tools::discover().map_err(|_| {
+        "FFmpeg is not installed for Optic Rift, so videos cannot be trimmed yet.".to_string()
+    })?;
+    let source = if std::env::var_os("OPTIC_RIFT_FFMPEG_DIR").is_some() {
+        "OPTIC_RIFT_FFMPEG_DIR (developer setting)"
+    } else {
+        "PATH (developer setup, not a packaged build)"
     };
-    let trusted = identify_tools(tools, source)?;
-    *pinned = Some(trusted.clone());
-    Ok(trusted)
+    Ok((tools, source))
+}
+
+fn valid_pin(pin: Option<&str>) -> Option<String> {
+    pin.map(str::trim)
+        .filter(|p| p.len() == 64 && p.bytes().all(|b| b.is_ascii_hexdigit()))
+        .map(str::to_ascii_lowercase)
+}
+
+/// Release builds refuse unless both binaries match the compiled-in hashes. Any build that
+/// carries pins also enforces them, so a pinned debug build behaves like the release one.
+pub(crate) fn check_build_pins(
+    policy: ToolPolicy,
+    pins: ToolPins,
+    ffmpeg_sha256: &str,
+    ffprobe_sha256: &str,
+) -> Result<(), String> {
+    let declared = pins.ffmpeg.is_some() || pins.ffprobe.is_some();
+    if policy == ToolPolicy::Developer && !declared {
+        return Ok(());
+    }
+    let (Some(ffmpeg), Some(ffprobe)) = (valid_pin(pins.ffmpeg), valid_pin(pins.ffprobe)) else {
+        return Err(NO_APPROVED_FFMPEG.into());
+    };
+    if ffmpeg_sha256.to_ascii_lowercase() != ffmpeg
+        || ffprobe_sha256.to_ascii_lowercase() != ffprobe
+    {
+        return Err(
+            "The bundled FFmpeg does not match the copy approved for this build; export refused."
+                .into(),
+        );
+    }
+    Ok(())
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -2401,6 +2482,74 @@ mod tests {
         let error = trusted_tools(None).err().unwrap();
         *pinned_tools().lock().unwrap() = saved;
         assert!(error.contains("changed on disk"), "{error}");
+    }
+
+    #[test]
+    fn release_policy_runs_only_the_bundled_pinned_ffmpeg() {
+        let t = trusted();
+        // No bundled copy: a release build refuses, even though FFmpeg is on PATH.
+        let none = locate_tools(ToolPolicy::ReleasePinned, None).err().unwrap();
+        assert!(none.contains("approved FFmpeg"), "{none}");
+        let empty = Scratch::new();
+        let missing = locate_tools(ToolPolicy::ReleasePinned, Some(&empty.0))
+            .err()
+            .unwrap();
+        assert!(missing.contains("approved FFmpeg"), "{missing}");
+        // A developer build still finds the PATH copy.
+        let (_, source) = locate_tools(ToolPolicy::Developer, None).unwrap();
+        assert!(source.contains("developer"), "{source}");
+
+        // A bundled copy in <resources>/ffmpeg is the only thing release looks at.
+        let res = Scratch::new();
+        fs::create_dir_all(res.join("ffmpeg")).unwrap();
+        let exe = |n: &str| format!("{n}{}", std::env::consts::EXE_SUFFIX);
+        fs::copy(&t.tools.ffmpeg, res.join("ffmpeg").join(exe("ffmpeg"))).unwrap();
+        fs::copy(&t.tools.ffprobe, res.join("ffmpeg").join(exe("ffprobe"))).unwrap();
+        let (tools, source) = locate_tools(ToolPolicy::ReleasePinned, Some(&res.0)).unwrap();
+        assert_eq!(source, "bundled with Optic Rift");
+        assert!(tools.ffmpeg.starts_with(&res.0));
+
+        let (ff, fp) = (
+            t.identity.ffmpeg_sha256.as_str(),
+            t.identity.ffprobe_sha256.as_str(),
+        );
+        let upper = ff.to_ascii_uppercase();
+        let leak = |s: &str| -> &'static str { Box::leak(s.to_string().into_boxed_str()) };
+        let pins = |a: Option<&str>, b: Option<&str>| ToolPins {
+            ffmpeg: a.map(leak),
+            ffprobe: b.map(leak),
+        };
+        let release = ToolPolicy::ReleasePinned;
+        // Matching pins (any hex case) pass.
+        check_build_pins(release, pins(Some(ff), Some(fp)), ff, fp).unwrap();
+        check_build_pins(release, pins(Some(&upper), Some(fp)), ff, fp).unwrap();
+        // Release with no pins, one pin, or a malformed pin refuses.
+        for p in [
+            pins(None, None),
+            pins(Some(ff), None),
+            pins(None, Some(fp)),
+            pins(Some("abc"), Some(fp)),
+            pins(Some(&"g".repeat(64)), Some(fp)),
+        ] {
+            let e = check_build_pins(release, p, ff, fp).err().unwrap();
+            assert!(e.contains("approved FFmpeg"), "{e}");
+        }
+        // A substituted binary (wrong hash) refuses under either policy once pins exist.
+        let other = "0".repeat(64);
+        for policy in [release, ToolPolicy::Developer] {
+            let e = check_build_pins(policy, pins(Some(ff), Some(fp)), &other, fp)
+                .err()
+                .unwrap();
+            assert!(e.contains("does not match"), "{e}");
+            let e = check_build_pins(policy, pins(Some(ff), Some(fp)), ff, &other)
+                .err()
+                .unwrap();
+            assert!(e.contains("does not match"), "{e}");
+        }
+        // Unpinned debug builds keep the developer behaviour.
+        check_build_pins(ToolPolicy::Developer, pins(None, None), &other, &other).unwrap();
+        // This test binary is a debug build.
+        assert_eq!(BUILD_POLICY, ToolPolicy::Developer);
     }
 
     #[cfg(windows)]
