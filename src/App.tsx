@@ -277,7 +277,7 @@ export default function App() {
         setVideoFrameReady(false);
         setDuration(0); setPlayhead(0); setTrimIn(0); setTrimOut(null);
       }
-      setMessage("Media is available this session only. Project media persistence is not implemented yet.");
+      setMessage("Imported media is session-only. With an active project, you may explicitly save a PNG original and its edits into local project storage.");
     } else {
       setMessage("No supported image or video files were selected.");
     }
