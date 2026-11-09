@@ -89,10 +89,9 @@ test("Editor navigation preserves per-asset photo edits and separate video selec
   const app = source("../src/App.tsx");
   assert.match(app, /const \[selectedPhotoId, setSelectedPhotoId\]/);
   assert.match(app, /const \[selectedVideoId, setSelectedVideoId\]/);
-  // Since #48 each photo keeps its own bounded undo history, keyed by asset id.
   assert.match(app, /const \[photoHistories, setPhotoHistories\]/);
-  assert.match(app, /const history = previous\[id\] \?\? createPhotoHistory\(\);/);
-  assert.match(app, /return next === history \? previous : \{ \.\.\.previous, \[id\]: next \};/);
+  // Edits are scoped per asset through the immutable session history reducer.
+  assert.match(app, /const history = previous\[id\] \?\? createPhotoHistory\(\)/);
   assert.match(app, /editorItems\.map\(\(item\)/);
   assert.match(app, /mediaForEditor\(items, view\)/);
 });

@@ -91,10 +91,10 @@ test("Inspector, preview, and native export all retain crop details without a hi
   assert.match(app, /Wide 16:9/);
   assert.match(app, /Portrait 4:5/);
   assert.match(app, /Reset crop/);
-  assert.match(app, /updatePhotoCrop\(\{ \.\.\.crop, \[edge\]: Number\(event\.target\.value\) \}\)/);
-  assert.match(app, /renderAdjustedPhoto\(selected\.url, \{ brightness, contrast, rotation, crop \}\)/);
+  assert.match(app, /updatePhotoCrop\(\{ \.\.\.crop, \[edge\]: Number\(event\.target\.value\) \}, `crop-\$\{edge\}`\)/);
+  assert.match(app, /renderAdjustedPhoto\(selected\.url, \{ brightness, contrast, rotation, crop, flipHorizontal, flipVertical \}\)/);
   assert.match(app, /crop: \{ \.\.\.crop \},/);
-  assert.match(preview, /paintAdjustedPhoto\(decoded\.bitmap, \{ brightness, contrast, rotation, crop \}, canvas, 1400\)/);
+  assert.match(preview, /paintAdjustedPhoto\(decoded\.bitmap, \{ brightness, contrast, rotation, crop, flipHorizontal, flipVertical \}, canvas, 1400\)/);
   assert.match(native, /pub crop: Option<PhotoCrop>/);
   assert.match(native, /fn validate_crop\(/);
   assert.match(native, /crop_insets_basis_points_of_rotated_image/);
@@ -102,3 +102,36 @@ test("Inspector, preview, and native export all retain crop details without a hi
   assert.doesNotMatch(app.slice(app.indexOf("function updatePhotoCrop("), app.indexOf("function addMedia(")),
     /photo_export_copy|invoke\(/);
 });
+
+
+test("Horizontal and vertical flips act on displayed axes after rotation, before raster export", () => {
+  const ops = [];
+  const ctx = {
+    filter: "",
+    save() { ops.push(["save"]); },
+    restore() { ops.push(["restore"]); },
+    clearRect(...a) { ops.push(["clear", ...a]); },
+    scale(...a) { ops.push(["scale", ...a]); },
+    translate(...a) { ops.push(["translate", ...a]); },
+    rotate(...a) { ops.push(["rotate", ...a]); },
+    drawImage(...a) { ops.push(["draw", ...a]); },
+  };
+  const canvas = {width: 0, height: 0, getContext: () => ctx};
+  const bitmap = {width: 400, height: 200};
+  paintAdjustedPhoto(bitmap, {
+    brightness: 110, contrast: 120, rotation: 90, flipHorizontal: true, flipVertical: false,
+  }, canvas);
+  assert.deepEqual(ops.map((operation) => operation[0]),
+    ["save", "clear", "scale", "translate", "translate", "scale", "rotate", "draw", "restore"]);
+  assert.deepEqual(ops[5], ["scale", -1, 1]);
+  assert.equal(ops[6][1], Math.PI / 2);
+  assert.equal(canvas.width, 200);
+  assert.equal(canvas.height, 400);
+  const both = [];
+  const flipped = { ...ctx, scale(...a) { both.push(a); } };
+  paintAdjustedPhoto(bitmap, {
+    brightness: 100, contrast: 100, rotation: 0, flipHorizontal: true, flipVertical: true,
+  }, {width: 0, height: 0, getContext: () => flipped});
+  assert.deepEqual(both.at(-1), [-1, -1]);
+});
+

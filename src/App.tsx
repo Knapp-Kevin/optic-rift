@@ -81,6 +81,8 @@ export default function App() {
   const brightness = edits?.brightness ?? 100;
   const contrast = edits?.contrast ?? 100;
   const rotation = edits?.rotation ?? 0;
+  const flipHorizontal = edits?.flipHorizontal ?? false;
+  const flipVertical = edits?.flipVertical ?? false;
   const crop = edits?.crop ?? EMPTY_PHOTO_CROP;
   const selectedPhotoDimensions = selected?.kind === "image" ? photoDimensions[selected.id] : undefined;
   const previewFailed = selected ? failedIds.has(selected.id) : false;
@@ -181,13 +183,13 @@ export default function App() {
     setPhotoExportNotice("");
   }
 
-  function updatePhotoCrop(changes: Partial<PhotoCrop>) {
+  function updatePhotoCrop(changes: Partial<PhotoCrop>, gesture: string | null = null) {
     if (!selected || selected.kind !== "image" || photoExportBusy) return;
     const id = selected.id;
     setPhotoHistories((previous) => {
       const history = previous[id] ?? createPhotoHistory();
       const crop = validatePhotoCrop({ ...EMPTY_PHOTO_CROP, ...history.present.crop, ...changes });
-      const next = applyPhotoEdit(history, { crop });
+      const next = applyPhotoEdit(history, { crop }, gesture);
       return next === history ? previous : { ...previous, [id]: next };
     });
     setPhotoExportNotice("");
@@ -270,11 +272,13 @@ export default function App() {
     setPhotoExportBusy(true);
     setPhotoExportNotice("Rendering and validating your edited photo…");
     try {
-      const png = await renderAdjustedPhoto(selected.url, { brightness, contrast, rotation, crop });
+      const png = await renderAdjustedPhoto(selected.url, { brightness, contrast, rotation, crop, flipHorizontal, flipVertical });
       const receipt = await invoke<{ path: string; sha256: string; width: number; height: number }>("photo_export_copy", {
         request: {
           ...png, brightness, contrast, rotation,
           crop: { ...crop },
+          flip_horizontal: flipHorizontal,
+          flip_vertical: flipVertical,
           accept_pictures_export: true,
         },
       });
@@ -463,6 +467,7 @@ export default function App() {
               {editablePhoto && !previewFailed && <PhotoCanvasPreview key={selected.id}
                 sourceUrl={selected.url} label={selected.name}
                 brightness={brightness} contrast={contrast} rotation={rotation} crop={crop}
+                flipHorizontal={flipHorizontal} flipVertical={flipVertical}
                 onDimensions={(dims) => setPhotoDimensions((previous) =>
                   previous[selected.id]?.width === dims.width && previous[selected.id]?.height === dims.height
                     ? previous : { ...previous, [selected.id]: dims })}
@@ -507,8 +512,9 @@ export default function App() {
                   title="Redo edit (Ctrl+Y or Ctrl+Shift+Z)" onClick={() => stepPhotoHistory("redo")}>Redo</button>
                 <button type="button" className="secondary" disabled={photoExportBusy ||
                   (brightness === 100 && contrast === 100 && rotation === 0 &&
-                   Object.values(crop).every((n) => n === 0))}
-                  onClick={() => updatePhotoAdjustments({ ...DEFAULT_PHOTO_EDITS, crop: { ...EMPTY_PHOTO_CROP } })}>Reset all</button>
+                   !flipHorizontal && !flipVertical && Object.values(crop).every((n) => n === 0))}
+                  onClick={() => updatePhotoAdjustments({ ...DEFAULT_PHOTO_EDITS, crop: { ...EMPTY_PHOTO_CROP },
+                    flipHorizontal: false, flipVertical: false })}>Reset all</button>
               </div>
               <p className="photo-history-note">Up to 40 undo steps per photo, this session only. These edits are not saved in your project.</p>
               {selected?.derivedFrom?.kind === "video-frame" &&
@@ -522,7 +528,14 @@ export default function App() {
               <label>Contrast <output>{contrast}%</output><input type="range" min="25" max="175" value={contrast} disabled={photoExportBusy}
                 onChange={(event) => updatePhotoAdjustments({ contrast: Number(event.target.value) }, "contrast")}
                 onPointerUp={finishPhotoSlider} onPointerCancel={finishPhotoSlider} onKeyUp={finishPhotoSlider} onBlur={finishPhotoSlider} /></label>
-              <button className="secondary full" disabled={photoExportBusy} onClick={() => updatePhotoAdjustments({ rotation: (rotation + 90) % 360 })}>Rotate photo 90°</button>
+              <button className="secondary full" disabled={photoExportBusy}
+                onClick={() => updatePhotoAdjustments({ rotation: (rotation + 90) % 360 })}>Rotate photo 90°</button>
+              <div className="photo-flip-actions" role="group" aria-label="Flip image">
+                <button type="button" className="secondary" aria-pressed={flipHorizontal} disabled={photoExportBusy}
+                  onClick={() => updatePhotoAdjustments({ flipHorizontal: !flipHorizontal })}>Flip horizontal</button>
+                <button type="button" className="secondary" aria-pressed={flipVertical} disabled={photoExportBusy}
+                  onClick={() => updatePhotoAdjustments({ flipVertical: !flipVertical })}>Flip vertical</button>
+              </div>
               <button className="primary full" type="button" disabled={photoExportBusy}
                 onClick={() => void exportAdjustedPhoto()}>
                 {photoExportBusy ? "Saving adjusted PNG…" : "Save adjusted PNG copy"}
@@ -549,7 +562,9 @@ export default function App() {
                     {edge.charAt(0).toUpperCase() + edge.slice(1)} edge <output>{(crop[edge] / 100).toFixed(2)}%</output>
                     <input type="range" min={0} max={max} step={25} value={crop[edge]} disabled={photoExportBusy}
                       aria-label={edge + " crop inset percent"}
-                      onChange={(event) => updatePhotoCrop({ ...crop, [edge]: Number(event.target.value) })} />
+                      onChange={(event) => updatePhotoCrop({ ...crop, [edge]: Number(event.target.value) }, `crop-${edge}`)}
+                      onPointerUp={finishPhotoSlider} onPointerCancel={finishPhotoSlider}
+                      onKeyUp={finishPhotoSlider} onBlur={finishPhotoSlider} />
                   </label>;
                 })}
                 <p className="photo-crop-status" role="status">

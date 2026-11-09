@@ -396,3 +396,10 @@
 .photo-zoom-toolbar button:disabled{opacity:.4;cursor:not-allowed}
 .photo-zoom-toolbar button:focus-visible{outline:2px solid #b1c6ff;outline-offset:2px}
 .photo-zoom-toolbar output{min-width:44px;font-size:12px;text-align:center;color:#edf3ff;font-variant-numeric:tabular-nums}
+
+/* Independent photo reflections: ordinary editor controls, not a CSS-only export illusion. */
+.photo-flip-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:8px 0 12px}
+.photo-flip-actions .secondary{min-width:0;min-height:38px;padding:9px 6px;white-space:normal}
+.photo-flip-actions .secondary[aria-pressed="true"]{background:#304778;border-color:#91b0e8;color:#fff}
+.photo-flip-actions .secondary:disabled{opacity:.5;cursor:not-allowed}
+.photo-flip-actions .secondary:focus-visible{outline:2px solid #a4baff;outline-offset:2px}
