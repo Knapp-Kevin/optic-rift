@@ -25,6 +25,32 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def validate_pe64(path: Path) -> None:
+    """Validate PE/COFF structure and AMD64 architecture, not Authenticode trust."""
+    with path.open("rb") as stream:
+        dos = stream.read(64)
+        if len(dos) < 64 or dos[:2] != b"MZ":
+            raise ValueError(f"Not a Windows PE executable: {path.name}")
+        pe_offset = int.from_bytes(dos[0x3C:0x40], "little")
+        if pe_offset < 64 or pe_offset > 1024 * 1024 or pe_offset + 26 > path.stat().st_size:
+            raise ValueError(f"Invalid PE header offset: {path.name}")
+        stream.seek(pe_offset)
+        coff = stream.read(26)
+        if len(coff) != 26 or coff[:4] != b"PE\x00\x00":
+            raise ValueError(f"Invalid PE signature: {path.name}")
+        machine = int.from_bytes(coff[4:6], "little")
+        sections = int.from_bytes(coff[6:8], "little")
+        optional_size = int.from_bytes(coff[20:22], "little")
+        characteristics = int.from_bytes(coff[22:24], "little")
+        magic = int.from_bytes(coff[24:26], "little")
+        if machine != 0x8664 or magic != 0x20B:
+            raise ValueError(f"Expected PE32+ AMD64 executable: {path.name}")
+        if not (1 <= sections <= 96) or optional_size < 0x70 or not characteristics & 0x0002:
+            raise ValueError(f"Invalid PE/COFF executable headers: {path.name}")
+        if pe_offset + 24 + optional_size + sections * 40 > path.stat().st_size:
+            raise ValueError(f"Truncated PE section table: {path.name}")
+
+
 def verify(folder: Path, environment: dict[str, str] | None = None) -> dict:
     env = os.environ if environment is None else environment
     if folder.is_symlink() or not folder.is_dir():
@@ -52,9 +78,7 @@ def verify(folder: Path, environment: dict[str, str] | None = None) -> dict:
             raise ValueError(f"Missing regular staged executable: {name}")
         if path.stat().st_size < 2 or path.stat().st_size > 300 * 1024 * 1024:
             raise ValueError(f"Unexpected executable size: {name}")
-        with path.open("rb") as stream:
-            if stream.read(2) != b"MZ":
-                raise ValueError(f"Not a Windows executable: {name}")
+        validate_pe64(path)
         recorded_hash = recorded[name]
         pin = env.get(variable, "")
         if not isinstance(recorded_hash, str) or not HASH.fullmatch(recorded_hash):
