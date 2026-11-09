@@ -378,3 +378,10 @@
 .photo-flip-actions .secondary[aria-pressed="true"]{background:#304778;border-color:#91b0e8;color:#fff}
 .photo-flip-actions .secondary:disabled{opacity:.5;cursor:not-allowed}
 .photo-flip-actions .secondary:focus-visible{outline:2px solid #a4baff;outline-offset:2px}
+
+/* Original/edited comparison is display-only and never changes output state. */
+.photo-comparison-toolbar{position:absolute;top:12px;right:12px;z-index:2;display:flex;align-items:center;gap:8px;max-width:calc(100% - 24px);padding:5px 8px;border:1px solid #647a9d;border-radius:9px;background:#122039eb;color:#d8e7ff;font-size:11px;touch-action:manipulation}
+.photo-compare-toggle{border:1px solid #6983b3;border-radius:6px;background:#283b61;color:#f0f5ff;min-height:34px;padding:6px 10px;font-size:12px;font-weight:650;cursor:pointer}
+.photo-compare-toggle[aria-pressed="true"]{background:#bfd0ff;color:#14213f}
+.photo-compare-toggle:focus-visible{outline:2px solid #b0c5ff;outline-offset:2px}
+.photo-comparison-toolbar span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
