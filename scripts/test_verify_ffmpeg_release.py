@@ -1,11 +1,23 @@
 """Offline preflight tests. Synthetic PE-like fixtures, no third-party binaries."""
 import hashlib
 import json
+import struct
 from pathlib import Path
 import tempfile
 import unittest
 
 from verify_ffmpeg_release import ARCHIVE_SHA256, TOOLS, verify
+
+
+def pe64_fixture(name: str) -> bytes:
+    data = bytearray(512)
+    data[0:2] = b"MZ"
+    struct.pack_into("<I", data, 0x3c, 0x80)
+    data[0x80:0x84] = b"PE\0\0"
+    struct.pack_into("<HHIIIHH", data, 0x84, 0x8664, 1, 0, 0, 0, 0xF0, 0x0002)
+    struct.pack_into("<H", data, 0x98, 0x20B)
+    data[0x180:0x180 + len(name)] = name.encode()
+    return bytes(data)
 
 
 class ReleasePreflightTests(unittest.TestCase):
@@ -17,7 +29,7 @@ class ReleasePreflightTests(unittest.TestCase):
         hashes = {}
         self.env = {}
         for name, variable in TOOLS.items():
-            data = b"MZ" + name.encode()
+            data = pe64_fixture(name)
             (self.folder / name).write_bytes(data)
             digest = hashlib.sha256(data).hexdigest()
             hashes[name] = digest
@@ -38,7 +50,7 @@ class ReleasePreflightTests(unittest.TestCase):
 
     def test_modified_binary(self):
         (self.folder / "ffmpeg.exe").write_bytes(b"MZtampered")
-        with self.assertRaisesRegex(ValueError, "Hash mismatch"):
+        with self.assertRaisesRegex(ValueError, "Not a Windows PE"):
             verify(self.folder, self.env)
 
     def test_wrong_archive(self):
@@ -66,6 +78,27 @@ class ReleasePreflightTests(unittest.TestCase):
         self.write_manifest()
         with self.assertRaisesRegex(ValueError, "Not a Windows executable"):
             verify(self.folder, self.env)
+
+    def test_wrong_architecture(self):
+        data = bytearray(pe64_fixture("ffmpeg.exe"))
+        struct.pack_into("<H", data, 0x84, 0x14c)
+        self.set_fixture("ffmpeg.exe", bytes(data))
+        with self.assertRaisesRegex(ValueError, "AMD64"):
+            verify(self.folder, self.env)
+
+    def test_invalid_pe_signature(self):
+        data = bytearray(pe64_fixture("ffmpeg.exe"))
+        data[0x80:0x84] = b"FAKE"
+        self.set_fixture("ffmpeg.exe", bytes(data))
+        with self.assertRaisesRegex(ValueError, "PE signature"):
+            verify(self.folder, self.env)
+
+    def set_fixture(self, name, data):
+        (self.folder / name).write_bytes(data)
+        digest = hashlib.sha256(data).hexdigest()
+        self.provenance["tools"][name] = digest
+        self.env[TOOLS[name]] = digest
+        self.write_manifest()
 
     def test_symlink(self):
         (self.folder / "ffprobe.exe").unlink()
