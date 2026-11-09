@@ -95,8 +95,8 @@ test("Studio controls, native request, preview and export use the same angle", (
   assert.match(app, /aria-label="Fine straighten degrees clockwise"/);
   assert.match(app, /updatePhotoAdjustments\(\{ straightenTenths: Number\(event\.target\.value\) \}, "straighten"\)/);
   assert.match(app, /straighten_tenths: straightenTenths/);
-  assert.match(app, /renderAdjustedPhoto\(selected\.url, \{ brightness, contrast, saturation, rotation, straightenTenths, crop, flipHorizontal, flipVertical \}\)/);
-  assert.match(preview, /paintAdjustedPhoto\(decoded\.bitmap, \{ brightness, contrast, saturation, rotation, straightenTenths, crop, flipHorizontal, flipVertical \}, canvas, 1400\)/);
+  assert.match(app, /renderAdjustedPhoto\(selected\.url, \{ brightness, contrast, saturation, rotation, straightenTenths, resizeLongEdge, crop, flipHorizontal, flipVertical \}\)/);
+  assert.match(preview, /paintAdjustedPhoto\(decoded\.bitmap, \{ brightness, contrast, saturation, rotation, straightenTenths, resizeLongEdge, crop, flipHorizontal, flipVertical \}, canvas, 1400\)/);
   assert.match(preview, /showOriginal\s*\? paintAdjustedPhoto\(decoded\.bitmap, \{ brightness: 100, contrast: 100, rotation: 0 \}, canvas, 1400\)/);
   assert.match(renderer, /const cover = photoStraightenCoverScale\(rotated\.width, rotated\.height, straightenTenths\)/);
   assert.match(native, /pub straighten_tenths: i16/);
