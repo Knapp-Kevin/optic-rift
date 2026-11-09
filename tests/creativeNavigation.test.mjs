@@ -89,9 +89,10 @@ test("Editor navigation preserves per-asset photo edits and separate video selec
   const app = source("../src/App.tsx");
   assert.match(app, /const \[selectedPhotoId, setSelectedPhotoId\]/);
   assert.match(app, /const \[selectedVideoId, setSelectedVideoId\]/);
-  assert.match(app, /const \[photoAdjustments, setPhotoAdjustments\]/);
-  // Since the crop work, updatePhotoAdjustments captures the photo id in a local `id`.
-  assert.match(app, /\[id\]: \{ \.\.\.\(previous\[id\] \?\? \{ brightness: 100, contrast: 100, rotation: 0 \}\), \.\.\.changes \}/);
+  // Since #48 each photo keeps its own bounded undo history, keyed by asset id.
+  assert.match(app, /const \[photoHistories, setPhotoHistories\]/);
+  assert.match(app, /const history = previous\[id\] \?\? createPhotoHistory\(\);/);
+  assert.match(app, /return next === history \? previous : \{ \.\.\.previous, \[id\]: next \};/);
   assert.match(app, /editorItems\.map\(\(item\)/);
   assert.match(app, /mediaForEditor\(items, view\)/);
 });
