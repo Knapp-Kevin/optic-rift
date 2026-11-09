@@ -198,7 +198,7 @@ export default function PhotoCanvasPreview({
     {shown && <div className="photo-zoom-toolbar" role="toolbar" aria-label="Photo zoom controls">
       <button type="button" disabled={zoom <= 1} onClick={() => adjustZoom(-1)} aria-label="Zoom out" title="Zoom out (-)">−</button>
       <button type="button" onClick={fitToWindow} aria-label="Fit photo to window" title="Fit photo (0 or F)">Fit</button>
-      <output aria-label="Photo zoom level">{Math.round(zoom * 100)}%</output>
+      <output aria-label="Zoom relative to fitted preview" title="Percentage of the fitted preview, not original pixel size">{Math.round(zoom * 100)}%</output>
       <button type="button" disabled={zoom >= 4} onClick={() => adjustZoom(1)} aria-label="Zoom in" title="Zoom in (+)">+</button>
     </div>}
   </div>;
