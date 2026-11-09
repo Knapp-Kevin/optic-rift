@@ -10,6 +10,7 @@ type Props = {
   saturation?: number;
   rotation: number;
   straightenTenths?: number;
+  resizeLongEdge?: number;
   crop?: PhotoCrop;
   flipHorizontal?: boolean;
   flipVertical?: boolean;
@@ -27,7 +28,7 @@ const EMPTY_SIZE: PhotoSize = { width: 0, height: 0 };
  * Decode once per photo; never store private previews or intermediate files.
  */
 export default function PhotoCanvasPreview({
-  sourceUrl, label, brightness, contrast, saturation, rotation, straightenTenths, crop, flipHorizontal, flipVertical, onDimensions, onError,
+  sourceUrl, label, brightness, contrast, saturation, rotation, straightenTenths, resizeLongEdge, crop, flipHorizontal, flipVertical, onDimensions, onError,
 }: Props) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -106,7 +107,7 @@ export default function PhotoCanvasPreview({
         // renderer, never by changing the active edit recipe or exported PNG.
         const dims = showOriginal
           ? paintAdjustedPhoto(decoded.bitmap, { brightness: 100, contrast: 100, rotation: 0 }, canvas, 1400)
-          : paintAdjustedPhoto(decoded.bitmap, { brightness, contrast, saturation, rotation, straightenTenths, crop, flipHorizontal, flipVertical }, canvas, 1400);
+          : paintAdjustedPhoto(decoded.bitmap, { brightness, contrast, saturation, rotation, straightenTenths, resizeLongEdge, crop, flipHorizontal, flipVertical }, canvas, 1400);
         setImage((old) => old.width === dims.width && old.height === dims.height ? old : dims);
         setReady(true);
         setError("");
@@ -118,7 +119,7 @@ export default function PhotoCanvasPreview({
       }
     }, 90);
     return () => window.clearTimeout(handle);
-  }, [decoded, sourceUrl, brightness, contrast, saturation, rotation, straightenTenths, crop?.left, crop?.top, crop?.right, crop?.bottom, flipHorizontal, flipVertical, showOriginal]);
+  }, [decoded, sourceUrl, brightness, contrast, saturation, rotation, straightenTenths, resizeLongEdge, crop?.left, crop?.top, crop?.right, crop?.bottom, flipHorizontal, flipVertical, showOriginal]);
 
   useEffect(() => {
     setPan((current) => {
