@@ -16,7 +16,9 @@ const MAX_PNG_EDGE: u32 = 8192;
 const MAX_PNG_PIXELS: u64 = 20_000_000;
 const MAX_DECODE_BYTES: usize = 80 * 1024 * 1024;
 
-fn neutral_saturation_percent() -> u16 { 100 }
+fn neutral_saturation_percent() -> u16 {
+    100
+}
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(deny_unknown_fields)]
@@ -365,13 +367,29 @@ mod tests {
         flipped.flip_vertical = true;
         let second = export_to_pictures(&root, flipped).unwrap();
         let receipt_json: serde_json::Value = serde_json::from_slice(
-            &fs::read(second.path.with_extension("provenance.json")).unwrap()
-        ).unwrap();
-        assert_eq!(receipt_json["adjustments"]["flip_display_horizontal"].as_bool(), Some(true));
-        assert_eq!(receipt_json["adjustments"]["flip_display_vertical"].as_bool(), Some(true));
-        assert_eq!(receipt_json["adjustments"]["saturation_percent"].as_u64(), Some(75));
-        assert_eq!(receipt_json["adjustments"]["straighten_tenths_degrees_clockwise"].as_i64(), Some(-75));
-        assert_eq!(receipt_json["adjustments"]["resize_long_edge_requested_webview_reported"].as_u64(), Some(128));
+            &fs::read(second.path.with_extension("provenance.json")).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(
+            receipt_json["adjustments"]["flip_display_horizontal"].as_bool(),
+            Some(true)
+        );
+        assert_eq!(
+            receipt_json["adjustments"]["flip_display_vertical"].as_bool(),
+            Some(true)
+        );
+        assert_eq!(
+            receipt_json["adjustments"]["saturation_percent"].as_u64(),
+            Some(75)
+        );
+        assert_eq!(
+            receipt_json["adjustments"]["straighten_tenths_degrees_clockwise"].as_i64(),
+            Some(-75)
+        );
+        assert_eq!(
+            receipt_json["adjustments"]["resize_long_edge_requested_webview_reported"].as_u64(),
+            Some(128)
+        );
         assert_ne!(first.path, second.path);
         assert_eq!(fs::read(&original).unwrap(), original_bytes);
         assert_eq!(fs::read(&first.path).unwrap(), original_bytes);
@@ -474,7 +492,10 @@ mod tests {
         for value in [-151, -150, 0, 150, 151] {
             let mut request = fixture();
             request.straighten_tenths = value;
-            assert_eq!(decode_verified_png(&request).is_ok(), (-150..=150).contains(&value));
+            assert_eq!(
+                decode_verified_png(&request).is_ok(),
+                (-150..=150).contains(&value)
+            );
         }
     }
 

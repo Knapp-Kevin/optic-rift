@@ -12,6 +12,8 @@ export type MediaItem = {
   size: number;
   mimeType: string;
   /** Session-only relationship. Not a signed project asset or persisted provenance. */
+  /** File.lastModified for an opened file; native export checks the chosen file against it. */
+  lastModifiedMs?: number;
   derivedFrom?: {
     kind: "video-frame";
     sourceId: string;
@@ -32,7 +34,7 @@ export const navigation = [
   ] },
   { group: "EDIT & ENHANCE", items: [
     { view: "photo", label: "Photo Studio", symbol: "▧", description: "Adjust and export photos" },
-    { view: "video", label: "Video Studio", symbol: "▶", description: "Preview videos, mark in/out and capture still frames" },
+    { view: "video", label: "Video Studio", symbol: "▶", description: "Preview videos, mark in/out, save trimmed copies and capture still frames" },
     { view: "enhance-video", label: "Enhance Video", symbol: "◇", description: "Plan video improvement and restoration; processing not yet executable" },
   ] },
   { group: "TOOLS", items: [

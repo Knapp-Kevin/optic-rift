@@ -1,4 +1,7 @@
 fn main() {
+    // The approved FFmpeg hashes are compiled into the app (see video_trim::BUILD_PINS).
+    println!("cargo:rerun-if-env-changed=OPTIC_RIFT_FFMPEG_SHA256");
+    println!("cargo:rerun-if-env-changed=OPTIC_RIFT_FFPROBE_SHA256");
     tauri_build::build();
     #[cfg(windows)]
     embed_test_manifest();

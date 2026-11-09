@@ -337,6 +337,31 @@
  .video-compose-page{padding:20px 13px}
 }
 
+/* Save trimmed video (issue #36): native export controls in Video Studio, plus an app-wide
+   chip so navigation never hides a running export. Distinct from model-download status. */
+.video-trim-panel{margin:14px 0;padding:12px 0 4px;border-top:1px solid #33425f}
+.video-trim-panel>strong{display:block;margin-bottom:4px}
+.video-trim-panel .primary.full{width:100%;min-height:42px;margin:8px 0 5px;text-align:center}
+.video-trim-panel .primary:disabled{opacity:.7}
+.video-trim-range{font-size:12px;color:#c8d5ee}
+.video-trim-notice{font-size:12px;line-height:1.5;border:1px solid #5473a4;background:#223355;border-radius:7px;padding:8px 10px;overflow-wrap:anywhere}
+.video-trim-job{border:1px solid #4d6a9c;background:#1b2945;border-radius:9px;padding:10px 12px;margin:8px 0;font-size:12px}
+.video-trim-job.state-failed,.video-trim-job.state-interrupted{border-color:#a0584f;background:#3a2225}
+.video-trim-job.state-succeeded{border-color:#4f9a72;background:#1c3529}
+.video-trim-job-head{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.video-trim-job-head span{color:#aebfe1;overflow-wrap:anywhere}
+.video-trim-job progress{width:100%;height:8px;margin:8px 0 2px}
+.video-trim-job p{margin:6px 0;line-height:1.5;overflow-wrap:anywhere}
+.video-trim-job-actions{display:flex;gap:8px;flex-wrap:wrap}
+.video-trim-job-actions button{min-height:32px;padding:6px 10px;border-radius:7px}
+.video-export-chip{display:flex;align-items:center;gap:2px;border:1px solid #5d7bb3;background:#1f2e4d;border-radius:999px;padding:2px 4px 2px 2px;font-size:12px}
+.video-export-chip.state-failed,.video-export-chip.state-interrupted{border-color:#a0584f}
+.video-export-chip.state-succeeded{border-color:#4f9a72}
+.video-export-chip button{background:none;border:0;color:#dbe6fb;padding:6px 10px;border-radius:999px;cursor:pointer}
+.video-export-chip button:hover,.video-export-chip button:focus-visible{background:#2c3f66}
+.video-export-chip button:focus-visible{outline:2px solid #8eabff;outline-offset:1px}
+.video-export-chip-cancel{font-weight:600}
+@media (max-width:1200px){.video-export-chip-label{max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
 /* Real Photo Studio cropping: source pixel data remains untouched. Controls
    edit the common preview/export raster transform, not a visual-only mask. */
 .photo-crop-tools{min-width:0;margin:18px 0 15px;padding:12px;border:1px solid #405476;border-radius:10px;background:#1b2941}

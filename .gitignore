@@ -14,3 +14,6 @@ local-projects/
 model-cache/
 generated/
 src-tauri/gen/schemas/
+
+# Verified supplier binaries are staged locally and are never committed.
+src-tauri/resources/ffmpeg/

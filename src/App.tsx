@@ -17,6 +17,8 @@ import { applyPhotoEdit, createPhotoHistory, finishPhotoGesture, undoPhotoEdit, 
 import { captureVideoFrame, capturedFrameName } from "./videoFrameCapture";
 import PhotoCanvasPreview from "./PhotoCanvasPreview";
 import SessionMediaLibrary from "./SessionMediaLibrary";
+import VideoTrimPanel, { VideoExportChip } from "./VideoTrimPanel";
+import { revokeSource, useVideoExport, type GrantInfo } from "./videoTrim";
 import VideoShotComposer from "./VideoShotComposer";
 import VideoEnhancePlanner from "./VideoEnhancePlanner";
 import CreativeWorkflowExplorer from "./CreativeWorkflowExplorer";
@@ -53,6 +55,9 @@ export default function App() {
   const [includeAdultModels, setIncludeAdultModels] = useState(false);
   const [photoExportBusy, setPhotoExportBusy] = useState(false);
   const [photoExportNotice, setPhotoExportNotice] = useState("");
+  // Native export grants per session video, and the app-lifetime export job (issue #36).
+  const [videoGrants, setVideoGrants] = useState<Record<string, GrantInfo>>({});
+  const videoExport = useVideoExport();
   const [videoFrameReady, setVideoFrameReady] = useState(false);
   const [frameCaptureBusy, setFrameCaptureBusy] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -237,7 +242,7 @@ export default function App() {
       if (!kind) continue;
       const url = URL.createObjectURL(file);
       objectUrls.current.push(url);
-      accepted.push({ id: crypto.randomUUID(), name: file.name, kind, url, size: file.size, mimeType: file.type });
+      accepted.push({ id: crypto.randomUUID(), name: file.name, kind, url, size: file.size, mimeType: file.type, lastModifiedMs: file.lastModified });
     }
     if (accepted.length > 0) {
       setItems((previous) => [...previous, ...accepted]);
@@ -366,6 +371,12 @@ export default function App() {
       delete next[id];
       return next;
     });
+    // Removing a clip from the session also withdraws its native export permission.
+    const grant = videoGrants[id];
+    if (grant) {
+      void revokeSource(grant.grantId);
+      setVideoGrants((previous) => { const next = { ...previous }; delete next[id]; return next; });
+    }
     setPhotoDimensions((previous) => {
       const next = { ...previous };
       delete next[id];
@@ -403,7 +414,7 @@ export default function App() {
       <div className="shell">
         <header className="topbar">
           <div className="breadcrumbs">OPTIC RIFT <span>/</span> {routeTitle[view]}</div>
-          <div className="top-actions"><button className="project-pill" onClick={() => setView("projects")} title="Choose a project">{project ? "Project: " + project.name : "No project open"}</button><span className="pill">PRE-ALPHA</span><button className="top-button" onClick={() => setView("models")}>Model manager</button></div>
+          <div className="top-actions"><VideoExportChip exporter={videoExport} onOpen={() => setView("video")} /><button className="project-pill" onClick={() => setView("projects")} title="Choose a project">{project ? "Project: " + project.name : "No project open"}</button><span className="pill">PRE-ALPHA</span><button className="top-button" onClick={() => setView("models")}>Model manager</button></div>
         </header>
 
         {view === "projects" && <ProjectChooser current={project} onOpened={(opened) => { setProject(opened); setView("library"); }} />}
@@ -496,7 +507,7 @@ export default function App() {
             {view === "video" && <div className="timeline-panel"><div className="timeline-heading"><strong>Timeline preview</strong><span>Non-destructive markers only</span></div>
               {isVideo ? <>
                 <input className="scrubber" type="range" aria-label="Scrub video" min={0} max={Math.max(duration, 0.01)} step={0.01} value={Math.min(playhead, duration || 0)} onChange={(e) => seek(Number(e.target.value))} />
-                <div className="trim-tools"><button onClick={setInPoint}>Mark in: {formatTime(trimIn)}</button><button onClick={setOutPoint}>Mark out: {trimOut === null ? "end" : formatTime(trimOut)}</button><span>Preview markers only; exporting trims is not available yet.</span></div>
+                <div className="trim-tools"><button onClick={setInPoint}>Mark in: {formatTime(trimIn)}</button><button onClick={setOutPoint}>Mark out: {trimOut === null ? "end" : formatTime(trimOut)}</button><span>Markers set the range for Save trimmed video.</span></div>
                 <div className="timeline-clip"><span>▶</span><strong>{selected?.name}</strong></div>
               </> : <div className="timeline-empty">Select a video to see its clip timeline.</div>}
             </div>}
@@ -614,9 +625,19 @@ export default function App() {
                   {frameCaptureBusy ? "Capturing frame…" : "Capture frame to Photo Studio"}
                 </button>
                 <p>This frame is held only for this session. The original video is unchanged. Use Photo Studio's separate Save action to export a PNG.</p>
+                <VideoTrimPanel clip={isVideo && selected ? selected : null} ready={isVideo}
+                  inSeconds={trimIn} outSeconds={trimOut} grant={selected ? videoGrants[selected.id] : undefined}
+                  onGrant={(grant) => setVideoGrants((previous) => ({ ...previous, [grant.assetId]: grant }))}
+                  onGrantInvalid={() => {
+                    const id = selected?.id;
+                    const stale = id ? videoGrants[id] : undefined;
+                    if (!id || !stale) return;
+                    void revokeSource(stale.grantId);
+                    setVideoGrants((previous) => { const next = { ...previous }; delete next[id]; return next; });
+                  }}
+                  exporter={videoExport} formatTime={formatTime} />
                 <strong>Video timeline editing is not yet available.</strong>
-                <p>You can play a local clip, seek in 0.1-second steps, and mark an in/out range. Markers are preview-only. Clip assembly, transitions and video export still need qualified native implementation.</p>
-                {isVideo && <p>Current preview range: {formatTime(trimIn)} to {formatTime(trimOut ?? duration)}.</p>}
+                <p>You can play a local clip, seek in 0.1-second steps, mark an in/out range and save that range as a new MP4. Clip assembly, transitions and multi-clip export still need qualified native implementation.</p>
               </div>}
             {view === "photo" && <>
               <button className="secondary full" onClick={() => setView("create")}>Create an image</button>

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "resources": {
+      "resources/ffmpeg/ffmpeg.exe": "ffmpeg/ffmpeg.exe",
+      "resources/ffmpeg/ffprobe.exe": "ffmpeg/ffprobe.exe",
+      "resources/ffmpeg/provenance.json": "ffmpeg/provenance.json"
+    }
+  }
+}
