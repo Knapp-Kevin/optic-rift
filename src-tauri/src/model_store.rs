@@ -221,7 +221,17 @@ pub fn remove(models: &Path, repo: &str, revision: &str) -> Result<(), String> {
 /// Verify every file again before a *fresh worker load*, not between warm image jobs.
 /// The snapshot is not a defense against another local process replacing a file
 /// after verification. Never treat size-only installed-state checks as integrity proof.
+#[cfg(test)]
 pub fn verify_installed_files(model: &InstalledModel) -> Result<(), String> {
+    verify_installed_files_until(model, &|| false)
+}
+
+/// Same verification, but `stop` is polled between 4 MiB reads so a user Cancel does not have to
+/// wait for gigabytes of hashing. Stopping is reported as an error; nothing is ever treated as verified.
+pub fn verify_installed_files_until(
+    model: &InstalledModel,
+    stop: &dyn Fn() -> bool,
+) -> Result<(), String> {
     let dir = &model.dir;
     let manifest = &model.manifest;
     if manifest.files.is_empty() {
@@ -271,8 +281,13 @@ pub fn verify_installed_files(model: &InstalledModel) -> Result<(), String> {
                 file.path
             ));
         }
-        let (actual, _) = hash_file(&path, false)
-            .map_err(|_| format!("Could not verify model file: {}.", file.path))?;
+        let (actual, _) = hash_file_until(&path, false, stop).map_err(|e| {
+            if e.kind() == std::io::ErrorKind::Interrupted {
+                "Model verification was stopped.".to_string()
+            } else {
+                format!("Could not verify model file: {}.", file.path)
+            }
+        })?;
         if actual != file.sha256 {
             return Err(format!(
                 "Model file integrity check failed for {}. Remove and reinstall this revision.",
@@ -305,6 +320,14 @@ fn file_is_reparse_point(_metadata: &fs::Metadata) -> bool {
 
 /// Hash a whole file with SHA-256 (and git-blob SHA-1 when asked).
 fn hash_file(path: &Path, git_blob: bool) -> std::io::Result<(String, Option<String>)> {
+    hash_file_until(path, git_blob, &|| false)
+}
+
+fn hash_file_until(
+    path: &Path,
+    git_blob: bool,
+    stop: &dyn Fn() -> bool,
+) -> std::io::Result<(String, Option<String>)> {
     let mut file = File::open(path)?;
     let len = file.metadata()?.len();
     let mut sha256 = Sha256::new();
@@ -315,6 +338,12 @@ fn hash_file(path: &Path, git_blob: bool) -> std::io::Result<(String, Option<Str
     });
     let mut buf = vec![0u8; 4 << 20];
     loop {
+        if stop() {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Interrupted,
+                "hashing stopped",
+            ));
+        }
         let n = file.read(&mut buf)?;
         if n == 0 {
             break;
@@ -1133,6 +1162,11 @@ mod tests {
             files_present: true,
         };
         assert!(verify_installed_files(&model).is_ok());
+        // A stop request is an error, never a silent pass.
+        assert_eq!(
+            verify_installed_files_until(&model, &|| true).unwrap_err(),
+            "Model verification was stopped."
+        );
         let altered = b"wrong verified model data";
         assert_eq!(altered.len(), content.len());
         fs::write(&path, altered).unwrap();

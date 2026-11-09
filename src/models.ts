@@ -42,16 +42,25 @@ export type InstalledModel = { manifest: Manifest; dir: string; files_present: b
 export type Inspection = { detail: ModelDetail; cached_metadata: boolean; installed: InstalledModel | null; gpu: GpuInfo; runtime_installed: boolean; model_dir: string; free_bytes: number | null };
 export type RuntimeManifest = { runtime: string; python: string; torch: string; diffusers: string; cuda_available: boolean; device: string | null };
 export type RuntimeStatus = { installed: RuntimeManifest | null; uv_available: boolean; uv_executable: { path: string; sha256: string } | null; root: string; torch_index: string; torch: string; packages: string[] };
-export type ModelLibrary = { model_dir: string; free_bytes: number | null; installed: InstalledModel[]; loaded: [string, string] | null; runtime: RuntimeStatus; gpu: GpuInfo };
+export type ModelLibrary = { qualified_image_ready: boolean; model_dir: string; free_bytes: number | null; installed: InstalledModel[]; loaded: [string, string] | null; runtime: RuntimeStatus; gpu: GpuInfo };
+/** Default to Create only for a locally qualified, executable model.
+ * New validated model families must be added with an exact revision receipt.
+ * This display preference is NOT an inference authorization boundary.
+ */
+export function hasQualifiedLocalImageModel(library: ModelLibrary): boolean {
+  // Native registry decides which exact revisions have earned a qualification receipt.
+  return library.qualified_image_ready === true;
+}
+
 export type InstallEvent = { install_id: string; repo: string; state: string; file: string | null; file_index: number; file_count: number; bytes_done: number; bytes_total: number; message: string | null };
 export type Provenance = {
   job_id: string; created_unix_ms: number; prompt: string; negative_prompt: string;
-  parameters: { width: number; height: number; steps: number; guidance: number; seed: number };
+  parameters: { width: number; height: number; steps: number; guidance: number; seed: number; mode?: "text-to-image" | "image-to-image"; strength?: number | null };
   model: { repo: string; revision: string; adapter: string; license: string | null };
   runtime: { torch: string; diffusers: string; device: string | null };
   output: { sha256: string; width: number; height: number; bytes: number };
   metrics: { generation_seconds: number | null; load_seconds: number | null; peak_vram_allocated_mb: number | null };
-  project_id: string | null; lineage_note: string;
+  project_id: string | null; source?: { role: "initial-image"; job_id: string; sha256: string; width: number; height: number } | null; lineage_note: string;
 };
 
 export type StateFlag = { reached: boolean; detail: string };
