@@ -58,7 +58,7 @@ export default function ProjectChooser({ current, onOpened }: Props) {
     <main className="content-page projects-page">
       <div className="page-eyebrow">PROJECTS</div>
       <h1>Choose a project.</h1>
-      <p className="lead">Projects are saved on this computer and are available after you restart Optic Rift. Right now a project stores only its name; imported media is not saved into projects yet.</p>
+      <p className="lead">Projects are saved on this computer and are available after you restart Optic Rift. Projects store their names and explicitly saved PNG originals with versioned photo edits. Imported media is still session-only until saved; video and JPEG/WebP project storage are not yet supported.</p>
 
       <form className="project-create" onSubmit={create}>
         <label className="field-label" htmlFor="project-name">New project name</label>
