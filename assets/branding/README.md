@@ -22,9 +22,22 @@ The generator prefers assets/branding/optic-rift-approved-master.png if present;
 
 It generates src-tauri/icons/icon.ico with 16, 24, 32, 48, 64, 128 and 256px frames, plus per-size PNGs and the common Tauri icon names: icon.png, 32x32.png, 128x128.png and 128x128@2x.png.
 
-Validate the generation logic locally:
+Generate and commit the approved native assets from the known source, then verify
+that the actual tracked Tauri icon files match the approved artwork pixel for
+pixel (including every embedded ICO size):
 
+    python scripts/generate_windows_icons.py
+    python scripts/generate_windows_icons.py --verify
     python -m unittest discover -s tests -p 'test_branding_icons.py' -v
+    git status --short src-tauri/icons
+    git add src-tauri/icons
+    git commit -m "branding: install approved Windows application icons [skip ci]"
+
+The tests now **intentionally fail** while `src-tauri/icons/icon.ico` is still
+the placeholder or the expected PNG derivatives are absent. This is a genuine
+packaging blocker, not a broken generator. No change to the approved WebP
+source file or its SHA-256 is permitted. Only the generated native icon files
+should be committed with this operation.
 
 The [unmerged desktop foundation PR #1](https://github.com/Knapp-Kevin/optic-rift/pull/1) contains a **placeholder** Windows icon. Running this script in the integrated source checkout creates candidate assets but is not proof of installer adoption. Verify the exact resulting app and installer on Windows: Start, taskbar, Alt+Tab, titlebar, high-DPI modes and installed-app icon metadata. Keep merge, installer signing and release as separate owner-gated decisions.
 
