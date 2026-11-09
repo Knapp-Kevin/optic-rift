@@ -76,7 +76,7 @@ class ReleasePreflightTests(unittest.TestCase):
         self.provenance["tools"]["ffprobe.exe"] = digest
         self.env["OPTIC_RIFT_FFPROBE_SHA256"] = digest
         self.write_manifest()
-        with self.assertRaisesRegex(ValueError, "Not a Windows executable"):
+        with self.assertRaisesRegex(ValueError, "Not a Windows PE"):
             verify(self.folder, self.env)
 
     def test_wrong_architecture(self):
