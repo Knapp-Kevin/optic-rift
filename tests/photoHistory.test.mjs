@@ -80,7 +80,7 @@ test("Photo Studio exposes functional undo redo reset and explicit session-only 
   assert.match(app, /window\.addEventListener\("keydown", onKeyDown\)/);
   assert.match(app, /These edits are not saved in your project/);
   assert.match(app, /delete next\[id\]/);
-  assert.match(app, /await renderAdjustedPhoto\(selected\.url, \{ brightness, contrast, saturation, rotation, straightenTenths, crop, flipHorizontal, flipVertical \}\)/);
+  assert.match(app, /await renderAdjustedPhoto\(selected\.url, \{ brightness, contrast, saturation, rotation, straightenTenths, resizeLongEdge, crop, flipHorizontal, flipVertical \}\)/);
   assert.doesNotMatch(app, /localStorage\.setItem|sessionStorage\.setItem/);
 });
 
