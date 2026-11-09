@@ -2,8 +2,8 @@
  * This prototype does not authorize linked external paths, JPEG/WebP project
  * storage, project portability, automatic saving, or an encrypted vault.
  */
-import { loadPhotoBitmap, validatePhotoAdjustments, MAX_PHOTO_SOURCE_BYTES, type PhotoAdjustments } from "./photoEdits";
-import { errorText, type Invoke, type Result } from "./projects";
+import { loadPhotoBitmap, validatePhotoAdjustments, MAX_PHOTO_SOURCE_BYTES, type PhotoAdjustments } from "./photoEdits.ts";
+import { errorText, type Invoke, type Result } from "./projects.ts";
 
 export const PROJECT_PHOTO_RECIPE_VERSION = 1;
 
@@ -52,6 +52,7 @@ export function recipeFromEdits(adjustments: PhotoAdjustments): PhotoRecipe {
 }
 
 export function editsFromRecipe(recipe: PhotoRecipe): PhotoAdjustments {
+  if (!recipe || typeof recipe !== "object") throw new Error("The saved photo edit document is invalid.");
   if (recipe.schema_version !== PROJECT_PHOTO_RECIPE_VERSION) {
     throw new Error("This photo uses an unsupported edit document version.");
   }
