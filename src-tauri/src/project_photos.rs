@@ -227,7 +227,7 @@ fn write_new(path: &Path, bytes: &[u8]) -> Result<(), String> {
         .map_err(|_| "Could not commit project photo bytes.")?;
     Ok(())
 }
-fn write_revision(dir: &Path, doc: &PhotoDocument) -> Result<(), String> {
+fn write_revision(dir: &Path, doc: &PhotoDocument, published: bool) -> Result<(), String> {
     let bytes = serde_json::to_vec_pretty(doc).map_err(|_| "Cannot encode edit document.")?;
     if bytes.len() as u64 > MAX_DOCUMENT_BYTES {
         return Err("Photo edit document exceeds size limit.".into());
@@ -238,9 +238,20 @@ fn write_revision(dir: &Path, doc: &PhotoDocument) -> Result<(), String> {
     }
     let temporary = dir.join(format!(".{}.{}.partial", doc.revision, Uuid::new_v4()));
     write_new(&temporary, &bytes)?;
-    if let Err(_) = fs::rename(&temporary, &destination) {
-        // A failed rename leaves only a hidden, ignored file; never a phantom revision.
-        return Err("Could not commit a complete photo revision.".into());
+    if published {
+        // Cross-process create-if-absent: rename can REPLACE an existing file
+        // on some OS/filesystems even when our pre-check saw it absent. Hard
+        // linking a fully synced staging file to a new revision name is atomic
+        // and refuses collisions. Both paths are in the same trusted folder.
+        // If the filesystem cannot provide that guarantee, refuse the save.
+        fs::hard_link(&temporary, &destination)
+            .map_err(|_| "Could not publish a unique photo revision without overwriting.")?;
+        let _ = fs::remove_file(&temporary);
+    } else {
+        // New asset is hidden in a private staging directory until that whole
+        // directory is published. No other app can observe its first revision.
+        fs::rename(&temporary, &destination)
+            .map_err(|_| "Could not commit the initial photo revision.".to_string())?;
     }
     Ok(())
 }
@@ -328,7 +339,7 @@ pub fn save(root: &Path, req: SavePhotoRequest) -> Result<PhotoDocument, String>
         let doc = PhotoDocument {
             revision: latest.revision + 1, edits: req.edits, ..latest
         };
-        write_revision(&asset_dir(root, &project, &asset), &doc)?;
+        write_revision(&asset_dir(root, &project, &asset), &doc, true)?;
         return Ok(doc);
     }
     if req.expected_revision.is_some() {
@@ -356,7 +367,7 @@ pub fn save(root: &Path, req: SavePhotoRequest) -> Result<PhotoDocument, String>
         edits: req.edits,
     };
     write_new(&staging.join("original.png"), &bytes)?;
-    write_revision(&staging, &doc)?;
+    write_revision(&staging, &doc, false)?;
     // Atomic folder publication. A crash before rename leaves only hidden
     // .<uuid>.partial staging data, which list() never advertises as an asset.
     fs::rename(&staging, &final_dir)
@@ -517,6 +528,25 @@ mod tests {
             expected_revision: Some(1), ..request(&a.id)
         }).is_err());
         assert_eq!(open(root.path(), &a.id, &original.asset_id).unwrap().document.revision, 1);
+    }
+
+    #[test]
+    fn published_revision_is_create_only_even_if_a_second_writer_reuses_its_number() {
+        let root = TestRoot::new();
+        let project = crate::project_store::create(root.path(), "Project").unwrap();
+        let first = save(root.path(), request(&project.id)).unwrap();
+        let folder = asset_dir(root.path(), &checked_id(&project.id).unwrap(),
+            &checked_id(&first.asset_id).unwrap());
+        let mut revision = first.clone();
+        revision.revision = 2;
+        revision.edits.saturation = 123;
+        write_revision(&folder, &revision, true).unwrap();
+        let before = fs::read(folder.join("r000002.json")).unwrap();
+        revision.edits.saturation = 200;
+        assert!(write_revision(&folder, &revision, true).is_err());
+        assert_eq!(fs::read(folder.join("r000002.json")).unwrap(), before);
+        assert_eq!(latest_document(root.path(), &checked_id(&project.id).unwrap(),
+            &checked_id(&first.asset_id).unwrap()).unwrap().edits.saturation, 123);
     }
 
     #[test]
