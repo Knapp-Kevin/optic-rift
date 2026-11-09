@@ -16,6 +16,10 @@ const MAX_PNG_EDGE: u32 = 8192;
 const MAX_PNG_PIXELS: u64 = 20_000_000;
 const MAX_DECODE_BYTES: usize = 80 * 1024 * 1024;
 
+fn neutral_saturation_percent() -> u16 {
+    100
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct PhotoCrop {
@@ -33,6 +37,9 @@ pub struct PhotoExportRequest {
     pub source_sha256: String,
     pub brightness: u16,
     pub contrast: u16,
+    /// Defaults to neutral for pre-saturation clients.
+    #[serde(default = "neutral_saturation_percent")]
+    pub saturation_percent: u16,
     pub rotation: u16,
     pub crop: Option<PhotoCrop>,
     /// Optional for older callers; strict booleans prevent forged IPC shapes.
@@ -78,6 +85,7 @@ fn validate_request(r: &PhotoExportRequest) -> Result<(), String> {
     }
     if !(25..=175).contains(&r.brightness)
         || !(25..=175).contains(&r.contrast)
+        || r.saturation_percent > 200
         || !matches!(r.rotation, 0 | 90 | 180 | 270)
         || !valid_source_hash(&r.source_sha256)
     {
@@ -207,6 +215,7 @@ pub fn export_to_pictures(
         "adjustments": {
             "brightness_percent": request.brightness,
             "contrast_percent": request.contrast,
+            "saturation_percent": request.saturation_percent,
             "rotation_degrees_clockwise": request.rotation,
             "crop_insets_basis_points_of_rotated_image": &request.crop,
             "flip_display_horizontal": request.flip_horizontal,
@@ -267,6 +276,7 @@ mod tests {
             source_sha256: "a".repeat(64),
             brightness: 100,
             contrast: 100,
+            saturation_percent: 100,
             rotation: 0,
             crop: None,
             flip_horizontal: false,
@@ -332,6 +342,7 @@ mod tests {
         fs::write(&original, &original_bytes).unwrap();
         let first = export_to_pictures(&root, fixture()).unwrap();
         let mut flipped = fixture();
+        flipped.saturation_percent = 75;
         flipped.flip_horizontal = true;
         flipped.flip_vertical = true;
         let second = export_to_pictures(&root, flipped).unwrap();
@@ -346,6 +357,10 @@ mod tests {
         assert_eq!(
             receipt_json["adjustments"]["flip_display_vertical"].as_bool(),
             Some(true)
+        );
+        assert_eq!(
+            receipt_json["adjustments"]["saturation_percent"].as_u64(),
+            Some(75)
         );
         assert_ne!(first.path, second.path);
         assert_eq!(fs::read(&original).unwrap(), original_bytes);
@@ -407,6 +422,29 @@ mod tests {
             "no folder or file before validation passes"
         );
         fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn saturation_defaults_neutral_and_refuses_invalid_input() {
+        let payload = serde_json::json!({
+            "png_base64": "",
+            "source_sha256": "a".repeat(64),
+            "brightness": 100, "contrast": 100, "rotation": 0,
+            "width": 1, "height": 1, "accept_pictures_export": true
+        });
+        let old: PhotoExportRequest = serde_json::from_value(payload.clone()).unwrap();
+        assert_eq!(old.saturation_percent, 100);
+        let mut invalid = payload.clone();
+        invalid["saturation_percent"] = serde_json::json!("200");
+        assert!(serde_json::from_value::<PhotoExportRequest>(invalid).is_err());
+        let mut invalid_range = fixture();
+        invalid_range.saturation_percent = 201;
+        assert!(decode_verified_png(&invalid_range).is_err());
+        let mut valid = fixture();
+        valid.saturation_percent = 0;
+        assert!(decode_verified_png(&valid).is_ok());
+        valid.saturation_percent = 200;
+        assert!(decode_verified_png(&valid).is_ok());
     }
 
     #[test]

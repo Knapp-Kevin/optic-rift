@@ -11,7 +11,7 @@ export type PhotoEditHistory = {
 
 export const MAX_PHOTO_UNDO = 40;
 export const DEFAULT_PHOTO_EDITS: Readonly<PhotoAdjustments> = Object.freeze({
-  brightness: 100, contrast: 100, rotation: 0,
+  brightness: 100, contrast: 100, saturation: 100, rotation: 0,
 });
 
 function snapshot(value: PhotoAdjustments): PhotoAdjustments {
@@ -23,6 +23,7 @@ function equals(a: PhotoAdjustments, b: PhotoAdjustments): boolean {
   const ac = a.crop ?? EMPTY_PHOTO_CROP;
   const bc = b.crop ?? EMPTY_PHOTO_CROP;
   return a.brightness === b.brightness && a.contrast === b.contrast &&
+    (a.saturation ?? 100) === (b.saturation ?? 100) &&
     a.rotation === b.rotation && (a.flipHorizontal ?? false) === (b.flipHorizontal ?? false) &&
     (a.flipVertical ?? false) === (b.flipVertical ?? false) &&
     ac.left === bc.left && ac.top === bc.top &&

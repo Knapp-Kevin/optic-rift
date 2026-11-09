@@ -80,6 +80,7 @@ export default function App() {
   const edits = editHistory?.present;
   const brightness = edits?.brightness ?? 100;
   const contrast = edits?.contrast ?? 100;
+  const saturation = edits?.saturation ?? 100;
   const rotation = edits?.rotation ?? 0;
   const flipHorizontal = edits?.flipHorizontal ?? false;
   const flipVertical = edits?.flipVertical ?? false;
@@ -272,10 +273,11 @@ export default function App() {
     setPhotoExportBusy(true);
     setPhotoExportNotice("Rendering and validating your edited photo…");
     try {
-      const png = await renderAdjustedPhoto(selected.url, { brightness, contrast, rotation, crop, flipHorizontal, flipVertical });
+      const png = await renderAdjustedPhoto(selected.url, { brightness, contrast, saturation, rotation, crop, flipHorizontal, flipVertical });
       const receipt = await invoke<{ path: string; sha256: string; width: number; height: number }>("photo_export_copy", {
         request: {
           ...png, brightness, contrast, rotation,
+          saturation_percent: saturation,
           crop: { ...crop },
           flip_horizontal: flipHorizontal,
           flip_vertical: flipVertical,
@@ -466,7 +468,7 @@ export default function App() {
               {selected && previewFailed && <div className="empty-canvas preview-failed" role="alert"><div className="empty-icon">⚠</div><h1>Can't preview {selected.name}</h1><p>{selected.kind === "image" ? IMAGE_PREVIEW_FAILED : VIDEO_PREVIEW_FAILED}</p></div>}
               {editablePhoto && !previewFailed && <PhotoCanvasPreview key={selected.id}
                 sourceUrl={selected.url} label={selected.name}
-                brightness={brightness} contrast={contrast} rotation={rotation} crop={crop}
+                brightness={brightness} contrast={contrast} saturation={saturation} rotation={rotation} crop={crop}
                 flipHorizontal={flipHorizontal} flipVertical={flipVertical}
                 onDimensions={(dims) => setPhotoDimensions((previous) =>
                   previous[selected.id]?.width === dims.width && previous[selected.id]?.height === dims.height
@@ -511,7 +513,7 @@ export default function App() {
                 <button type="button" className="secondary" disabled={photoExportBusy || !editHistory?.future.length}
                   title="Redo edit (Ctrl+Y or Ctrl+Shift+Z)" onClick={() => stepPhotoHistory("redo")}>Redo</button>
                 <button type="button" className="secondary" disabled={photoExportBusy ||
-                  (brightness === 100 && contrast === 100 && rotation === 0 &&
+                  (brightness === 100 && contrast === 100 && saturation === 100 && rotation === 0 &&
                    !flipHorizontal && !flipVertical && Object.values(crop).every((n) => n === 0))}
                   onClick={() => updatePhotoAdjustments({ ...DEFAULT_PHOTO_EDITS, crop: { ...EMPTY_PHOTO_CROP },
                     flipHorizontal: false, flipVertical: false })}>Reset all</button>
@@ -528,6 +530,11 @@ export default function App() {
               <label>Contrast <output>{contrast}%</output><input type="range" min="25" max="175" value={contrast} disabled={photoExportBusy}
                 onChange={(event) => updatePhotoAdjustments({ contrast: Number(event.target.value) }, "contrast")}
                 onPointerUp={finishPhotoSlider} onPointerCancel={finishPhotoSlider} onKeyUp={finishPhotoSlider} onBlur={finishPhotoSlider} /></label>
+              <label>Saturation <output>{saturation}%</output><input type="range" min="0" max="200" step="1"
+                value={saturation} disabled={photoExportBusy} aria-label="Photo saturation percent"
+                onChange={(event) => updatePhotoAdjustments({ saturation: Number(event.target.value) }, "saturation")}
+                onPointerUp={finishPhotoSlider} onPointerCancel={finishPhotoSlider}
+                onKeyUp={finishPhotoSlider} onBlur={finishPhotoSlider} /></label>
               <button className="secondary full" disabled={photoExportBusy}
                 onClick={() => updatePhotoAdjustments({ rotation: (rotation + 90) % 360 })}>Rotate photo 90°</button>
               <div className="photo-flip-actions" role="group" aria-label="Flip image">
