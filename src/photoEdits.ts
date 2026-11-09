@@ -19,6 +19,8 @@ export type PhotoAdjustments = {
   rotation: number;
   /** Fine clockwise leveling, in tenths of a degree (-15.0° to +15.0°). */
   straightenTenths?: number;
+  /** Optional longest output edge in pixels; downscale only, no stretching/upscaling. */
+  resizeLongEdge?: number;
   crop?: PhotoCrop;
   /** Flip along the displayed photo axes after rotation. */
   flipHorizontal?: boolean;
@@ -149,13 +151,14 @@ export function probePhotoDimensions(bytes: Uint8Array, mime: string): { width: 
 }
 
 export function validatePhotoAdjustments(value: PhotoAdjustments): PhotoAdjustments {
-  const { brightness, contrast, saturation = 100, rotation, straightenTenths = 0, flipHorizontal, flipVertical } = value;
+  const { brightness, contrast, saturation = 100, rotation, straightenTenths = 0, resizeLongEdge, flipHorizontal, flipVertical } = value;
   const crop = validatePhotoCrop(value.crop);
   if (!Number.isInteger(brightness) || brightness < 25 || brightness > 175 ||
       !Number.isInteger(contrast) || contrast < 25 || contrast > 175 ||
       !Number.isInteger(saturation) || saturation < 0 || saturation > 200 ||
       !Number.isInteger(rotation) || ![0, 90, 180, 270].includes(rotation) ||
       !Number.isInteger(straightenTenths) || straightenTenths < -150 || straightenTenths > 150 ||
+      (resizeLongEdge !== undefined && (!Number.isInteger(resizeLongEdge) || resizeLongEdge < 32 || resizeLongEdge > MAX_PHOTO_EDGE)) ||
       (flipHorizontal !== undefined && typeof flipHorizontal !== "boolean") ||
       (flipVertical !== undefined && typeof flipVertical !== "boolean")) {
     throw new Error("Photo adjustment values are outside the supported export range.");
@@ -163,6 +166,7 @@ export function validatePhotoAdjustments(value: PhotoAdjustments): PhotoAdjustme
   return { brightness, contrast, rotation,
     ...(value.saturation !== undefined ? { saturation } : {}),
     ...(value.straightenTenths !== undefined ? { straightenTenths } : {}),
+    ...(resizeLongEdge !== undefined ? { resizeLongEdge } : {}),
     ...(value.crop ? { crop } : {}),
     ...(flipHorizontal !== undefined ? { flipHorizontal } : {}),
     ...(flipVertical !== undefined ? { flipVertical } : {}) };
@@ -219,23 +223,45 @@ export function photoStraightenCoverScale(width: number, height: number, tenths:
  * preview's bounded output resolution; canvas color/filter order is identical.
  * The source ImageBitmap is owned by the caller and must be closed by it.
  */
+/** Compute exact output dimensions after quarter rotation and crop.
+ * Resize is downscale-only: a requested longer edge than the source cannot
+ * invent pixels. No aspect distortion, and the original bitmap is immutable.
+ */
+export function photoResizedOutputDimensions(
+  sourceWidth: number, sourceHeight: number, rotation: number,
+  crop: PhotoCrop = EMPTY_PHOTO_CROP, resizeLongEdge?: number,
+): { width: number; height: number } {
+  const rotated = photoExportDimensions(sourceWidth, sourceHeight, rotation);
+  const bounds = photoCropBounds(rotated.width, rotated.height, crop);
+  if (resizeLongEdge !== undefined &&
+      (!Number.isInteger(resizeLongEdge) || resizeLongEdge < 32 || resizeLongEdge > MAX_PHOTO_EDGE)) {
+    throw new Error("Resize longest edge must be an integer between 32 and 8192 pixels.");
+  }
+  if (resizeLongEdge === undefined) return { width: bounds.width, height: bounds.height };
+  const scale = Math.min(1, resizeLongEdge / Math.max(bounds.width, bounds.height));
+  return {
+    width: Math.max(1, Math.round(bounds.width * scale)),
+    height: Math.max(1, Math.round(bounds.height * scale)),
+  };
+}
+
 export function photoPaintDimensions(
   originalWidth: number, originalHeight: number, rotation: number, maxPreviewEdge?: number,
-  crop: PhotoCrop = EMPTY_PHOTO_CROP,
+  crop: PhotoCrop = EMPTY_PHOTO_CROP, resizeLongEdge?: number,
 ): { width: number; height: number; drawWidth: number; drawHeight: number } {
-  const rotated = photoExportDimensions(originalWidth, originalHeight, rotation);
-  const bounds = photoCropBounds(rotated.width, rotated.height, crop);
+  const natural = photoResizedOutputDimensions(originalWidth, originalHeight, rotation, crop);
+  const resized = photoResizedOutputDimensions(originalWidth, originalHeight, rotation, crop, resizeLongEdge);
   if (maxPreviewEdge !== undefined &&
       (!Number.isInteger(maxPreviewEdge) || maxPreviewEdge < 128 || maxPreviewEdge > 2048)) {
     throw new Error("The requested photo preview dimensions are invalid.");
   }
-  const scale = maxPreviewEdge === undefined ? 1 :
-    Math.min(1, maxPreviewEdge / Math.max(bounds.width, bounds.height));
+  const scale = Math.min(resized.width / natural.width, resized.height / natural.height,
+    maxPreviewEdge === undefined ? 1 : maxPreviewEdge / Math.max(natural.width, natural.height));
   const drawWidth = Math.max(1, Math.round(originalWidth * scale));
   const drawHeight = Math.max(1, Math.round(originalHeight * scale));
   return {
-    width: Math.max(1, Math.round(bounds.width * scale)),
-    height: Math.max(1, Math.round(bounds.height * scale)),
+    width: maxPreviewEdge === undefined ? resized.width : Math.max(1, Math.round(natural.width * scale)),
+    height: maxPreviewEdge === undefined ? resized.height : Math.max(1, Math.round(natural.height * scale)),
     drawWidth, drawHeight,
   };
 }
@@ -244,11 +270,11 @@ export function paintAdjustedPhoto(
   bitmap: ImageBitmap, edits: PhotoAdjustments,
   canvas: HTMLCanvasElement, maxPreviewEdge?: number,
 ): { width: number; height: number } {
-  const { brightness, contrast, saturation = 100, rotation, straightenTenths = 0, crop, flipHorizontal, flipVertical } = validatePhotoAdjustments(edits);
+  const { brightness, contrast, saturation = 100, rotation, straightenTenths = 0, resizeLongEdge, crop, flipHorizontal, flipVertical } = validatePhotoAdjustments(edits);
   const rotated = photoExportDimensions(bitmap.width, bitmap.height, rotation);
   const bounds = photoCropBounds(rotated.width, rotated.height, crop);
   const { width, height } =
-    photoPaintDimensions(bitmap.width, bitmap.height, rotation, maxPreviewEdge, crop);
+    photoPaintDimensions(bitmap.width, bitmap.height, rotation, maxPreviewEdge, crop, resizeLongEdge);
   const scaleX = width / bounds.width;
   const scaleY = height / bounds.height;
   canvas.width = width;
