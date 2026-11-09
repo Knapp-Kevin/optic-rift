@@ -555,14 +555,14 @@ export default function App() {
                 <div className="photo-resize-presets" role="group" aria-label="Resize presets">
                   <button type="button" className="secondary" disabled={photoExportBusy || resizeLongEdge === undefined}
                     onClick={() => updatePhotoAdjustments({ resizeLongEdge: undefined })}>Original</button>
-                  <button type="button" className="secondary" disabled={photoExportBusy || !naturalOutput || naturalLongestEdge < 32}
-                    onClick={() => updatePhotoAdjustments({ resizeLongEdge: Math.max(32, Math.round(naturalLongestEdge / 2)) })}>Half</button>
-                  <button type="button" className="secondary" disabled={photoExportBusy || !naturalOutput || naturalLongestEdge < 32}
-                    onClick={() => updatePhotoAdjustments({ resizeLongEdge: Math.max(32, Math.round(naturalLongestEdge / 4)) })}>Quarter</button>
+                  <button type="button" className="secondary" disabled={photoExportBusy || !naturalOutput || naturalLongestEdge < 64}
+                    onClick={() => updatePhotoAdjustments({ resizeLongEdge: Math.round(naturalLongestEdge / 2) })}>Half</button>
+                  <button type="button" className="secondary" disabled={photoExportBusy || !naturalOutput || naturalLongestEdge < 128}
+                    onClick={() => updatePhotoAdjustments({ resizeLongEdge: Math.round(naturalLongestEdge / 4) })}>Quarter</button>
                 </div>
                 <label>Longest edge <output>{resizedOutput ? Math.max(resizedOutput.width, resizedOutput.height) : "—"} px</output>
                   <input type="range" min="32" max={Math.max(32, naturalLongestEdge)} step="1"
-                    value={resizeLongEdge ?? naturalLongestEdge} aria-label="Output longest edge pixels"
+                    value={Math.min(resizeLongEdge ?? naturalLongestEdge, naturalLongestEdge)} aria-label="Output longest edge pixels"
                     disabled={photoExportBusy || !naturalOutput || naturalLongestEdge < 32}
                     onChange={(event) => updatePhotoAdjustments({ resizeLongEdge: Number(event.target.value) }, "resize")}
                     onPointerUp={finishPhotoSlider} onPointerCancel={finishPhotoSlider}
