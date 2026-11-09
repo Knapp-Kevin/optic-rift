@@ -354,3 +354,9 @@
   .photo-workspace .editor-inspector .adjustments{width:100%;min-width:0}
   .photo-workspace .editor-inspector .photo-crop-tools{max-width:440px}
 }
+
+/* Bounded, session-only Photo Studio edit history. Keep actions readable at 1280px. */
+.photo-history-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:10px 0 8px}
+.photo-history-actions .secondary{min-width:0;min-height:36px;padding:8px 4px;font-size:11px}
+.photo-history-actions .secondary:disabled{opacity:.45;cursor:not-allowed}
+.adjustments p.photo-history-note{margin:0 0 14px;font-size:11px;line-height:1.55;color:#a8badb}
