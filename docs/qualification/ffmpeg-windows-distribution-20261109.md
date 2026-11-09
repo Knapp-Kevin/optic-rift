@@ -43,3 +43,7 @@ Primary references: https://ffmpeg.org/legal.html ; https://www.gyan.dev/ffmpeg/
 ## Pre-build verification versus release qualification
 
 The new `scripts/verify_ffmpeg_release.py` checks staged executable bytes, provenance, supplier archive identity, and build environment pins. Its checks are deliberately narrower than legal or production authorization. Run `python -m unittest discover -s scripts -p 'test_*ffmpeg*.py'` and then `npm run release:windows:ffmpeg` with explicitly supplied hashes. **Do not claim signing, correct x264/AAC codec configuration, valid supplier authenticity, redistributable source/notices, security of the installed files or successful installer behavior from this preflight alone.** The separate clean Windows VM acceptance and Qortara evidence are mandatory.
+
+## PE/COFF structural release gate (2026-11-09)
+
+The pre-build check now parses DOS and PE signatures, the bounded PE header offset, AMD64 machine type, PE32+ optional-header magic, executable COFF flag, section count, and a complete section table. It rejects a two-byte `MZ` impostor, an x86 executable, and a malformed/truncated PE. This is structural validation only. It does not establish Authenticode identity, security of a publisher, vulnerability status, or actual codec support. Run `python -m unittest discover -s scripts -p 'test_*ffmpeg*.py'` on the exact branch and preserve the output in the release receipt; the development environment exercised ten equivalent synthetic PE tests, but actual Windows release qualification remains outstanding.
