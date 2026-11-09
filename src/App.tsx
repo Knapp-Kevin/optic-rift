@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import ProjectChooser from "./ProjectChooser";
+import HuggingFaceAccess from "./HuggingFaceAccess";
+import ModelBrowser from "./ModelBrowser";
+import { DownloadProvider, DownloadStatus } from "./downloads";
+import GeneratePanel from "./GeneratePanel";
+import GenerationHistory from "./GenerationHistory";
 import type { ProjectRecord } from "./projects";
 import { formatSize, IMAGE_PREVIEW_FAILED, VIDEO_PREVIEW_FAILED } from "./mediaFormat";
 
@@ -22,7 +27,9 @@ export default function App() {
   const [items, setItems] = useState<MediaItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [prompt, setPrompt] = useState("");
-  const [capability, setCapability] = useState("Text to video");
+  const [capability, setCapability] = useState("Text to image");
+  const [libraryVersion, setLibraryVersion] = useState(0);
+  const [historyVersion, setHistoryVersion] = useState(0);
   const [message, setMessage] = useState("");
   const [includeAdultModels, setIncludeAdultModels] = useState(false);
   const [brightness, setBrightness] = useState(100);
@@ -87,6 +94,14 @@ export default function App() {
     }
   }
 
+  function addGenerated(result: { name: string; url: string; size: number }) {
+    objectUrls.current.push(result.url);
+    const item: MediaItem = { id: crypto.randomUUID(), name: result.name, kind: "image", url: result.url, size: result.size };
+    setItems((previous) => [...previous, item]);
+    selectItem(item.id);
+    setMessage("Generated image opened in this session. Its file and provenance stay in Optic Rift's output folder; use Save to Pictures to keep a copy elsewhere.");
+  }
+
   function seek(to: number) {
     const value = Math.min(Math.max(to, 0), duration || 0);
     if (videoRef.current) videoRef.current.currentTime = value;
@@ -109,9 +124,10 @@ export default function App() {
   }
 
   return (
+    <DownloadProvider onInstalled={() => setLibraryVersion((v) => v + 1)}>
     <div className="app">
       <aside className="navigation">
-        <div className="brand"><span className="brand-icon">◉</span><span>OPTIC <b>RIFT</b><small>VISUAL STUDIO</small></span></div>
+        <div className="brand"><img className="brand-icon-img" src="/branding/optic-rift-approved-256.webp" alt="" /><span>OPTIC <b>RIFT</b><small>VISUAL STUDIO</small></span></div>
         <div className="nav-group">
           <div className="group-label">WORKSPACE</div>
           <button className={view === "projects" ? "nav selected" : "nav"} onClick={() => setView("projects")}>▤ <span>Projects</span></button>
@@ -119,6 +135,8 @@ export default function App() {
           <button className={view === "models" ? "nav selected" : "nav"} onClick={() => setView("models")}>◈ <span>Models</span></button>
           <button className={view === "settings" ? "nav selected" : "nav"} onClick={() => setView("settings")}>⚙ <span>Settings</span></button>
         </div>
+        {/* App-lifetime download status (issue #27). Models renders its own, so never twice. */}
+        {view !== "models" && <DownloadStatus includeAdult={includeAdultModels} compact />}
         <div className="nav-footer">
           <span className="status-dot" /> Local-first
           <small>Pre-alpha architecture preview</small>
@@ -180,9 +198,11 @@ export default function App() {
             </select>
             <label className="field-label" htmlFor="prompt">Describe your idea</label>
             <textarea id="prompt" value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="A quiet mountain lake at sunrise, soft golden light and a gentle breeze..." rows={6} />
-            <div className="model-info"><strong>No model connected</strong><p>We will discover models through Hugging Face and clearly show compatibility and license terms before download.</p></div>
-            <button className="primary full" disabled>Generate · Engine required</button>
-            <button className="secondary full" onClick={() => setView("models")}>Explore model setup</button>
+            {capability === "Text to image"
+              ? <GeneratePanel prompt={prompt} projectId={project?.id ?? null} libraryVersion={libraryVersion} onOpenModels={() => setView("models")} onResult={addGenerated} onGenerated={() => setHistoryVersion(v => v + 1)} />
+              : <><div className="model-info"><strong>No adapter for {capability.toLowerCase()} yet</strong><p>You can discover these models on the Models page, but Optic Rift can only run text-to-image models today.</p></div>
+                <button className="secondary full" onClick={() => setView("models")}>Browse models</button></>}
+            <GenerationHistory refreshVersion={historyVersion} onResult={addGenerated} />
             {selected?.kind === "image" && !previewFailed && <div className="adjustments">
               <h3>Image preview adjustments</h3>
               <label>Brightness <output>{brightness}%</output><input type="range" min="25" max="175" value={brightness} onChange={(event) => setBrightness(Number(event.target.value))} /></label>
@@ -194,7 +214,9 @@ export default function App() {
           {message && <div className="notice" role="status"><span>{message}</span><button onClick={() => setMessage("")} aria-label="Dismiss notification">×</button></div>}
         </main>}
 
-        {view === "models" && <main className="content-page"><div className="page-eyebrow">MODEL LIBRARY</div><h1>Find the right tool for your idea.</h1><p className="lead">Optic Rift will discover image and video models through Hugging Face, then explain what they do, what hardware they need, how their licenses work, and what content they are intended to produce.</p>
+        {view === "models" && <main className="content-page"><div className="page-eyebrow">MODEL LIBRARY</div><h1>Find the right tool for your idea.</h1><p className="lead">Discover image and video models on Hugging Face, see what they do, what hardware they need and how they are licensed, and install the ones Optic Rift can run on this computer.</p>
+          <ModelBrowser includeAdult={includeAdultModels} onLibraryChanged={() => setLibraryVersion((v) => v + 1)} />
+          <HuggingFaceAccess />
           <div className="adult-preference">
             <div className="preference-top"><div><strong>Adult-oriented model discovery</strong><p>Models designed to create explicit sexual content will be labeled <b>Adult-focused (18+) · Explicit</b>. They will be excluded from discovery unless you opt in.</p></div><span className="adult-tag">18+</span></div>
             <label className="adult-toggle">
@@ -203,15 +225,16 @@ export default function App() {
                 const allowed = window.confirm("Adult-focused models can produce sexually explicit material. Confirm you are 18 or older and want to include their listings. Explicit previews will remain hidden until you choose to reveal them.");
                 setIncludeAdultModels(allowed);
               }} />
-              Include adult-focused models in future discovery
+              Include adult-focused models in discovery
             </label>
             <p className="preference-caption" role="status">{includeAdultModels ? "Opted in for this session. Explicit previews will still be hidden until opened intentionally." : "Off by default. This does not hide or alter media you've imported yourself."}</p>
-            <p className="preference-caption">This pre-alpha control is a session-only preference. Model search, downloads, generation, permanent settings, and age verification are not yet implemented.</p>
+            <p className="preference-caption">Session-only preference. Listings flagged "not for all audiences" by their source are shown with an 18+ badge; preview images are never loaded. This is not age verification, and unflagged models are not certified as general-audience.</p>
           </div>
-          <div className="feature-grid"><div className="feature"><span className="feature-icon">⌕</span><h3>Discover by capability</h3><p>Browse text-to-image, image-to-video, video-to-video, inpainting, restoration, and more.</p><strong>Planned</strong></div><div className="feature"><span className="feature-icon">◈</span><h3>Know before you download</h3><p>Review model audience labels, content warnings, gating, licensing, disk requirements, and hardware compatibility.</p><strong>Planned</strong></div><div className="feature"><span className="feature-icon">▣</span><h3>Install only what you want</h3><p>Separate model dependencies, explicit consent, and measured worker readiness.</p><strong>Planned</strong></div></div><p className="disclosure">Model discovery and execution are not connected in this pre-alpha shell. No Hugging Face token is requested or stored.</p></main>}
+          <p className="disclosure">Discovery is broad; execution is qualified. Search is anonymous. Installed models run in a separate local process with no network access.</p></main>}
 
-        {view === "settings" && <main className="content-page"><div className="page-eyebrow">PREFERENCES</div><h1>Your studio stays on your computer.</h1><p className="lead">Local files, user-controlled AI models, and clear permission boundaries come first.</p><div className="setting-row"><span><strong>Application shell</strong><small>{status?.stage ?? "Browser preview: native Rust bridge unavailable"}</small></span><strong>{status ? "Tauri / Rust" : "Browser-only preview"}</strong></div><div className="setting-row"><span><strong>Model execution</strong><small>Independent Python engines; none connected yet</small></span><strong>Not ready</strong></div><div className="setting-row"><span><strong>Persistent projects</strong><small>Named projects are saved locally and reopen after restart. Imported media is not saved into projects yet.</small></span><strong>Names only</strong></div><div className="setting-row"><span><strong>Local/cloud policy</strong><small>No cloud generation is enabled or silently selected</small></span><strong>Local first</strong></div></main>}
+        {view === "settings" && <main className="content-page"><div className="page-eyebrow">PREFERENCES</div><h1>Your studio stays on your computer.</h1><p className="lead">Local files, user-controlled AI models, and clear permission boundaries come first.</p><div className="setting-row"><span><strong>Application shell</strong><small>{status?.stage ?? "Browser preview: native Rust bridge unavailable"}</small></span><strong>{status ? "Tauri / Rust" : "Browser-only preview"}</strong></div><div className="setting-row"><span><strong>Model execution</strong><small>Local text-to-image through an isolated Python worker; set up on the Models page</small></span><strong>Text to image</strong></div><div className="setting-row"><span><strong>Persistent projects</strong><small>Named projects are saved locally and reopen after restart. Imported media is not saved into projects yet.</small></span><strong>Names only</strong></div><div className="setting-row"><span><strong>Local/cloud policy</strong><small>No cloud generation is enabled or silently selected</small></span><strong>Local first</strong></div></main>}
       </div>
     </div>
+    </DownloadProvider>
   );
 }

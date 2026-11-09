@@ -21,3 +21,47 @@
 .project-list-heading{max-width:790px;display:flex;justify-content:space-between;align-items:center;margin-top:26px;color:#dce6fc;font-size:13px}.project-list{list-style:none;padding:0;margin:12px 0 0;max-width:790px}.project-row{border-bottom:1px solid #2f3b53;padding:16px 0;display:flex;justify-content:space-between;gap:20px;align-items:center}.project-row span{display:flex;flex-direction:column;gap:6px;min-width:0}.project-row strong{font-size:13px;color:#dce6fc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.project-row small{font-size:11px;color:#8e9db9}.project-row.active strong{color:#9fbaff}
 .project-problems{max-width:790px;margin-top:22px;border:1px solid #7a5a32;background:#2b2418;border-radius:8px;padding:14px 16px;color:#f1d9b5;font-size:12px}.project-problems ul{margin:8px 0;padding-left:18px;line-height:1.6}.project-problems p{margin:0;color:#c9b393}
 .preview-failed .empty-icon{color:#f0b46b}.preview-failed h1{font-size:20px;overflow-wrap:anywhere}
+
+
+/* Hugging Face credential flow: native-only, no browser token persistence. */
+.hf-access{max-width:850px;border:1px solid #354765;border-radius:12px;background:#172139;padding:22px;margin:24px 0 18px}
+.hf-head{display:flex;justify-content:space-between;gap:15px;align-items:flex-start}
+.hf-head h2{font-size:17px;margin:0 0 9px}
+.hf-head p,.hf-note{font-size:12px;line-height:1.65;color:#a6b7d6;margin:0;max-width:580px}
+.hf-state{border:1px solid #475d89;border-radius:99px;padding:7px 11px;font-size:11px;color:#dbe5ff;white-space:nowrap}
+.hf-steps{display:flex;flex-wrap:wrap;gap:16px;margin:20px 0;color:#d3def5;font-size:12px}
+.hf-steps span{display:flex;align-items:center;gap:7px}.hf-steps b{display:grid;place-items:center;border-radius:50%;background:#344b79;color:#fff;width:21px;height:21px}
+.hf-link{margin:0 0 18px}
+.hf-form{display:flex;flex-direction:column;gap:10px}.hf-form label{color:#cad8f1;font-size:12px;font-weight:700}
+.hf-input-row{display:flex;gap:10px}.hf-input-row input{flex:1;min-width:0;border-radius:8px;border:1px solid #485c81;background:#10192b;color:#eaf0ff;padding:11px;font-size:13px}
+.hf-controls{display:flex;gap:10px;margin-top:15px;flex-wrap:wrap}
+.hf-result,.hf-error{font-size:12px;margin:14px 0 0;line-height:1.6}.hf-result{color:#a5dfbe}.hf-error{color:#ffb3b3}
+.hf-note{margin-top:15px}
+@media(max-width:650px){.hf-head,.hf-input-row{flex-direction:column}.hf-head .hf-state{align-self:flex-start}}
+
+.brand-icon-img{width:34px;height:34px;border-radius:8px;display:block;object-fit:cover;flex-shrink:0}
+.model-browser{max-width:1180px;margin-top:26px;display:flex;flex-direction:column;gap:14px}.model-section-title{font-size:16px;margin:18px 0 0;color:#dce6fc}.model-search{display:flex;gap:10px}.model-search select,.model-search input,.model-dir input,.generate-panel select,.generate-panel input{color:#eef3ff;border:1px solid #3a455f;background:#20293e;border-radius:8px;padding:10px;font-size:12px}.model-search input{flex:1}.model-hint{font-size:12px;color:#93a3c2;margin:0;line-height:1.6}.model-hint code,.model-consent code,.model-facts code{font-size:11px;color:#c6d4f4;overflow-wrap:anywhere}
+.model-columns{display:grid;grid-template-columns:minmax(260px,380px) minmax(0,1fr);gap:16px;align-items:start}.model-results{list-style:none;margin:0;padding:0;max-height:640px;overflow:auto;display:flex;flex-direction:column;gap:6px}.model-result button{width:100%;text-align:left;background:#1a2337;border:1px solid #2f3b53;border-radius:8px;padding:10px 12px;color:#dce6fc;display:flex;flex-direction:column;gap:6px}.model-result.active button,.model-result button:hover{border-color:#6e8fe0;background:#1f2b45}.model-result strong{font-size:12px;overflow-wrap:anywhere}.model-result small{font-size:11px;color:#8e9db9}
+.model-badges{display:flex;flex-wrap:wrap;gap:4px}.badge{font-size:10px;border:1px solid #3c4a68;border-radius:999px;padding:2px 7px;color:#b8c6e4}.badge.warn{border-color:#8a6a3a;color:#f0c98a}.badge.adult{border-color:#9a4a5a;color:#f3a7b6}.badge.ok{border-color:#3f8a62;color:#9fe0bb}
+.model-detail{background:#161e30;border:1px solid #2c3852;border-radius:10px;padding:18px;min-height:200px}.model-title{margin:0 0 6px;font-size:16px;overflow-wrap:anywhere}.link-button{background:none;border:0;color:#9fbaff;padding:0;font-size:12px;text-decoration:underline}
+.model-states{list-style:none;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;padding:0;margin:14px 0}.model-states li{border:1px solid #2f3b53;border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:4px;color:#8e9db9}.model-states li strong{font-size:11px}.model-states li small{font-size:10px;line-height:1.4}.model-states li.reached{border-color:#3f8a62;color:#a9e6c4}
+.model-facts{display:grid;grid-template-columns:170px minmax(0,1fr);gap:8px 14px;font-size:12px;margin:0}.model-facts dt{color:#8e9db9}.model-facts dd{margin:0;color:#dce6fc;line-height:1.5}.model-rejections{margin-top:14px;border:1px solid #7a5a32;background:#2b2418;border-radius:8px;padding:12px 14px;font-size:12px;color:#f1d9b5}.model-rejections ul{margin:6px 0 0;padding-left:18px}
+.model-consent{margin-top:16px;border:1px solid #3c5180;border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:10px;font-size:12px;color:#dce6fc}.model-consent label{display:flex;gap:8px;align-items:flex-start;line-height:1.5}.model-actions{display:flex;gap:8px;flex-wrap:wrap}.model-progress{margin-top:12px;display:flex;flex-direction:column;gap:6px;font-size:11px;color:#b8c6e4}.model-progress progress{width:100%}
+.runtime-panel,.installed-panel{background:#161e30;border:1px solid #2c3852;border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;font-size:12px;color:#dce6fc}.runtime-panel small,.installed-panel small{display:block;color:#93a3c2;line-height:1.6;margin-top:4px}.runtime-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.installed-panel ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}.installed-panel li{display:flex;justify-content:space-between;gap:12px;align-items:center}.model-dir div{display:flex;gap:8px;margin-top:6px}.model-dir input{flex:1}
+.generate-panel{display:flex;flex-direction:column;gap:9px}.generate-panel select,.generate-panel input{width:100%}.gen-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.gen-row label{display:flex;flex-direction:column;gap:5px;font-size:11px;color:#c4cfe5}.gen-result{display:flex;flex-direction:column;gap:8px;margin-top:6px}.gen-result img{width:100%;border-radius:8px;border:1px solid #33405c}.gen-result small{font-size:10px;color:#93a3c2;line-height:1.5;overflow-wrap:anywhere}
+.gpu-confirm{border:1px solid #8a6a3a;background:#2b2418;border-radius:8px;padding:12px;font-size:12px;color:#f1d9b5;display:flex;flex-direction:column;gap:8px}.gpu-confirm p{margin:0;line-height:1.5}.gpu-confirm ul{margin:0;padding-left:18px}
+
+.generation-history{border:1px solid #2c3852;border-radius:10px;background:#161e30;padding:14px;margin-top:20px;display:flex;flex-direction:column;gap:12px;color:#dce6fc}
+.history-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.history-heading h3{font-size:14px;margin:0 0 5px}.history-heading p{font-size:11px;color:#93a3c2;line-height:1.5;margin:0}
+.history-items{list-style:none;margin:0;padding:0;max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+.history-items li{display:flex;flex-direction:column;gap:7px;padding:9px;border:1px solid #2f3b53;border-radius:8px}
+.history-summary{min-width:0;display:flex;flex-direction:column;gap:5px}
+.history-summary strong{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.history-summary small{font-size:10px;line-height:1.4;color:#93a3c2;overflow-wrap:anywhere}
+/* App-lifetime model download status (issue #27): compact card in the navigation rail. */
+.download-status.compact{margin:10px 12px;padding:10px;display:flex;flex-direction:column;gap:6px;font-size:11px;border:1px solid #3c4a67;border-radius:8px;background:#151d30;color:#dce6fc}
+.download-status.compact strong{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.download-status.compact progress{width:100%;height:8px;accent-color:#91a7ff}
+.download-status.compact span{overflow-wrap:anywhere}
+.download-status.compact button{padding:6px 8px;font-size:11px}
