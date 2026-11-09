@@ -218,7 +218,7 @@ pub fn export_to_pictures(
             "height": receipt.height,
             "bytes": receipt.bytes
         },
-        "note": "Exported copy only; not a project-owned asset. Source hash is reported by WebView, not verified against a project file."
+        "note": "Exported copy only; not a project-owned asset. Source hash and transform settings are WebView-reported, not independently verified against the immutable original."
     });
     let metadata = serde_json::to_vec_pretty(&record)
         .map_err(|_| "Could not serialize the photo export receipt.".to_string())?;
@@ -338,8 +338,8 @@ mod tests {
         let receipt_json: serde_json::Value = serde_json::from_slice(
             &fs::read(second.path.with_extension("provenance.json")).unwrap()
         ).unwrap();
-        assert_eq!(receipt_json["adjustments"]["flip_display_horizontal"], true);
-        assert_eq!(receipt_json["adjustments"]["flip_display_vertical"], true);
+        assert_eq!(receipt_json["adjustments"]["flip_display_horizontal"].as_bool(), Some(true));
+        assert_eq!(receipt_json["adjustments"]["flip_display_vertical"].as_bool(), Some(true));
         assert_ne!(first.path, second.path);
         assert_eq!(fs::read(&original).unwrap(), original_bytes);
         assert_eq!(fs::read(&first.path).unwrap(), original_bytes);
