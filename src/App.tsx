@@ -13,6 +13,7 @@ import {
   EMPTY_PHOTO_CROP, centeredPhotoCrop, renderAdjustedPhoto, validatePhotoCrop,
   type PhotoAdjustments, type PhotoCrop,
 } from "./photoEdits";
+import { applyPhotoEdit, createPhotoHistory, finishPhotoGesture, undoPhotoEdit, redoPhotoEdit, DEFAULT_PHOTO_EDITS, type PhotoEditHistory } from "./photoHistory";
 import { captureVideoFrame, capturedFrameName } from "./videoFrameCapture";
 import PhotoCanvasPreview from "./PhotoCanvasPreview";
 import SessionMediaLibrary from "./SessionMediaLibrary";
@@ -38,7 +39,7 @@ export default function App() {
   const [items, setItems] = useState<MediaItem[]>([]);
   const [selectedPhotoId, setSelectedPhotoId] = useState<string | null>(null);
   const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
-  const [photoAdjustments, setPhotoAdjustments] = useState<Record<string, PhotoAdjustments>>({});
+  const [photoHistories, setPhotoHistories] = useState<Record<string, PhotoEditHistory>>({});
   const [photoDimensions, setPhotoDimensions] = useState<Record<string, { width: number; height: number }>>({});
   const [prompt, setPrompt] = useState("");
   const [createOpened, setCreateOpened] = useState(false);
@@ -70,7 +71,8 @@ export default function App() {
   const editorItems = mediaForEditor(items, view);
   const selectedId = view === "video" ? selectedVideoId : selectedPhotoId;
   const selected = editorItems.find((item) => item.id === selectedId) ?? null;
-  const edits = selected?.kind === "image" ? photoAdjustments[selected.id] : undefined;
+  const editHistory = selected?.kind === "image" ? photoHistories[selected.id] : undefined;
+  const edits = editHistory?.present;
   const brightness = edits?.brightness ?? 100;
   const contrast = edits?.contrast ?? 100;
   const rotation = edits?.rotation ?? 0;
@@ -103,6 +105,31 @@ export default function App() {
   }, [view]);
   useEffect(() => { if (view !== "video") setVideoFrameReady(false); }, [view]);
 
+  useEffect(() => {
+    if (view !== "photo" || !selectedPhotoId || !editablePhoto || photoExportBusy) return;
+    const id = selectedPhotoId;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.altKey || event.isComposing) return;
+      const element = event.target;
+      if (element instanceof HTMLElement &&
+          (element.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(element.tagName))) return;
+      const key = event.key.toLowerCase();
+      if (key !== "z" && key !== "y") return;
+      if (key === "y" && event.shiftKey) return;
+      const redo = key === "y" || event.shiftKey;
+      event.preventDefault();
+      setPhotoHistories((previous) => {
+        const history = previous[id];
+        if (!history) return previous;
+        const next = redo ? redoPhotoEdit(history) : undoPhotoEdit(history);
+        return next === history ? previous : { ...previous, [id]: next };
+      });
+      setPhotoExportNotice("");
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [view, selectedPhotoId, editablePhoto, photoExportBusy]);
+
   function browseModelsFor(capability: Capability) {
     setModelBrowseCapability(capability);
     setView("models");
@@ -123,6 +150,14 @@ export default function App() {
     }
     setPhotoExportNotice("");
     setMessage("");
+    if (selectedPhotoId) {
+      setPhotoHistories((previous) => {
+        const history = previous[selectedPhotoId];
+        if (!history) return previous;
+        const next = finishPhotoGesture(history);
+        return next === history ? previous : { ...previous, [selectedPhotoId]: next };
+      });
+    }
   }
 
   function openMedia(item: MediaItem) {
@@ -130,23 +165,48 @@ export default function App() {
     setView(editorFor(item.kind));
   }
 
-  function updatePhotoAdjustments(changes: Partial<PhotoAdjustments>) {
-    if (!selected || selected.kind !== "image") return;
+  function updatePhotoAdjustments(changes: Partial<PhotoAdjustments>, gesture: string | null = null) {
+    if (!selected || selected.kind !== "image" || photoExportBusy) return;
     const id = selected.id;
-    setPhotoAdjustments((previous) => ({
-      ...previous,
-      [id]: { ...(previous[id] ?? { brightness: 100, contrast: 100, rotation: 0 }), ...changes },
-    }));
+    setPhotoHistories((previous) => {
+      const history = previous[id] ?? createPhotoHistory();
+      const next = applyPhotoEdit(history, changes, gesture);
+      return next === history ? previous : { ...previous, [id]: next };
+    });
     setPhotoExportNotice("");
   }
 
   function updatePhotoCrop(changes: Partial<PhotoCrop>) {
+    if (!selected || selected.kind !== "image" || photoExportBusy) return;
+    const id = selected.id;
+    setPhotoHistories((previous) => {
+      const history = previous[id] ?? createPhotoHistory();
+      const crop = validatePhotoCrop({ ...EMPTY_PHOTO_CROP, ...history.present.crop, ...changes });
+      const next = applyPhotoEdit(history, { crop });
+      return next === history ? previous : { ...previous, [id]: next };
+    });
+    setPhotoExportNotice("");
+  }
+
+  function finishPhotoSlider() {
     if (!selected || selected.kind !== "image") return;
     const id = selected.id;
-    setPhotoAdjustments((previous) => {
-      const existing = previous[id] ?? { brightness: 100, contrast: 100, rotation: 0 };
-      const crop = validatePhotoCrop({ ...EMPTY_PHOTO_CROP, ...existing.crop, ...changes });
-      return { ...previous, [id]: { ...existing, crop } };
+    setPhotoHistories((previous) => {
+      const history = previous[id];
+      if (!history) return previous;
+      const next = finishPhotoGesture(history);
+      return next === history ? previous : { ...previous, [id]: next };
+    });
+  }
+
+  function stepPhotoHistory(direction: "undo" | "redo") {
+    if (!selected || selected.kind !== "image" || photoExportBusy) return;
+    const id = selected.id;
+    setPhotoHistories((previous) => {
+      const history = previous[id];
+      if (!history) return previous;
+      const next = direction === "undo" ? undoPhotoEdit(history) : redoPhotoEdit(history);
+      return next === history ? previous : { ...previous, [id]: next };
     });
     setPhotoExportNotice("");
   }
@@ -286,7 +346,7 @@ export default function App() {
       setVideoFrameReady(false);
       setDuration(0); setPlayhead(0); setTrimIn(0); setTrimOut(null);
     }
-    setPhotoAdjustments((previous) => {
+    setPhotoHistories((previous) => {
       const next = { ...previous };
       delete next[id];
       return next;
