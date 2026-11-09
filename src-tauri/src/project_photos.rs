@@ -499,6 +499,27 @@ mod tests {
     }
 
     #[test]
+    fn managed_assets_are_strictly_project_scoped_and_invalid_imports_do_not_write() {
+        let root = TestRoot::new();
+        let a = crate::project_store::create(root.path(), "A").unwrap();
+        let b = crate::project_store::create(root.path(), "B").unwrap();
+        let mut malformed = request(&a.id);
+        malformed.source_png_base64 = base64::engine::general_purpose::STANDARD.encode(b"not png");
+        assert!(save(root.path(), malformed).is_err());
+        assert!(!project_dir(root.path(), &checked_id(&a.id).unwrap()).exists());
+
+        let original = save(root.path(), request(&a.id)).unwrap();
+        assert!(open(root.path(), &b.id, &original.asset_id).is_err());
+        assert!(list(root.path(), &b.id).unwrap().photos.is_empty());
+        assert_eq!(list(root.path(), &a.id).unwrap().photos.len(), 1);
+        assert!(save(root.path(), SavePhotoRequest {
+            project_id: a.id.clone(), asset_id: Some("../../evil".into()),
+            expected_revision: Some(1), ..request(&a.id)
+        }).is_err());
+        assert_eq!(open(root.path(), &a.id, &original.asset_id).unwrap().document.revision, 1);
+    }
+
+    #[test]
     fn incomplete_staging_is_not_reported_as_a_saved_photo() {
         let root = TestRoot::new();
         let project = crate::project_store::create(root.path(), "Lake").unwrap();
