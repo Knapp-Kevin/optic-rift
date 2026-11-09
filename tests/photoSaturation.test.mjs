@@ -66,7 +66,7 @@ test("Studio preview, original comparison, export and native receipt agree on sa
   assert.match(app, /saturation_percent: saturation/);
   assert.match(app, /saturation=\{saturation\}/);
   assert.match(preview, /showOriginal\s*\? paintAdjustedPhoto\(decoded\.bitmap, \{ brightness: 100, contrast: 100, rotation: 0 \}, canvas, 1400\)/);
-  assert.match(preview, /: paintAdjustedPhoto\(decoded\.bitmap, \{ brightness, contrast, saturation, rotation, crop, flipHorizontal, flipVertical \}, canvas, 1400\)/);
+  assert.match(preview, /: paintAdjustedPhoto\(decoded\.bitmap, \{ brightness, contrast, saturation, rotation, straightenTenths, crop, flipHorizontal, flipVertical \}, canvas, 1400\)/);
   assert.match(raster, /saturation === 100 \? "" : ` saturate\(\$\{saturation\}%\)`/);
   assert.match(native, /r\.saturation_percent > 200/);
   assert.match(native, /#\[serde\(default = "neutral_saturation_percent"\)\]/);
