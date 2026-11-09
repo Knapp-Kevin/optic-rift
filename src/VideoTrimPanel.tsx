@@ -93,7 +93,7 @@ export default function VideoTrimPanel({ clip, ready, inSeconds, outSeconds, gra
         {isFinal(jobForClip.state) && <button type="button" className="secondary" onClick={exporter.dismiss}>Dismiss</button>}
       </div>
     </div>}
-    <p className="video-form-hint">Needs FFmpeg on this PC. The exported copy is not yet an editable project
+    <p className="video-form-hint">Video export requires verified FFmpeg (bundled in release builds). The exported copy is not yet an editable project
       asset. Audio is kept only when the clip has exactly one track; there are no audio editing tools.</p>
   </div>;
 }
