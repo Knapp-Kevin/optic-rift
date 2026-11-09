@@ -92,3 +92,25 @@ test("Photo Studio history controls have disabled states and keyboard focus safe
   assert.match(app, /element\.isContentEditable/);
   assert.match(app, /photoExportBusy\) return/);
 });
+
+
+test("Crop gestures coalesce by edge, but not across different edges or pointer releases", () => {
+  const first = applyPhotoEdit(createPhotoHistory(), {
+    crop: { left: 250, right: 0, top: 0, bottom: 0 },
+  }, "crop-left");
+  const second = applyPhotoEdit(first, {
+    crop: { left: 1500, right: 0, top: 0, bottom: 0 },
+  }, "crop-left");
+  assert.equal(second.past.length, 1);
+  assert.deepEqual(undoPhotoEdit(second).present.crop, undefined);
+  const differentEdge = applyPhotoEdit(second, {
+    crop: { left: 1500, right: 500, top: 0, bottom: 0 },
+  }, "crop-right");
+  assert.equal(differentEdge.past.length, 2);
+  assert.equal(undoPhotoEdit(differentEdge).present.crop.left, 1500);
+  assert.equal(undoPhotoEdit(differentEdge).present.crop.right, 0);
+  const released = applyPhotoEdit(finishPhotoGesture(differentEdge), {
+    crop: { left: 1500, right: 750, top: 0, bottom: 0 },
+  }, "crop-right");
+  assert.equal(released.past.length, 3);
+});
