@@ -9,6 +9,8 @@ type Props = {
   contrast: number;
   rotation: number;
   crop?: PhotoCrop;
+  flipHorizontal?: boolean;
+  flipVertical?: boolean;
   onDimensions?: (dimensions: { width: number; height: number }) => void;
   onError: (message: string) => void;
 };
@@ -23,7 +25,7 @@ const EMPTY_SIZE: PhotoSize = { width: 0, height: 0 };
  * Decode once per photo; never store private previews or intermediate files.
  */
 export default function PhotoCanvasPreview({
-  sourceUrl, label, brightness, contrast, rotation, crop, onDimensions, onError,
+  sourceUrl, label, brightness, contrast, rotation, crop, flipHorizontal, flipVertical, onDimensions, onError,
 }: Props) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -96,7 +98,7 @@ export default function PhotoCanvasPreview({
       const canvas = canvasRef.current;
       if (!canvas) return;
       try {
-        const dims = paintAdjustedPhoto(decoded.bitmap, { brightness, contrast, rotation, crop }, canvas, 1400);
+        const dims = paintAdjustedPhoto(decoded.bitmap, { brightness, contrast, rotation, crop, flipHorizontal, flipVertical }, canvas, 1400);
         setImage((old) => old.width === dims.width && old.height === dims.height ? old : dims);
         setReady(true);
         setError("");
@@ -108,7 +110,7 @@ export default function PhotoCanvasPreview({
       }
     }, 90);
     return () => window.clearTimeout(handle);
-  }, [decoded, sourceUrl, brightness, contrast, rotation, crop?.left, crop?.top, crop?.right, crop?.bottom]);
+  }, [decoded, sourceUrl, brightness, contrast, rotation, crop?.left, crop?.top, crop?.right, crop?.bottom, flipHorizontal, flipVertical]);
 
   useEffect(() => {
     setPan((current) => {
