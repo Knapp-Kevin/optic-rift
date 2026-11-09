@@ -489,14 +489,29 @@ export default function App() {
             <div className="section-title"><div><h2>{view === "photo" ? "Photo adjustments" : "Video tools"}</h2><p>{view === "photo" ? "Original preserved; export creates a copy" : "Playback and non-destructive markers"}</p></div></div>
             {view === "photo" && editablePhoto && !previewFailed ? <div className="adjustments">
               <h3>Image preview</h3>
+              <div className="photo-history-actions" role="group" aria-label="Photo edit history">
+                <button type="button" className="secondary" disabled={photoExportBusy || !editHistory?.past.length}
+                  title="Undo last edit (Ctrl+Z)" onClick={() => stepPhotoHistory("undo")}>Undo</button>
+                <button type="button" className="secondary" disabled={photoExportBusy || !editHistory?.future.length}
+                  title="Redo edit (Ctrl+Y or Ctrl+Shift+Z)" onClick={() => stepPhotoHistory("redo")}>Redo</button>
+                <button type="button" className="secondary" disabled={photoExportBusy ||
+                  (brightness === 100 && contrast === 100 && rotation === 0 &&
+                   Object.values(crop).every((n) => n === 0))}
+                  onClick={() => updatePhotoAdjustments({ ...DEFAULT_PHOTO_EDITS, crop: { ...EMPTY_PHOTO_CROP } })}>Reset all</button>
+              </div>
+              <p className="photo-history-note">Up to 40 undo steps per photo, this session only. These edits are not saved in your project.</p>
               {selected?.derivedFrom?.kind === "video-frame" &&
                 <p className="photo-frame-origin">
                   Session-only frame from <strong>{selected.derivedFrom.sourceName}</strong> at {formatTime(selected.derivedFrom.timeSeconds)}.
                   This source relationship is not saved with the exported PNG.
                 </p>}
-              <label>Brightness <output>{brightness}%</output><input type="range" min="25" max="175" value={brightness} onChange={(event) => updatePhotoAdjustments({ brightness: Number(event.target.value) })} /></label>
-              <label>Contrast <output>{contrast}%</output><input type="range" min="25" max="175" value={contrast} onChange={(event) => updatePhotoAdjustments({ contrast: Number(event.target.value) })} /></label>
-              <button className="secondary full" onClick={() => updatePhotoAdjustments({ rotation: (rotation + 90) % 360 })}>Rotate photo 90°</button>
+              <label>Brightness <output>{brightness}%</output><input type="range" min="25" max="175" value={brightness} disabled={photoExportBusy}
+                onChange={(event) => updatePhotoAdjustments({ brightness: Number(event.target.value) }, "brightness")}
+                onPointerUp={finishPhotoSlider} onPointerCancel={finishPhotoSlider} onKeyUp={finishPhotoSlider} onBlur={finishPhotoSlider} /></label>
+              <label>Contrast <output>{contrast}%</output><input type="range" min="25" max="175" value={contrast} disabled={photoExportBusy}
+                onChange={(event) => updatePhotoAdjustments({ contrast: Number(event.target.value) }, "contrast")}
+                onPointerUp={finishPhotoSlider} onPointerCancel={finishPhotoSlider} onKeyUp={finishPhotoSlider} onBlur={finishPhotoSlider} /></label>
+              <button className="secondary full" disabled={photoExportBusy} onClick={() => updatePhotoAdjustments({ rotation: (rotation + 90) % 360 })}>Rotate photo 90°</button>
               <button className="primary full" type="button" disabled={photoExportBusy}
                 onClick={() => void exportAdjustedPhoto()}>
                 {photoExportBusy ? "Saving adjusted PNG…" : "Save adjusted PNG copy"}
@@ -507,12 +522,12 @@ export default function App() {
                 <p>Crop the rotated image. The preview and exported PNG use the same cropped pixels; the original is unchanged.</p>
                 <div className="photo-crop-presets" role="group" aria-label="Crop aspect presets">
                   <button type="button" className="secondary" disabled={!selectedPhotoDimensions}
-                    onClick={() => applyCropAspect(1)}>Square 1:1</button>
+                    disabled={photoExportBusy} onClick={() => applyCropAspect(1)}>Square 1:1</button>
                   <button type="button" className="secondary" disabled={!selectedPhotoDimensions}
-                    onClick={() => applyCropAspect(16 / 9)}>Wide 16:9</button>
+                    disabled={photoExportBusy} onClick={() => applyCropAspect(16 / 9)}>Wide 16:9</button>
                   <button type="button" className="secondary" disabled={!selectedPhotoDimensions}
-                    onClick={() => applyCropAspect(4 / 5)}>Portrait 4:5</button>
-                  <button type="button" className="secondary"
+                    disabled={photoExportBusy} onClick={() => applyCropAspect(4 / 5)}>Portrait 4:5</button>
+                  <button type="button" className="secondary" disabled={photoExportBusy}
                     onClick={() => updatePhotoAdjustments({ crop: { ...EMPTY_PHOTO_CROP } })}>Reset crop</button>
                 </div>
                 {(["left", "top", "right", "bottom"] as const).map((edge) => {
@@ -521,7 +536,7 @@ export default function App() {
                   const max = Math.min(9500, 9900 - crop[opposite]);
                   return <label key={edge} className="photo-crop-control">
                     {edge.charAt(0).toUpperCase() + edge.slice(1)} edge <output>{(crop[edge] / 100).toFixed(2)}%</output>
-                    <input type="range" min={0} max={max} step={25} value={crop[edge]}
+                    <input type="range" min={0} max={max} step={25} value={crop[edge]} disabled={photoExportBusy}
                       aria-label={edge + " crop inset percent"}
                       onChange={(event) => updatePhotoCrop({ ...crop, [edge]: Number(event.target.value) })} />
                   </label>;
