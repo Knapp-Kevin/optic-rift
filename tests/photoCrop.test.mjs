@@ -92,9 +92,9 @@ test("Inspector, preview, and native export all retain crop details without a hi
   assert.match(app, /Portrait 4:5/);
   assert.match(app, /Reset crop/);
   assert.match(app, /updatePhotoCrop\(\{ \.\.\.crop, \[edge\]: Number\(event\.target\.value\) \}, `crop-\$\{edge\}`\)/);
-  assert.match(app, /renderAdjustedPhoto\(selected\.url, \{ brightness, contrast, saturation, rotation, straightenTenths, crop, flipHorizontal, flipVertical \}\)/);
+  assert.match(app, /renderAdjustedPhoto\(selected\.url, \{ brightness, contrast, saturation, rotation, straightenTenths, resizeLongEdge, crop, flipHorizontal, flipVertical \}\)/);
   assert.match(app, /crop: \{ \.\.\.crop \},/);
-  assert.match(preview, /paintAdjustedPhoto\(decoded\.bitmap, \{ brightness, contrast, saturation, rotation, straightenTenths, crop, flipHorizontal, flipVertical \}, canvas, 1400\)/);
+  assert.match(preview, /paintAdjustedPhoto\(decoded\.bitmap, \{ brightness, contrast, saturation, rotation, straightenTenths, resizeLongEdge, crop, flipHorizontal, flipVertical \}, canvas, 1400\)/);
   assert.match(native, /pub crop: Option<PhotoCrop>/);
   assert.match(native, /fn validate_crop\(/);
   assert.match(native, /crop_insets_basis_points_of_rotated_image/);
