@@ -1,0 +1,61 @@
+﻿date 2026-11-09T11:01:39.4441892-05:00
+C: free bytes 1095811231744
+C:/dev/mythologiq/optic-rift
+Optic Rift worktree audit: C:\dev\mythologiq\optic-rift
+Discovered 19 Git worktrees; primary: C:\dev\mythologiq\optic-rift
+[PRIMARY] C:\dev\mythologiq\optic-rift | refs/heads/feature/create-studio-workspace-20261106-no-ci | 14c5748264f4975a48c0f8e5498fb8679094ae50
+powershell : fatal: not a git repository (or any of the parent directories): .git
+At line:1 char:617
++ ... w-toplevel; powershell -NoProfile -ExecutionPolicy Bypass -File "$sp\ ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (fatal: not a gi...ectories): .git:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[DIRTY: retain] <scratchpad>\ev32 | refs/heads/docs/ui-review-navigation-32-20261106-no-ci | 95ddef13572a0706d71cb4f354cb3d8a01a557c2
+[CLEAN: eligible] <scratchpad>\ev33 | refs/heads/docs/ui-review-frame-capture-33-20261108-no-ci | 1c729a9783f10d17a01172178a327f12f90cdf6e
+[CLEAN: eligible] <scratchpad>\ev35 | refs/heads/docs/ui-review-whole-studio-35-20261108-no-ci | bec5ffa6546cf7f4e3afab5c101083a4fc475519
+[CLEAN: eligible] <scratchpad>\ev36 | refs/heads/docs/ui-review-native-trim-36-20261108-no-ci | e7c78e5892b7ea406aa6a3ed33ce079c4a456a0c
+fatal: not a git repository (or any of the parent directories): .git
+[DIRTY: retain] <scratchpad>\integ | refs/heads/integration/studio-downloads-20261106-no-ci | e875ca21d863e2d3e7eddaf380a8dc0ed0e3a063
+fatal: not a git repository (or any of the parent directories): .git
+[DIRTY: retain] <scratchpad>\main |  | fee266ad906796c254d4cb822de9d57fca640045
+fatal: not a git repository (or any of the parent directories): .git
+[DIRTY: retain] <scratchpad>\pr1 |  | c2edbf7e600685324bc358cd1bfcad6ef390afc9
+fatal: not a git repository (or any of the parent directories): .git
+[DIRTY: retain] <scratchpad>\pr18 | refs/heads/feature/local-image-generation-20261105-no-ci | ee6da0e0accf2678add090e5ce127bfaf6146b1e
+fatal: not a git repository (or any of the parent directories): .git
+[DIRTY: retain] <scratchpad>\pr20 | refs/heads/feature/sdxl-img2img-worker-20261106-no-ci | 20de6349364ca3681f5c551dcb10c04e6d26e33c
+fatal: not a git repository (or any of the parent directories): .git
+[DIRTY: retain] <scratchpad>\pr26 | refs/heads/feature/video-metadata-cache-20261106-no-ci | 7d31456225849161fb735807eb8265be691a8b2a
+fatal: not a git repository (or any of the parent directories): .git
+[DIRTY: retain] <scratchpad>\pr27 | refs/heads/feature/model-download-lifecycle-20261106-no-ci | 100f2ce9b3e3294195051723fb0f8571c818fc6d
+fatal: not a git repository (or any of the parent directories): .git
+[DIRTY: retain] <scratchpad>\pr30 | refs/heads/feature/photo-adjusted-png-export-20261106-no-ci | aa86872bd53b96f12e964c99d9eafaee16ed930c
+fatal: not a git repository (or any of the parent directories): .git
+[DIRTY: retain] <scratchpad>\pr31 | refs/heads/feature/photo-canvas-preview-parity-20261106-no-ci | 71642e337037a94a3a82d89d73b4065b682c6b50
+fatal: not a git repository (or any of the parent directories): .git
+[DIRTY: retain] <scratchpad>\pr32 | refs/heads/feature/creative-workspace-navigation-20261106-no-ci | 39fd7ca03bc43a091965ef7056ec95c0ef62c84a
+[CLEAN: eligible] <scratchpad>\pr33 | refs/heads/feature/video-frame-to-photo-20261108-no-ci | 9e84a6052dcd5555a030cf85a299d3ee9f10c8a6
+[CLEAN: eligible] <scratchpad>\pr34 | refs/heads/fix/approved-optic-rift-favicon-20261108-no-ci | 3a99e6c55347b6dc112ddbedd659243242111d33
+[CLEAN: eligible] <scratchpad>\pr35 | refs/heads/feature/video-shot-composer-20261108-no-ci | 49b589b39dd28e65a5aae4515b427c0e0d948314
+[CLEAN: eligible] <scratchpad>\pr36 | refs/heads/feature/native-video-trim-20261108-no-ci | 9dd47aa434d1db33f482b130ddff915686e696db
+Other storage (model copies, QA profiles, screenshots, OneDrive exports): READ-ONLY audit separately.
+No git prune, branch deletion, or model/cache cleanup was performed.
+--- prune dry-run
+git : Removing worktrees/ev32: gitdir file points to non-existent location
+At line:1 char:779
++ ... - prune dry-run"; git worktree prune --dry-run --verbose 2>&1 } | Out ...
++                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Removing worktr...istent location:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Removing worktrees/integ: gitdir file points to non-existent location
+Removing worktrees/main: gitdir file points to non-existent location
+Removing worktrees/pr1: gitdir file points to non-existent location
+Removing worktrees/pr18: gitdir file points to non-existent location
+Removing worktrees/pr20: gitdir file points to non-existent location
+Removing worktrees/pr26: gitdir file points to non-existent location
+Removing worktrees/pr27: gitdir file points to non-existent location
+Removing worktrees/pr30: gitdir file points to non-existent location
+Removing worktrees/pr31: gitdir file points to non-existent location
+Removing worktrees/pr32: gitdir file points to non-existent location

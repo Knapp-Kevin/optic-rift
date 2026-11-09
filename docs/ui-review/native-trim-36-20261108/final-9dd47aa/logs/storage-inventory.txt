@@ -1,0 +1,11 @@
+﻿       0.0 MB  %USERPROFILE%\AppData\Roaming\studio.mythologiq.opticrift.qa
+  14,422.7 MB  %USERPROFILE%\AppData\Local\studio.mythologiq.opticrift.qa
+   (none)   %USERPROFILE%\AppData\Roaming\studio.mythologiq.opticrift
+   7,674.2 MB  %USERPROFILE%\AppData\Local\studio.mythologiq.opticrift
+  25,747.6 MB  C:\dev\mythologiq\optic-rift\src-tauri\target
+      79.9 MB  C:\dev\mythologiq\optic-rift\node_modules
+      29.6 MB  %USERPROFILE%\OneDrive\Pictures\Optic Rift
+     574.1 MB  <scratchpad>
+      30.4 MB  C:\dev\mythologiq\optic-rift-sandbox
+      19.0 MB  C:\dev\mythologiq\optic-rift-sandbox-out
+      21.7 MB  C:\dev\mythologiq\optic-rift-testmedia

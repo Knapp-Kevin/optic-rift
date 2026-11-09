@@ -1,0 +1,716 @@
+﻿[
+ {
+  "case": "square-1x1",
+  "select": "ok"
+ },
+ {
+  "case": "square-1x1",
+  "rotation": 0,
+  "preset": "Square 1:1",
+  "edgePresses": null,
+  "preview": {
+   "width": 900,
+   "height": 900,
+   "rgbaSha256": "e0a66f299044cdb9a95bd5da5d8a30387d25ca7586ad0d54945619681f4e3ec1",
+   "readout": [
+    "Left edge 12.50%",
+    "Top edge 0.00%",
+    "Right edge 12.50%",
+    "Bottom edge 0.00%"
+   ],
+   "status": "Crop preview active. Export saves only the visible area."
+  },
+  "export": {
+   "confirmText": "Export an adjusted PNG copy to Pictures / Optic Rift? Windows may sync Pictures with OneDrive. This does not save a project asset, and the original image stays unchanged.",
+   "notice": "Saved adjusted PNG copy: %USERPROFILE%\\OneDrive\\Pictures\\Optic Rift\\optic-rift-photo-06f4dead-7d97-4eba-8b9f-b34e3e924c05.png. Your original was not changed.",
+   "added": [
+    "optic-rift-photo-06f4dead-7d97-4eba-8b9f-b34e3e924c05.png",
+    "optic-rift-photo-06f4dead-7d97-4eba-8b9f-b34e3e924c05.provenance.json"
+   ]
+  },
+  "verified": {
+   "file": "optic-rift-photo-06f4dead-7d97-4eba-8b9f-b34e3e924c05.png",
+   "width": 900,
+   "height": 900,
+   "fileSha256": "402fca1fb91292fb86e84cd97c662a56b1ec76b2c9499e84dda80b959a96c515",
+   "analysis": {
+    "rotation": 0,
+    "rotatedSize": [
+     1200,
+     900
+    ],
+    "crop": {
+     "x": 150,
+     "y": 0,
+     "width": 900,
+     "height": 900
+    },
+    "insetsPx": {
+     "left": 150,
+     "top": 0,
+     "right": 150,
+     "bottom": 0
+    },
+    "mismatches": 0,
+    "opaque": true
+   },
+   "previewPixelsEqualExport": true,
+   "previewSize": [
+    900,
+    900
+   ],
+   "provenance": {
+    "adjustments": {
+     "brightness_percent": 100,
+     "contrast_percent": 100,
+     "crop_insets_basis_points_of_rotated_image": {
+      "bottom": 0,
+      "left": 1250,
+      "right": 1250,
+      "top": 0
+     },
+     "rotation_degrees_clockwise": 0
+    },
+    "kind": "adjusted-photo-export",
+    "note": "Exported copy only; not a project-owned asset. Source hash is reported by WebView, not verified against a project file.",
+    "output": {
+     "bytes": 28469,
+     "height": 900,
+     "sha256": "402fca1fb91292fb86e84cd97c662a56b1ec76b2c9499e84dda80b959a96c515",
+     "width": 900
+    },
+    "record_version": 1,
+    "source_sha256_webview_reported": "540fe095f44ba3f79132b5250236f2df3f604bff780007cdc830777700f52e6f"
+   }
+  }
+ },
+ {
+  "case": "wide-16x9",
+  "select": "ok"
+ },
+ {
+  "case": "wide-16x9",
+  "rotation": 0,
+  "preset": "Wide 16:9",
+  "edgePresses": null,
+  "preview": {
+   "width": 1200,
+   "height": 676,
+   "rgbaSha256": "ea7611cb1c28031c26836775430428b0f50835deb3f0904a347ebb4c2929724c",
+   "readout": [
+    "Left edge 0.00%",
+    "Top edge 12.50%",
+    "Right edge 0.00%",
+    "Bottom edge 12.50%"
+   ],
+   "status": "Crop preview active. Export saves only the visible area."
+  },
+  "export": {
+   "confirmText": "Export an adjusted PNG copy to Pictures / Optic Rift? Windows may sync Pictures with OneDrive. This does not save a project asset, and the original image stays unchanged.",
+   "notice": "Saved adjusted PNG copy: %USERPROFILE%\\OneDrive\\Pictures\\Optic Rift\\optic-rift-photo-0be333cc-57f0-4f53-a189-4ec51e5a009f.png. Your original was not changed.",
+   "added": [
+    "optic-rift-photo-0be333cc-57f0-4f53-a189-4ec51e5a009f.png",
+    "optic-rift-photo-0be333cc-57f0-4f53-a189-4ec51e5a009f.provenance.json"
+   ]
+  },
+  "verified": {
+   "file": "optic-rift-photo-0be333cc-57f0-4f53-a189-4ec51e5a009f.png",
+   "width": 1200,
+   "height": 676,
+   "fileSha256": "36fb027cb2ac5fa5fe85e6dbb6febfba40e8fa02948ae5d2b5818167475cb309",
+   "analysis": {
+    "rotation": 0,
+    "rotatedSize": [
+     1200,
+     900
+    ],
+    "crop": {
+     "x": 0,
+     "y": 112,
+     "width": 1200,
+     "height": 676
+    },
+    "insetsPx": {
+     "left": 0,
+     "top": 112,
+     "right": 0,
+     "bottom": 112
+    },
+    "mismatches": 0,
+    "opaque": true
+   },
+   "previewPixelsEqualExport": true,
+   "previewSize": [
+    1200,
+    676
+   ],
+   "provenance": {
+    "adjustments": {
+     "brightness_percent": 100,
+     "contrast_percent": 100,
+     "crop_insets_basis_points_of_rotated_image": {
+      "bottom": 1250,
+      "left": 0,
+      "right": 0,
+      "top": 1250
+     },
+     "rotation_degrees_clockwise": 0
+    },
+    "kind": "adjusted-photo-export",
+    "note": "Exported copy only; not a project-owned asset. Source hash is reported by WebView, not verified against a project file.",
+    "output": {
+     "bytes": 27962,
+     "height": 676,
+     "sha256": "36fb027cb2ac5fa5fe85e6dbb6febfba40e8fa02948ae5d2b5818167475cb309",
+     "width": 1200
+    },
+    "record_version": 1,
+    "source_sha256_webview_reported": "540fe095f44ba3f79132b5250236f2df3f604bff780007cdc830777700f52e6f"
+   }
+  }
+ },
+ {
+  "case": "portrait-4x5",
+  "select": "ok"
+ },
+ {
+  "case": "portrait-4x5",
+  "rotation": 0,
+  "preset": "Portrait 4:5",
+  "edgePresses": null,
+  "preview": {
+   "width": 720,
+   "height": 900,
+   "rgbaSha256": "53d6811a8f020897fadc6529501d0b8cfcbfa9f84d1c637306d6d053b2453c15",
+   "readout": [
+    "Left edge 20.00%",
+    "Top edge 0.00%",
+    "Right edge 20.00%",
+    "Bottom edge 0.00%"
+   ],
+   "status": "Crop preview active. Export saves only the visible area."
+  },
+  "export": {
+   "confirmText": "Export an adjusted PNG copy to Pictures / Optic Rift? Windows may sync Pictures with OneDrive. This does not save a project asset, and the original image stays unchanged.",
+   "notice": "Saved adjusted PNG copy: %USERPROFILE%\\OneDrive\\Pictures\\Optic Rift\\optic-rift-photo-1d9eacc0-6cd4-4bc2-82ec-02028988eb2b.png. Your original was not changed.",
+   "added": [
+    "optic-rift-photo-1d9eacc0-6cd4-4bc2-82ec-02028988eb2b.png",
+    "optic-rift-photo-1d9eacc0-6cd4-4bc2-82ec-02028988eb2b.provenance.json"
+   ]
+  },
+  "verified": {
+   "file": "optic-rift-photo-1d9eacc0-6cd4-4bc2-82ec-02028988eb2b.png",
+   "width": 720,
+   "height": 900,
+   "fileSha256": "80e4c4200e3aaa0b15e96cb32b681c3a592d986e195ab723c96445edb55d1706",
+   "analysis": {
+    "rotation": 0,
+    "rotatedSize": [
+     1200,
+     900
+    ],
+    "crop": {
+     "x": 240,
+     "y": 0,
+     "width": 720,
+     "height": 900
+    },
+    "insetsPx": {
+     "left": 240,
+     "top": 0,
+     "right": 240,
+     "bottom": 0
+    },
+    "mismatches": 0,
+    "opaque": true
+   },
+   "previewPixelsEqualExport": true,
+   "previewSize": [
+    720,
+    900
+   ],
+   "provenance": {
+    "adjustments": {
+     "brightness_percent": 100,
+     "contrast_percent": 100,
+     "crop_insets_basis_points_of_rotated_image": {
+      "bottom": 0,
+      "left": 2000,
+      "right": 2000,
+      "top": 0
+     },
+     "rotation_degrees_clockwise": 0
+    },
+    "kind": "adjusted-photo-export",
+    "note": "Exported copy only; not a project-owned asset. Source hash is reported by WebView, not verified against a project file.",
+    "output": {
+     "bytes": 23903,
+     "height": 900,
+     "sha256": "80e4c4200e3aaa0b15e96cb32b681c3a592d986e195ab723c96445edb55d1706",
+     "width": 720
+    },
+    "record_version": 1,
+    "source_sha256_webview_reported": "540fe095f44ba3f79132b5250236f2df3f604bff780007cdc830777700f52e6f"
+   }
+  }
+ },
+ {
+  "case": "edges-keyboard",
+  "select": "ok"
+ },
+ {
+  "case": "edges-keyboard",
+  "rotation": 0,
+  "preset": null,
+  "edgePresses": {
+   "left": 40,
+   "top": 20,
+   "right": 12,
+   "bottom": 8
+  },
+  "preview": {
+   "width": 1044,
+   "height": 837,
+   "rgbaSha256": "58df547bea4a5673b5cb0751b909b7672d0e53bb338e8f87ed6082b63dbec4e7",
+   "readout": [
+    "Left edge 10.00%",
+    "Top edge 5.00%",
+    "Right edge 3.00%",
+    "Bottom edge 2.00%"
+   ],
+   "status": "Crop preview active. Export saves only the visible area."
+  },
+  "export": {
+   "confirmText": "Export an adjusted PNG copy to Pictures / Optic Rift? Windows may sync Pictures with OneDrive. This does not save a project asset, and the original image stays unchanged.",
+   "notice": "Saved adjusted PNG copy: %USERPROFILE%\\OneDrive\\Pictures\\Optic Rift\\optic-rift-photo-a07fee04-4ad0-4ce8-b893-aac941120241.png. Your original was not changed.",
+   "added": [
+    "optic-rift-photo-a07fee04-4ad0-4ce8-b893-aac941120241.png",
+    "optic-rift-photo-a07fee04-4ad0-4ce8-b893-aac941120241.provenance.json"
+   ]
+  },
+  "verified": {
+   "file": "optic-rift-photo-a07fee04-4ad0-4ce8-b893-aac941120241.png",
+   "width": 1044,
+   "height": 837,
+   "fileSha256": "ae28f5013b9f5f9a8825a43d2701c492d1f1063aea3727e8c26a8a5235522cc9",
+   "analysis": {
+    "rotation": 0,
+    "rotatedSize": [
+     1200,
+     900
+    ],
+    "crop": {
+     "x": 120,
+     "y": 45,
+     "width": 1044,
+     "height": 837
+    },
+    "insetsPx": {
+     "left": 120,
+     "top": 45,
+     "right": 36,
+     "bottom": 18
+    },
+    "mismatches": 0,
+    "opaque": true
+   },
+   "previewPixelsEqualExport": true,
+   "previewSize": [
+    1044,
+    837
+   ],
+   "provenance": {
+    "adjustments": {
+     "brightness_percent": 100,
+     "contrast_percent": 100,
+     "crop_insets_basis_points_of_rotated_image": {
+      "bottom": 200,
+      "left": 1000,
+      "right": 300,
+      "top": 500
+     },
+     "rotation_degrees_clockwise": 0
+    },
+    "kind": "adjusted-photo-export",
+    "note": "Exported copy only; not a project-owned asset. Source hash is reported by WebView, not verified against a project file.",
+    "output": {
+     "bytes": 30232,
+     "height": 837,
+     "sha256": "ae28f5013b9f5f9a8825a43d2701c492d1f1063aea3727e8c26a8a5235522cc9",
+     "width": 1044
+    },
+    "record_version": 1,
+    "source_sha256_webview_reported": "540fe095f44ba3f79132b5250236f2df3f604bff780007cdc830777700f52e6f"
+   }
+  }
+ },
+ {
+  "case": "rot90-square-plus-left",
+  "select": "ok"
+ },
+ {
+  "case": "rot90-square-plus-left",
+  "rotation": 90,
+  "preset": "Square 1:1",
+  "edgePresses": {
+   "left": 40
+  },
+  "preview": {
+   "width": 810,
+   "height": 900,
+   "rgbaSha256": "6b7b05f349922fdbcc656683e7f533e8dbe84cdefabb479fc4af1ec015683aab",
+   "readout": [
+    "Left edge 10.00%",
+    "Top edge 12.50%",
+    "Right edge 0.00%",
+    "Bottom edge 12.50%"
+   ],
+   "status": "Crop preview active. Export saves only the visible area."
+  },
+  "export": {
+   "confirmText": "Export an adjusted PNG copy to Pictures / Optic Rift? Windows may sync Pictures with OneDrive. This does not save a project asset, and the original image stays unchanged.",
+   "notice": "Saved adjusted PNG copy: %USERPROFILE%\\OneDrive\\Pictures\\Optic Rift\\optic-rift-photo-75b61077-6599-431f-98a5-bb020c1c0fcb.png. Your original was not changed.",
+   "added": [
+    "optic-rift-photo-75b61077-6599-431f-98a5-bb020c1c0fcb.png",
+    "optic-rift-photo-75b61077-6599-431f-98a5-bb020c1c0fcb.provenance.json"
+   ]
+  },
+  "verified": {
+   "file": "optic-rift-photo-75b61077-6599-431f-98a5-bb020c1c0fcb.png",
+   "width": 810,
+   "height": 900,
+   "fileSha256": "aaeb961779dfc2bb41e10a5769833a2cebe7e057d9592ced9c8b7d9184e610b2",
+   "analysis": {
+    "rotation": 90,
+    "rotatedSize": [
+     900,
+     1200
+    ],
+    "crop": {
+     "x": 90,
+     "y": 150,
+     "width": 810,
+     "height": 900
+    },
+    "insetsPx": {
+     "left": 90,
+     "top": 150,
+     "right": 0,
+     "bottom": 150
+    },
+    "mismatches": 0,
+    "opaque": true
+   },
+   "previewPixelsEqualExport": true,
+   "previewSize": [
+    810,
+    900
+   ],
+   "provenance": {
+    "adjustments": {
+     "brightness_percent": 100,
+     "contrast_percent": 100,
+     "crop_insets_basis_points_of_rotated_image": {
+      "bottom": 1250,
+      "left": 1000,
+      "right": 0,
+      "top": 1250
+     },
+     "rotation_degrees_clockwise": 90
+    },
+    "kind": "adjusted-photo-export",
+    "note": "Exported copy only; not a project-owned asset. Source hash is reported by WebView, not verified against a project file.",
+    "output": {
+     "bytes": 24736,
+     "height": 900,
+     "sha256": "aaeb961779dfc2bb41e10a5769833a2cebe7e057d9592ced9c8b7d9184e610b2",
+     "width": 810
+    },
+    "record_version": 1,
+    "source_sha256_webview_reported": "540fe095f44ba3f79132b5250236f2df3f604bff780007cdc830777700f52e6f"
+   }
+  }
+ },
+ {
+  "case": "rot270-wide",
+  "select": "ok"
+ },
+ {
+  "case": "rot270-wide",
+  "rotation": 270,
+  "preset": "Wide 16:9",
+  "edgePresses": null,
+  "preview": {
+   "width": 900,
+   "height": 504,
+   "rgbaSha256": "42d821906c6300742801b47a76d741ca62ac2666eda614167948955a0d548c9e",
+   "readout": [
+    "Left edge 0.00%",
+    "Top edge 29.00%",
+    "Right edge 0.00%",
+    "Bottom edge 29.00%"
+   ],
+   "status": "Crop preview active. Export saves only the visible area."
+  },
+  "export": {
+   "confirmText": "Export an adjusted PNG copy to Pictures / Optic Rift? Windows may sync Pictures with OneDrive. This does not save a project asset, and the original image stays unchanged.",
+   "notice": "Saved adjusted PNG copy: %USERPROFILE%\\OneDrive\\Pictures\\Optic Rift\\optic-rift-photo-48d45247-a480-41bf-b7a1-cc31e8446313.png. Your original was not changed.",
+   "added": [
+    "optic-rift-photo-48d45247-a480-41bf-b7a1-cc31e8446313.png",
+    "optic-rift-photo-48d45247-a480-41bf-b7a1-cc31e8446313.provenance.json"
+   ]
+  },
+  "verified": {
+   "file": "optic-rift-photo-48d45247-a480-41bf-b7a1-cc31e8446313.png",
+   "width": 900,
+   "height": 504,
+   "fileSha256": "25353bfbf41af2e80316adacc8d3f513bee46ffe0a36b2c4376ce3de4322898a",
+   "analysis": {
+    "rotation": 270,
+    "rotatedSize": [
+     900,
+     1200
+    ],
+    "crop": {
+     "x": 0,
+     "y": 348,
+     "width": 900,
+     "height": 504
+    },
+    "insetsPx": {
+     "left": 0,
+     "top": 348,
+     "right": 0,
+     "bottom": 348
+    },
+    "mismatches": 0,
+    "opaque": true
+   },
+   "previewPixelsEqualExport": true,
+   "previewSize": [
+    900,
+    504
+   ],
+   "provenance": {
+    "adjustments": {
+     "brightness_percent": 100,
+     "contrast_percent": 100,
+     "crop_insets_basis_points_of_rotated_image": {
+      "bottom": 2900,
+      "left": 0,
+      "right": 0,
+      "top": 2900
+     },
+     "rotation_degrees_clockwise": 270
+    },
+    "kind": "adjusted-photo-export",
+    "note": "Exported copy only; not a project-owned asset. Source hash is reported by WebView, not verified against a project file.",
+    "output": {
+     "bytes": 14656,
+     "height": 504,
+     "sha256": "25353bfbf41af2e80316adacc8d3f513bee46ffe0a36b2c4376ce3de4322898a",
+     "width": 900
+    },
+    "record_version": 1,
+    "source_sha256_webview_reported": "540fe095f44ba3f79132b5250236f2df3f604bff780007cdc830777700f52e6f"
+   }
+  }
+ },
+ {
+  "case": "portrait-source-wide",
+  "select": "ok"
+ },
+ {
+  "case": "portrait-source-wide",
+  "rotation": 0,
+  "preset": "Wide 16:9",
+  "edgePresses": null,
+  "preview": {
+   "width": 900,
+   "height": 504,
+   "rgbaSha256": "d1932b25b819cc12171aa9feef3425d6a62abef5f2ad653c4a8275d18d88bb00",
+   "readout": [
+    "Left edge 0.00%",
+    "Top edge 29.00%",
+    "Right edge 0.00%",
+    "Bottom edge 29.00%"
+   ],
+   "status": "Crop preview active. Export saves only the visible area."
+  },
+  "export": {
+   "confirmText": "Export an adjusted PNG copy to Pictures / Optic Rift? Windows may sync Pictures with OneDrive. This does not save a project asset, and the original image stays unchanged.",
+   "notice": "Saved adjusted PNG copy: %USERPROFILE%\\OneDrive\\Pictures\\Optic Rift\\optic-rift-photo-f35acdbd-5593-48a8-91c9-85c226c3e457.png. Your original was not changed.",
+   "added": [
+    "optic-rift-photo-f35acdbd-5593-48a8-91c9-85c226c3e457.png",
+    "optic-rift-photo-f35acdbd-5593-48a8-91c9-85c226c3e457.provenance.json"
+   ]
+  },
+  "verified": {
+   "file": "optic-rift-photo-f35acdbd-5593-48a8-91c9-85c226c3e457.png",
+   "width": 900,
+   "height": 504,
+   "fileSha256": "9cb2c281a4dc0cc19c72d305d8ed00ea485041c059c38a9665fbbb00815448c1",
+   "analysis": {
+    "rotation": 0,
+    "rotatedSize": [
+     900,
+     1200
+    ],
+    "crop": {
+     "x": 0,
+     "y": 348,
+     "width": 900,
+     "height": 504
+    },
+    "insetsPx": {
+     "left": 0,
+     "top": 348,
+     "right": 0,
+     "bottom": 348
+    },
+    "mismatches": 0,
+    "opaque": true
+   },
+   "previewPixelsEqualExport": true,
+   "previewSize": [
+    900,
+    504
+   ],
+   "provenance": {
+    "adjustments": {
+     "brightness_percent": 100,
+     "contrast_percent": 100,
+     "crop_insets_basis_points_of_rotated_image": {
+      "bottom": 2900,
+      "left": 0,
+      "right": 0,
+      "top": 2900
+     },
+     "rotation_degrees_clockwise": 0
+    },
+    "kind": "adjusted-photo-export",
+    "note": "Exported copy only; not a project-owned asset. Source hash is reported by WebView, not verified against a project file.",
+    "output": {
+     "bytes": 16992,
+     "height": 504,
+     "sha256": "9cb2c281a4dc0cc19c72d305d8ed00ea485041c059c38a9665fbbb00815448c1",
+     "width": 900
+    },
+    "record_version": 1,
+    "source_sha256_webview_reported": "8ec07fd64e7f9c7f5c6e03e10dd5ed0e8402fbd962d110de38da316ed8809f05"
+   }
+  }
+ },
+ {
+  "case": "large-bounded-preview-square",
+  "select": "ok"
+ },
+ {
+  "case": "large-bounded-preview-square",
+  "rotation": 0,
+  "preset": "Square 1:1",
+  "edgePresses": null,
+  "preview": {
+   "width": 1397,
+   "height": 1400,
+   "rgbaSha256": "75a8d335e86e169af56eac688e4a55a200c81f7856b3b6b28ed0584b97c9e779",
+   "readout": [
+    "Left edge 16.75%",
+    "Top edge 0.00%",
+    "Right edge 16.75%",
+    "Bottom edge 0.00%"
+   ],
+   "status": "Crop preview active. Export saves only the visible area."
+  },
+  "export": {
+   "confirmText": "Export an adjusted PNG copy to Pictures / Optic Rift? Windows may sync Pictures with OneDrive. This does not save a project asset, and the original image stays unchanged.",
+   "notice": "Saved adjusted PNG copy: %USERPROFILE%\\OneDrive\\Pictures\\Optic Rift\\optic-rift-photo-10c3304f-a559-496a-8ae5-1c8089158a38.png. Your original was not changed.",
+   "added": [
+    "optic-rift-photo-10c3304f-a559-496a-8ae5-1c8089158a38.png",
+    "optic-rift-photo-10c3304f-a559-496a-8ae5-1c8089158a38.provenance.json"
+   ]
+  },
+  "verified": {
+   "file": "optic-rift-photo-10c3304f-a559-496a-8ae5-1c8089158a38.png",
+   "width": 1596,
+   "height": 1600,
+   "fileSha256": "6cd4606056850ad45a4610f3579fad68ccfd6fca34dc5a9f0649a620011afaad",
+   "analysis": {
+    "rotation": 0,
+    "rotatedSize": [
+     2400,
+     1600
+    ],
+    "crop": {
+     "x": 402,
+     "y": 0,
+     "width": 1596,
+     "height": 1600
+    },
+    "insetsPx": {
+     "left": 402,
+     "top": 0,
+     "right": 402,
+     "bottom": 0
+    },
+    "mismatches": 0,
+    "opaque": true
+   },
+   "previewPixelsEqualExport": false,
+   "previewSize": [
+    1397,
+    1400
+   ],
+   "provenance": {
+    "adjustments": {
+     "brightness_percent": 100,
+     "contrast_percent": 100,
+     "crop_insets_basis_points_of_rotated_image": {
+      "bottom": 0,
+      "left": 1675,
+      "right": 1675,
+      "top": 0
+     },
+     "rotation_degrees_clockwise": 0
+    },
+    "kind": "adjusted-photo-export",
+    "note": "Exported copy only; not a project-owned asset. Source hash is reported by WebView, not verified against a project file.",
+    "output": {
+     "bytes": 78305,
+     "height": 1600,
+     "sha256": "6cd4606056850ad45a4610f3579fad68ccfd6fca34dc5a9f0649a620011afaad",
+     "width": 1596
+    },
+    "record_version": 1,
+    "source_sha256_webview_reported": "495bf02cdd1edb9e50a78d52de5fb4f5acbbec0552f024ebc1a47d3864571982"
+   }
+  }
+ },
+ {
+  "case": "declined-consent",
+  "confirmText": "Export an adjusted PNG copy to Pictures / Optic Rift? Windows may sync Pictures with OneDrive. This does not save a project asset, and the original image stays unchanged.",
+  "notice": "",
+  "added": []
+ },
+ {
+  "case": "originals",
+  "unchanged": true,
+  "srcHashBefore": {
+   "land-1200x900.png": "540fe095f44ba3f79132b5250236f2df3f604bff780007cdc830777700f52e6f",
+   "port-900x1200.png": "8ec07fd64e7f9c7f5c6e03e10dd5ed0e8402fbd962d110de38da316ed8809f05",
+   "large-2400x1600.png": "495bf02cdd1edb9e50a78d52de5fb4f5acbbec0552f024ebc1a47d3864571982"
+  },
+  "srcHashAfter": {
+   "land-1200x900.png": "540fe095f44ba3f79132b5250236f2df3f604bff780007cdc830777700f52e6f",
+   "port-900x1200.png": "8ec07fd64e7f9c7f5c6e03e10dd5ed0e8402fbd962d110de38da316ed8809f05",
+   "large-2400x1600.png": "495bf02cdd1edb9e50a78d52de5fb4f5acbbec0552f024ebc1a47d3864571982"
+  }
+ },
+ {
+  "ipc": [
+   "generation_outputs",
+   "photo_export_copy"
+  ],
+  "nonIpc": []
+ }
+]

@@ -1,0 +1,6 @@
+﻿
+ffmpeg on PATH now: False; bundled resource dir has ffmpeg: False
+goto Video Studio: Video Studio
+NEGATIVE h264-bframes-counter.mp4: {"previewOk":true,"previewFailed":null,"buttonDisabled":false,"notice":"FFmpeg is not installed for Optic Rift, so videos cannot be trimmed yet. | An export of long-1080p-120s.mp4 was interrupted when Optic Rift closed. Its partial files were removed; no video was saved. Dismiss","jobsStarted":0}
+pictures: 102 (was 102); ffmpeg processes: 0
+DONE

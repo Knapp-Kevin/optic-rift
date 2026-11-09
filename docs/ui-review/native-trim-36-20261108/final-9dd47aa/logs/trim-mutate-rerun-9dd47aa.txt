@@ -1,0 +1,5 @@
+﻿goto Video Studio: Video Studio
+MUTATE 1: export m37-mutate.mp4: succeeded optic-rift-trim-ec7f1f9b-cd98-4e81-8090-6c33198cc1d2.mp4
+MUTATE 2: same clip after the file changed: {"notice":"The source video changed on disk after you chose it. Nothing was exported; choose it again.","jobsStarted":0}
+MUTATE 3: Save again asks for the file again: {"notice":"The file you chose is not the clip open in Video Studio (its name, size or modified time differ). Nothing was granted.","jobsStarted":0}
+pictures: 104 (was 102; +2 expected from the first export only)

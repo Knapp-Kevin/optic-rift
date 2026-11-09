@@ -1,0 +1,1 @@
+﻿{"dissent":{},"escalations":[],"neff":0.0,"quorumMet":false,"reasons":["quorum 1 not met by N_eff 0.00","uncovered evidence classes: deterministic-gate, adversarial-empirical, human-approval"],"satisfied":false,"unmetEvidenceClasses":["deterministic-gate","adversarial-empirical","human-approval"],"unmetPredicates":["distinct-identity"]}

@@ -1,0 +1,14 @@
+﻿
+What if: Performing the operation "git worktree remove (no force)" on target 
+"<scratchpad>\ev33".
+What if: Performing the operation "git worktree remove (no force)" on target 
+"<scratchpad>\ev35".
+What if: Performing the operation "git worktree remove (no force)" on target 
+"<scratchpad>\pr33".
+What if: Performing the operation "git worktree remove (no force)" on target 
+"<scratchpad>\pr34".
+What if: Performing the operation "git worktree remove (no force)" on target 
+"<scratchpad>\pr35".
+No git prune, branch deletion, or model/cache cleanup was performed.
+
+

@@ -1,0 +1,29 @@
+﻿
+  Removed Git worktree: 
+<scratchpad>\ev33
+  Removed Git worktree: 
+<scratchpad>\ev35
+  Removed Git worktree: 
+<scratchpad>\pr33
+  Removed Git worktree: 
+<scratchpad>\pr34
+  Removed Git worktree: 
+<scratchpad>\pr35
+No git prune, branch deletion, or model/cache cleanup was performed.
+
+
+free before 1095393685504 after 1095671377920 delta MB 264.8
+C:/dev/mythologiq/optic-rift                                                                                    14c5748 [feature/create-studio-workspace-20261106-no-ci]
+<scratchpad>/ev32  95ddef1 [docs/ui-review-navigation-32-20261106-no-ci] prunable
+<scratchpad>/ev36  e7c78e5 [docs/ui-review-native-trim-36-20261108-no-ci]
+<scratchpad>/integ e875ca2 [integration/studio-downloads-20261106-no-ci] prunable
+<scratchpad>/main  fee266a (detached HEAD) prunable
+<scratchpad>/pr1   c2edbf7 (detached HEAD) prunable
+<scratchpad>/pr18  ee6da0e [feature/local-image-generation-20261105-no-ci] prunable
+<scratchpad>/pr20  20de634 [feature/sdxl-img2img-worker-20261106-no-ci] prunable
+<scratchpad>/pr26  7d31456 [feature/video-metadata-cache-20261106-no-ci] prunable
+<scratchpad>/pr27  100f2ce [feature/model-download-lifecycle-20261106-no-ci] prunable
+<scratchpad>/pr30  aa86872 [feature/photo-adjusted-png-export-20261106-no-ci] prunable
+<scratchpad>/pr31  71642e3 [feature/photo-canvas-preview-parity-20261106-no-ci] prunable
+<scratchpad>/pr32  39fd7ca [feature/creative-workspace-navigation-20261106-no-ci] prunable
+<scratchpad>/pr36  9dd47aa [feature/native-video-trim-20261108-no-ci]

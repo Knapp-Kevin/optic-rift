@@ -1,0 +1,17 @@
+﻿ev33 | worktree | docs/ui-review-frame-capture-33-20261108-no-ci@1c729a9 | on remote: origin/docs/ui-review-frame-capture-33-20261108-no-ci | stashes 0 | 2.7MB 52 files
+ev35 | worktree | docs/ui-review-whole-studio-35-20261108-no-ci@bec5ffa | on remote: origin/docs/ui-review-whole-studio-35-20261108-no-ci | stashes 0 | 6.9MB 101 files
+ev36 | worktree | docs/ui-review-native-trim-36-20261108-no-ci@e7c78e5 | on remote: origin/docs/ui-review-native-trim-36-20261108-no-ci | stashes 0 | 3.6MB 46 files
+pr33 | worktree | feature/video-frame-to-photo-20261108-no-ci@9e84a60 | on remote: origin/feature/video-frame-to-photo-20261108-no-ci | stashes 0 | 81.6MB 2657 files
+pr34 | worktree | fix/approved-optic-rift-favicon-20261108-no-ci@3a99e6c | on remote: origin/fix/approved-optic-rift-favicon-20261108-no-ci | stashes 0 | 80.8MB 2602 files
+pr35 | worktree | feature/video-shot-composer-20261108-no-ci@49b589b | on remote: origin/feature/native-video-trim-20261108-no-ci origin/feature/video-shot-composer-20261108-no-ci | stashes 0 | 81.7MB 2666 files
+ev32 | NOT A WORKTREE (no .git) | 0MB 0 files | top: .github,assets,docs,governance,public,scripts
+integ | NOT A WORKTREE (no .git) | 0MB 2 files | top: .github,assets,dist,docs,governance,node_modules,public,scripts,src,src-tauri,tests
+main | NOT A WORKTREE (no .git) | 0MB 0 files | top: .github,assets,docs,governance,public,scripts
+pr1 | NOT A WORKTREE (no .git) | 0MB 2 files | top: .github,assets,dist,docs,governance,node_modules,public,scripts,src,src-tauri,tests
+pr18 | NOT A WORKTREE (no .git) | 0MB 2 files | top: .github,assets,dist,docs,governance,node_modules,public,scripts,src,src-tauri,tests
+pr20 | NOT A WORKTREE (no .git) | 0MB 0 files | top: .github,assets,docs,governance,public,scripts,src,src-tauri,tests
+pr26 | NOT A WORKTREE (no .git) | 0MB 2 files | top: .github,assets,dist,docs,governance,node_modules,public,scripts,src,src-tauri,tests
+pr27 | NOT A WORKTREE (no .git) | 0MB 2 files | top: .github,assets,dist,docs,governance,node_modules,public,scripts,src,src-tauri,tests
+pr30 | NOT A WORKTREE (no .git) | 0MB 2 files | top: .github,assets,dist,docs,governance,node_modules,public,scripts,src,src-tauri,tests
+pr31 | NOT A WORKTREE (no .git) | 0MB 2 files | top: .github,assets,dist,docs,governance,node_modules,public,scripts,src,src-tauri,tests
+pr32 | NOT A WORKTREE (no .git) | 0MB 2 files | top: .github,assets,dist,docs,governance,node_modules,public,scripts,src,src-tauri,tests

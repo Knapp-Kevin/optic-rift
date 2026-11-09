@@ -1,0 +1,23 @@
+﻿
+test video_trim::tests::failure_messages_are_plain ... ok
+test video_trim::tests::restart_marks_unfinished_jobs_interrupted_and_removes_partials ... ok
+test video_trim::tests::cancel_stops_the_encoder_and_leaves_no_files ... ok
+test video_trim::tests::damaged_source_frames_fail_instead_of_being_concealed ... ok
+test video_trim::tests::linked_sources_are_refused ... ok
+test video_trim::tests::non_keyframe_cut_exports_exactly_the_chosen_frames ... ok
+test video_trim::tests::refusals_write_nothing has been running for over 60 seconds
+test video_trim::tests::rotation_and_audio_follow_the_declared_policy has been running for over 60 seconds
+test video_trim::tests::simultaneous_starts_run_only_one_job has been running for over 60 seconds
+test video_trim::tests::substituted_ffmpeg_is_refused has been running for over 60 seconds
+test video_trim::tests::variable_frame_rate_cut_uses_real_frames has been running for over 60 seconds
+test video_trim::tests::refusals_write_nothing ... ok
+test video_trim::tests::rotation_and_audio_follow_the_declared_policy ... ok
+test video_trim::tests::simultaneous_starts_run_only_one_job ... ok
+test video_trim::tests::substituted_ffmpeg_is_refused ... ok
+test video_trim::tests::variable_frame_rate_cut_uses_real_frames ... ok
+test result: ok. 115 passed; 0 failed; 5 ignored; 0 measured; 0 filtered out; finished in 108.35s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
