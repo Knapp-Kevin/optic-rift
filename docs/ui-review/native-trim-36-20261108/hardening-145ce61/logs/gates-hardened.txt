@@ -1,0 +1,80 @@
+﻿HEAD 9dd47aa434d1db33f482b130ddff915686e696db
+== npm ci exit=0
+At <scratchpad>\gates36.ps
+1:13 char:17
++ Gate 'npm ci' { cmd /c npm ci }
++                 ~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn allow-...y allowScripts::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+npm warn allow-scripts   esbuild@0.25.12 (postinstall: node install.js)
+npm warn allow-scripts
+npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to review, or `npm approve-scripts <pkg>` to 
+allow.
+
+== test:content exit=0
+✔ Removing a clip from the session withdraws its export permission (0.7337ms)
+✔ every native window retains all observed WebView2 privacy controls (0.6261ms)
+✔ each required WebView2 privacy switch is mutation-guarded (1.722ms)
+ℹ tests 97
+ℹ suites 0
+ℹ pass 97
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 230.6052
+
+== build exit=0
+> tsc --noEmit && vite build
+
+vite v6.4.5 building for production...
+transforming...
+✓ 59 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.65 kB │ gzip:   0.41 kB
+dist/assets/index-CLR5aATQ.css   43.78 kB │ gzip:   9.58 kB
+dist/assets/index-CnHTX52E.js   354.85 kB │ gzip: 109.04 kB
+✓ built in 651ms
+
+== cargo fmt --check exit=0
+
+== cargo check --locked exit=0
+cargo :    Compiling optic-rift v0.1.0 (%USERPROFILE%\AppData\Local\Temp\claude\f81ae0cb4d3059bf\c87979a3-6a4e-4847-ab
+ff-1dba26a9baa4\scratchpad\pr36\src-tauri)
+At <scratchpad>\gates36.ps
+1:17 char:31
++ ... --locked' { cargo check --manifest-path src-tauri/Cargo.toml --locked ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (   Compiling op...pr36\src-tauri):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 5.20s
+
+== cargo test --locked exit=0
+running 1 test
+test project_commands_survive_app_restart ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+   Doc-tests optic_rift_lib
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+== cargo clippy --locked -D warnings exit=0
+cargo :    Compiling optic-rift v0.1.0 (%USERPROFILE%\AppData\Local\Temp\claude\f81ae0cb4d3059bf\c87979a3-6a4e-4847-ab
+ff-1dba26a9baa4\scratchpad\pr36\src-tauri)
+At <scratchpad>\gates36.ps
+1:19 char:44
++ ... warnings' { cargo clippy --manifest-path src-tauri/Cargo.toml --all-t ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (   Compiling op...pr36\src-tauri):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 5.36s
+
+DONE

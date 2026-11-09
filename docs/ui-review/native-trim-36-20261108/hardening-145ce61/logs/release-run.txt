@@ -1,0 +1,28 @@
+﻿
+ffmpeg on PATH: %USERPROFILE%\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg.Essentials_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-9.0.1-essentials_build\bin\ffmpeg.exe
+== R1 release, no compiled-in hashes, no bundled FFmpeg (FFmpeg IS on PATH)
+goto Video Studio: Video Studio
+NEGATIVE h264-bframes-counter.mp4: {"previewOk":true,"previewFailed":null,"buttonDisabled":false,"notice":"This build of Optic Rift does not include an approved FFmpeg, so videos cannot be trimmed.","jobsStarted":0}
+== R2 release, no compiled-in hashes, FFmpeg copied into the bundle folder
+goto Video Studio: Video Studio
+NEGATIVE h264-bframes-counter.mp4: {"previewOk":true,"previewFailed":null,"buttonDisabled":false,"notice":"This build of Optic Rift does not include an approved FFmpeg, so videos cannot be trimmed.","jobsStarted":0}
+== R3 pinned release, no bundled FFmpeg (FFmpeg IS on PATH)
+goto Video Studio: Video Studio
+NEGATIVE h264-bframes-counter.mp4: {"previewOk":true,"previewFailed":null,"buttonDisabled":false,"notice":"This build of Optic Rift does not include an approved FFmpeg, so videos cannot be trimmed.","jobsStarted":0}
+== R4 pinned release, bundled ffprobe substituted (ffmpeg.exe copied as ffprobe.exe)
+goto Video Studio: Video Studio
+NEGATIVE h264-bframes-counter.mp4: {"previewOk":true,"previewFailed":null,"buttonDisabled":false,"notice":"The bundled FFmpeg does not match the copy approved for this build; export refused.","jobsStarted":0}
+pictures after refusals: 104 (was 104); ffmpeg processes: 0
+== R5 pinned release, approved bundle, real Windows dialog
+goto Video Studio: Video Studio
+CLICK-SAVE rotated-audio-counter.mp4: clicked
+dialog title: Optic Rift: choose rotated-audio-counter.mp4 to allow a trimmed copy
+file-name box prefilled: 
+OK button label: Allow trimmed copy
+set the file name and clicked OK (attempt 1)
+dialog closed: True
+AFTER-DIALOG: {"confirmText":"Save a trimmed copy of rotated-audio-counter.mp4?\n\nFrames 31 to 61 (31 frames, 00:01.0 to 00:02.0, 360×640).\nAudio: the clip's audio track is kept (re-encoded to AAC).\n\nA new MP4 and a receipt will be saved in Pictures\\Optic Rift, which may sync with OneDrive. Your original video is not changed.","notice":"","job":{"state":"succeeded","file":"optic-rift-trim-c853c53d-58ab-426b-8d68-5d2c206cd917.mp4","frames":31}}
+ANALYSIS release-pinned rotated-audio-counter.mp4: {"output":"optic-rift-trim-c853c53d-58ab-426b-8d68-5d2c206cd917.mp4","sha256":"8d69212f33cdc7f380f3c582b29bc2dcb801ec95e600610a5bc1347a0e18f8cb","receiptShaMatches":true,"receiptSourceSha":"db0ca608ea6fd42e","receiptRange":[30,60,31],"codec":"h264","size":[360,640],"rotationTag":0,"container":"mov,mp4,m4a,3gp,3g2,mj2","frames":31,"videoSeconds":1.033333,"audioTracks":1,"audioSeconds":1.033333,"firstSourceFrame":30,"lastSourceFrame":60,"strictlyIncreasing":true,"sourceFrames":"30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60","worstMatchMad":"0.04","smallestMargin":"0.22"}
+receipt tool: {"ffmpegSha256":"72a489eccd008c2ec2c0a5856c5c75bc3d8bbfa90166c4566865c246445e6aa3","ffmpegVersion":"ffmpeg version 9.0.1-essentials_build-www.gyan.dev Copyright (c) 2000-2026 the FFmpeg developers","ffprobeSha256":"19202b23c0043f15ad1b7bce2344f406fd52bd6efd8f995ce02e7392a1cec52f","source":"bundled with Optic Rift"}
+pictures end: 106
+DONE
