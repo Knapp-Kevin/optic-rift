@@ -11,7 +11,7 @@ import { projectPhotosClient, editsFromRecipe, restoredPngBlob, type ProjectPhot
 import { navigation, routeTitle, editorFor, mediaForEditor, type View, type MediaItem } from "./creativeNavigation";
 import { formatSize, IMAGE_PREVIEW_FAILED, VIDEO_PREVIEW_FAILED } from "./mediaFormat";
 import {
-  EMPTY_PHOTO_CROP, centeredPhotoCrop, photoResizedOutputDimensions, renderAdjustedPhoto, validatePhotoCrop,
+  EMPTY_PHOTO_CROP, centeredPhotoCrop, photoResizedOutputDimensions, loadPhotoBitmap, renderAdjustedPhoto, validatePhotoCrop,
   type PhotoAdjustments, type PhotoCrop,
 } from "./photoEdits";
 import { applyPhotoEdit, createPhotoHistory, finishPhotoGesture, undoPhotoEdit, redoPhotoEdit, DEFAULT_PHOTO_EDITS, type PhotoEditHistory } from "./photoHistory";
@@ -341,7 +341,15 @@ export default function App() {
     if (!targetProject || projectPhotoBusy) return;
     const already = items.find((item) => item.projectPhoto?.projectId === targetProject.id &&
       item.projectPhoto.assetId === assetId);
-    if (already) { openMedia(already); return; }
+    if (already) {
+      const stored = savedProjectPhotos.find((entry) => entry.asset_id === assetId);
+      if (stored && stored.revision !== already.projectPhoto?.revision) {
+        setProjectPhotoNotice("A different revision is already open in this session. Remove it from the session before reopening.");
+        return;
+      }
+      openMedia(already);
+      return;
+    }
     setProjectPhotoBusy(true);
     setProjectPhotoNotice("Verifying saved PNG and edit document…");
     let newUrl: string | null = null;
