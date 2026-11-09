@@ -176,13 +176,13 @@ export default function App() {
     setPhotoExportNotice("");
   }
 
-  function updatePhotoCrop(changes: Partial<PhotoCrop>) {
+  function updatePhotoCrop(changes: Partial<PhotoCrop>, gesture: string | null = null) {
     if (!selected || selected.kind !== "image" || photoExportBusy) return;
     const id = selected.id;
     setPhotoHistories((previous) => {
       const history = previous[id] ?? createPhotoHistory();
       const crop = validatePhotoCrop({ ...EMPTY_PHOTO_CROP, ...history.present.crop, ...changes });
-      const next = applyPhotoEdit(history, { crop });
+      const next = applyPhotoEdit(history, { crop }, gesture);
       return next === history ? previous : { ...previous, [id]: next };
     });
     setPhotoExportNotice("");
@@ -538,7 +538,9 @@ export default function App() {
                     {edge.charAt(0).toUpperCase() + edge.slice(1)} edge <output>{(crop[edge] / 100).toFixed(2)}%</output>
                     <input type="range" min={0} max={max} step={25} value={crop[edge]} disabled={photoExportBusy}
                       aria-label={edge + " crop inset percent"}
-                      onChange={(event) => updatePhotoCrop({ ...crop, [edge]: Number(event.target.value) })} />
+                      onChange={(event) => updatePhotoCrop({ ...crop, [edge]: Number(event.target.value) }, `crop-${edge}`)}
+                      onPointerUp={finishPhotoSlider} onPointerCancel={finishPhotoSlider}
+                      onKeyUp={finishPhotoSlider} onBlur={finishPhotoSlider} />
                   </label>;
                 })}
                 <p className="photo-crop-status" role="status">
