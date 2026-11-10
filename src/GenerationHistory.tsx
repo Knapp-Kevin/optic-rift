@@ -125,6 +125,10 @@ export default function GenerationHistory({ refreshVersion, onResult }: Props) {
           aria-label="Unsigned model provenance disclosure" role="region">
           <p><strong>AI-generated (Optic Rift local record).</strong> Unsigned and unverified.
             This is not a C2PA Content Credential or proof of authorship.</p>
+          <p>Claim source: {inspected.view.assertionOrigin === "optic_rift_local_unsigned_record"
+            ? "Optic Rift local generation history" : "Unknown"}.
+            Creator identity, usage rights, artistic merit and absence of other AI tools are not verified.
+            Manual editing of an unknown source does not establish human-only origin.</p>
           <p>{inspected.view.lineage === "incomplete"
             ? "Some referenced model stages could not be validated locally. The displayed history is incomplete."
             : "Known local generation stages are listed below. External sources and signer identity have not been verified."}</p>
