@@ -15,19 +15,32 @@ fn canonical_job_id(raw: &str) -> bool {
     uuid::Uuid::parse_str(raw).is_ok_and(|id| id.hyphenated().to_string() == raw)
 }
 
-/// This is a strict, lossy disclosure whitelist, not a validation of external
-/// model provenance. A local path, tokenized URL or suspicious value is omitted.
+/// Strict lossy disclosure whitelist, not proof of model identity. The repo
+/// must use a 2-part namespace/name convention, not an arbitrary path or URL.
+/// Revisions/adapters may not contain separators. Unknown formats stay null.
 fn public_model_field(model: &Value, name: &str, max_len: usize) -> Option<String> {
     let value = model.get(name)?.as_str()?;
-    if value.is_empty()
-        || value.len() > max_len
-        || value.starts_with('/')
-        || value.contains("..")
-        || !value.bytes().all(|b| b.is_ascii_alphanumeric() || b"._-/".contains(&b))
-    {
+    let valid_segment = |segment: &str| {
+        !segment.is_empty()
+            && !segment.starts_with('.')
+            && !segment.ends_with('.')
+            && !segment.contains("..")
+            && segment.bytes().all(|b| b.is_ascii_alphanumeric() || b"._-".contains(&b))
+    };
+    if value.len() > max_len {
         return None;
     }
-    Some(value.to_owned())
+    let allowed = match name {
+        "repo" => {
+            let mut parts = value.split('/');
+            matches!((parts.next(), parts.next(), parts.next()),
+                (Some(namespace), Some(repository), None)
+                if valid_segment(namespace) && valid_segment(repository))
+        }
+        "revision" | "adapter" | "adapter_version" => valid_segment(value),
+        _ => false,
+    };
+    allowed.then(|| value.to_owned())
 }
 
 /// Build a deliberately untrusted, sanitized local generation disclosure.
@@ -229,6 +242,28 @@ mod tests {
         let parsed: Value = serde_json::from_slice(&result).unwrap();
         assert_eq!(parsed["model_stages"].as_array().unwrap().len(), MAX_STAGES);
         assert_eq!(parsed["lineage_status"], "incomplete");
+    }
+
+    #[test]
+    fn relative_paths_and_unrecognized_identifiers_are_omitted() {
+        let id = uuid::Uuid::new_v4().to_string();
+        for bad in ["Users/alice/private", "./local", "../escape",
+            "file:///tmp/models", "repo//model", "repo/.secret",
+            "name:password@host/repo", "repo/model/version"] {
+            let mut record = record(&id, &"f".repeat(64), bad);
+            record.model["adapter"] = json!("relative/path");
+            let raw = public_generation_receipt(&record, |_| unreachable!()).unwrap();
+            let disclosure: Value = serde_json::from_slice(&raw).unwrap();
+            assert!(disclosure["model_stages"][0]["model_repo"].is_null(), "{bad}");
+            assert!(disclosure["model_stages"][0]["adapter"].is_null());
+        }
+        let mut record = record(&id, &"f".repeat(64), "org/Model-1.0");
+        record.model["revision"] = json!("v2.1-rc");
+        let disclosure: Value = serde_json::from_slice(
+            &public_generation_receipt(&record, |_| unreachable!()).unwrap(),
+        ).unwrap();
+        assert_eq!(disclosure["model_stages"][0]["model_repo"], "org/Model-1.0");
+        assert_eq!(disclosure["model_stages"][0]["model_revision"], "v2.1-rc");
     }
 
     #[test]
