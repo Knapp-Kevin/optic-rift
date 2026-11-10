@@ -72,6 +72,32 @@ test("unsigned and incomplete provenance is never represented as trusted C2PA", 
   assert.doesNotMatch(rust.split("#[cfg(test)]")[0], /"c2pa_valid": true/);
 });
 
+test("ordinary photo export preserves unknown source and unauthenticated creator status", () => {
+  const native = source("../src-tauri/src/photo_export.rs");
+  const production = native.split("#[cfg(test)]")[0];
+  const disclosure = production.slice(production.indexOf('"provenance_disclosure": {'),
+    production.indexOf('"adjustments": {'));
+  assert.ok(disclosure.length > 100, "native photo receipt requires disclosure");
+  for (const expected of [
+    '"operation": "optic_rift_photo_adjustment_export"',
+    '"operation_observation": "native_output_bytes_verified"',
+    '"adjustments_evidence": "webview_reported_not_independently_replayed"',
+    '"source_hash_evidence": "webview_reported_not_native_source_bound"',
+    '"source_origin": "unknown"',
+    '"ai_involvement_in_source": "unknown"',
+    '"actor_identity": "not_verified"',
+    '"usage_rights": "not_verified"',
+    '"credential_status": "unsigned_unverified_not_c2pa"',
+  ]) {
+    assert.ok(disclosure.includes(expected), expected);
+  }
+  assert.doesNotMatch(disclosure, /"human_verified"|"ai_free"|"artistic_integrity_score"/);
+  assert.ok(native.includes('receipt_json["provenance_disclosure"]["source_origin"]'));
+  assert.ok(native.includes('receipt_json["provenance_disclosure"]["ai_involvement_in_source"]'));
+  assert.match(production, /"source_sha256_webview_reported": request\.source_sha256/);
+  assert.match(production, /Sha256::digest\(&bytes\)/);
+});
+
 test("Pictures consent discloses redaction limits and cloud sync", () => {
   const notice = source("../src/exportPrivacy.ts");
   assert.match(notice, /Raw prompts are not copied/);
