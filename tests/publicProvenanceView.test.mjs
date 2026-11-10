@@ -24,6 +24,7 @@ test("two valid model stages remain readable and explicitly unsigned", () => {
   const parsed = parsePublicProvenance(receipt());
   assert.equal(parsed.status, "unsigned_unverified_not_c2pa");
   assert.equal(parsed.involvement, "ai_generated");
+  assert.equal(parsed.assertionOrigin, "optic_rift_local_unsigned_record");
   assert.equal(parsed.stages.length, 2);
   assert.equal(parsed.stages[0].modelRepo, "studio/ModelA");
   assert.equal(parsed.stages[1].modelRevision, "rev-1");
@@ -37,6 +38,9 @@ test("missing stages and incomplete ancestry are shown without inventing an issu
   for (const bad of [
     { ...receipt(), credential_status: "trusted_c2pa" },
     { ...receipt(), ai_involvement: "human_created" },
+    { ...receipt(), assertion_origin: "verified_human_creator" },
+    { ...receipt(), assertion_origin: "external_cawg_identity" },
+    { ...receipt(), assertion_origin: undefined },
     { ...receipt(), model_stages: [] },
     { ...receipt(), model_stages: Array.from({ length: 17 }, () => stage(idA, hashA, "studio/X")) },
     { ...receipt(), output: { sha256: hashA } },
@@ -55,6 +59,22 @@ test("reject forged stage paths and malformed identifiers", () => {
   const value = receipt();
   value.model_stages[0].adapter = "C:/private";
   assert.throws(() => parsePublicProvenance(value), /path-shaped/);
+});
+
+test("artist, identity and rights assertions in a raw record never become verified metadata", () => {
+  const value = receipt();
+  value.artist_name = "Person claiming credit";
+  value.creator_verified = true;
+  value.rights_verified = true;
+  value.artistic_integrity_score = 100;
+  value.model_stages[0].identity = { type: "CAWG", verified: true };
+  const parsed = parsePublicProvenance(value);
+  for (const unsubstantiated of ["Person claiming credit", "creator_verified", "rights_verified",
+    "artistic_integrity_score", "CAWG"]) {
+    assert.ok(!JSON.stringify(parsed).includes(unsubstantiated));
+  }
+  assert.equal(parsed.assertionOrigin, "optic_rift_local_unsigned_record");
+  assert.equal(parsed.status, "unsigned_unverified_not_c2pa");
 });
 
 test("optional model IDs may be null, while private fields never survive parsing", () => {
