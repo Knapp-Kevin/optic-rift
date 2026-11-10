@@ -24,6 +24,18 @@ test("native public disclosure omits private generation fields by construction",
   assert.doesNotMatch(production, /std::fs|std::process::Command|unsafe\s*\{/);
 });
 
+test("public model identifiers reject path-shaped and URL-shaped values", () => {
+  const rust = source("../src-tauri/src/content_provenance.rs");
+  const production = rust.split("#[cfg(test)]")[0];
+  assert.match(production, /let valid_segment =/);
+  assert.match(production, /!segment\.starts_with\('\.'\)/);
+  assert.match(production, /!segment\.contains\("\.\."\)/);
+  assert.match(production, /let mut parts = value\.split\('\/'\)/);
+  assert.match(production, /"revision" \| "adapter" \| "adapter_version"/);
+  assert.match(rust, /relative_paths_and_unrecognized_identifiers_are_omitted/);
+  assert.match(rust, /"Users\/alice\/private"/);
+});
+
 test("native Pictures export uses sanitized disclosure not the private source JSON", () => {
   const lib = source("../src-tauri/src/lib.rs");
   const generation = source("../src-tauri/src/generation.rs");
