@@ -55,13 +55,13 @@ test("Project photo API passes project IDs, asset IDs and errors without inventi
   const calls = [];
   const invoke = async (name,args) => {
     calls.push({ name,args });
-    if (name === "project_photo_list") return { photos: [], problems: [] };
+    if (name === "project_photo_list") return { photos: [], problems: [], possible_incomplete_saves: 3 };
     if (name === "project_photo_open") throw "The project original has changed";
     throw new Error("Unexpected command");
   };
   const client = projectPhotosClient(invoke);
   assert.deepEqual(await client.list("project-1"), {
-    ok: true, value: { photos: [], problems: [] },
+    ok: true, value: { photos: [], problems: [], possible_incomplete_saves: 3 },
   });
   assert.deepEqual(calls[0], { name: "project_photo_list", args: { projectId:"project-1" } });
   assert.deepEqual(await client.open("project-1","asset-1"), {
@@ -87,6 +87,12 @@ test("Native project photo implementation owns file authority and refuses source
   assert.match(native, /if existing != bytes/);
   assert.match(native, /Project photo file is not regular/);
   assert.match(native, /pub fn open\(/);
+  assert.match(native, /pub possible_incomplete_saves: usize/);
+  assert.match(native, /fn possible_initial_staging/);
+  assert.match(native, /fn possible_revision_staging/);
+  assert.match(library, /possibleIncompleteSaves > 0/);
+  assert.match(app, /setPossibleIncompleteSaves/);
+  assert.match(app, /possibleIncompleteSaves={possibleIncompleteSaves}/);
   assert.doesNotMatch(production, /std::process::Command|std::process::Stdio|http::/);
   assert.match(ipc, /project_photo_save,/);
   assert.match(ipc, /project_photo_list,/);
