@@ -2,6 +2,7 @@ use serde::Serialize;
 use tauri::Manager;
 
 mod adapters;
+mod content_provenance;
 mod generation;
 mod gpu_guard;
 mod hf_access;
