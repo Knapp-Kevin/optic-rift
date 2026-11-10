@@ -82,24 +82,26 @@ where
         let Some(source) = entry.source.as_ref() else { break };
         let Some(parent_id) = source.get("job_id").and_then(Value::as_str)
             .filter(|id| canonical_job_id(id))
+            .map(str::to_owned)
         else {
             complete = false;
             break;
         };
         let Some(parent_digest) = source.get("sha256").and_then(Value::as_str)
             .filter(|s| s.len() == 64 && s.bytes().all(|b| b.is_ascii_hexdigit()))
+            .map(str::to_owned)
         else {
             complete = false;
             break;
         };
-        if visited.contains(parent_id) {
+        if visited.contains(&parent_id) {
             complete = false;
             break;
         }
-        match load_parent(parent_id) {
+        match load_parent(&parent_id) {
             Ok(parent)
                 if parent.job_id == parent_id
-                    && parent.output["sha256"].as_str() == Some(parent_digest) =>
+                    && parent.output["sha256"].as_str() == Some(parent_digest.as_str()) =>
             {
                 entry = parent;
             }
@@ -192,6 +194,37 @@ mod tests {
         let raw = public_generation_receipt(&record, |_| panic!("cycle must not read files")).unwrap();
         let parsed: Value = serde_json::from_slice(&raw).unwrap();
         assert_eq!(parsed["lineage_status"], "incomplete");
+    }
+
+    #[test]
+    fn ancestor_hash_mismatch_and_depth_limit_report_incomplete_lineage() {
+        let id = uuid::Uuid::new_v4().to_string();
+        let parent_id = uuid::Uuid::new_v4().to_string();
+        let mut child = record(&id, &"f".repeat(64), "public/Child");
+        let parent = record(&parent_id, &"a".repeat(64), "public/Parent");
+        child.source = Some(json!({"job_id": parent_id, "sha256": "b".repeat(64)}));
+        let public = public_generation_receipt(&child, |_| Ok(parent.clone())).unwrap();
+        let parsed: Value = serde_json::from_slice(&public).unwrap();
+        assert_eq!(parsed["lineage_status"], "incomplete");
+        assert_eq!(parsed["model_stages"].as_array().unwrap().len(), 1);
+
+        // Repeated verified ancestors are bounded even when their chain is long.
+        let root_id = uuid::Uuid::new_v4().to_string();
+        let mut current = record(&root_id, &"e".repeat(64), "public/Root");
+        let mut ancestors = std::collections::HashMap::new();
+        for _ in 0..MAX_STAGES {
+            let parent_id = uuid::Uuid::new_v4().to_string();
+            let mut parent = record(&parent_id, &"e".repeat(64), "public/Other");
+            parent.source = current.source.take();
+            current.source = Some(json!({"job_id": parent_id, "sha256": "e".repeat(64)}));
+            ancestors.insert(parent_id, parent);
+        }
+        // The chain ends or is marked incomplete; it must never recurse forever.
+        let result = public_generation_receipt(&current, |id| {
+            ancestors.get(id).cloned().ok_or_else(|| "missing".into())
+        }).unwrap();
+        let parsed: Value = serde_json::from_slice(&result).unwrap();
+        assert!(parsed["model_stages"].as_array().unwrap().len() <= MAX_STAGES);
     }
 
     #[test]
