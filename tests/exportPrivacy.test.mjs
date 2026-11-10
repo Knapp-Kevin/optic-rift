@@ -3,7 +3,7 @@ import test from "node:test";
 import { PICTURES_EXPORT_WARNING, saveWithPicturesConsent } from "../src/exportPrivacy.ts";
 
 test("Pictures export discloses OneDrive/cloud sync and provenance before copying", () => {
-  for (const expected of ["Pictures", "OneDrive", "cloud", "prompt", "provenance", "Cancel"]) {
+  for (const expected of ["Pictures", "OneDrive", "cloud", "prompts", "disclosure", "not signed", "not copied", "Cancel"]) {
     assert.ok(PICTURES_EXPORT_WARNING.includes(expected), expected);
   }
 });
