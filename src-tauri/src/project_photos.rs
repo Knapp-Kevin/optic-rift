@@ -654,7 +654,7 @@ mod tests {
         assert_eq!(listed.photos.len(), 1);
         assert_eq!(listed.possible_incomplete_saves, 0);
         assert!(listed.problems.is_empty());
-        assert_eq!(fs::read_dir(&asset_folder).unwrap().count(), 5);
+        assert_eq!(fs::read_dir(&asset_folder).unwrap().count(), 4);
     }
 
     #[test]
