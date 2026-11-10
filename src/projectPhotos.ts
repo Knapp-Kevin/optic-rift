@@ -32,7 +32,12 @@ export type ProjectPhotoDocument = {
   edits: PhotoRecipe;
 };
 export type ProjectPhotoProblem = { asset_id: string; error: string };
-export type ProjectPhotoListing = { photos: ProjectPhotoDocument[]; problems: ProjectPhotoProblem[] };
+export type ProjectPhotoListing = {
+  photos: ProjectPhotoDocument[];
+  problems: ProjectPhotoProblem[];
+  /** Candidate staging paths only. They are not committed, validated, or authorized for deletion. */
+  possible_incomplete_saves: number;
+};
 export type OpenedProjectPhoto = { document: ProjectPhotoDocument; source_png_base64: string };
 
 export function recipeFromEdits(adjustments: PhotoAdjustments): PhotoRecipe {
