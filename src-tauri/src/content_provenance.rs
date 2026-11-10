@@ -208,23 +208,27 @@ mod tests {
         assert_eq!(parsed["lineage_status"], "incomplete");
         assert_eq!(parsed["model_stages"].as_array().unwrap().len(), 1);
 
-        // Repeated verified ancestors are bounded even when their chain is long.
-        let root_id = uuid::Uuid::new_v4().to_string();
-        let mut current = record(&root_id, &"e".repeat(64), "public/Root");
-        let mut ancestors = std::collections::HashMap::new();
-        for _ in 0..MAX_STAGES {
-            let parent_id = uuid::Uuid::new_v4().to_string();
-            let mut parent = record(&parent_id, &"e".repeat(64), "public/Other");
-            parent.source = current.source.take();
-            current.source = Some(json!({"job_id": parent_id, "sha256": "e".repeat(64)}));
-            ancestors.insert(parent_id, parent);
+        // A genuinely long chain is bounded and marked incomplete, even if
+        // every intermediate source is present and digest-consistent.
+        let mut chain: Vec<Provenance> = (0..MAX_STAGES + 2)
+            .map(|_| record(&uuid::Uuid::new_v4().to_string(),
+                &"e".repeat(64), "public/Other"))
+            .collect();
+        for index in 0..chain.len() - 1 {
+            let parent_id = chain[index + 1].job_id.clone();
+            chain[index].source = Some(json!({
+                "job_id": parent_id, "sha256": "e".repeat(64)
+            }));
         }
-        // The chain ends or is marked incomplete; it must never recurse forever.
-        let result = public_generation_receipt(&current, |id| {
+        let first = chain[0].clone();
+        let ancestors: std::collections::HashMap<_, _> = chain.into_iter()
+            .skip(1).map(|record| (record.job_id.clone(), record)).collect();
+        let result = public_generation_receipt(&first, |id| {
             ancestors.get(id).cloned().ok_or_else(|| "missing".into())
         }).unwrap();
         let parsed: Value = serde_json::from_slice(&result).unwrap();
-        assert!(parsed["model_stages"].as_array().unwrap().len() <= MAX_STAGES);
+        assert_eq!(parsed["model_stages"].as_array().unwrap().len(), MAX_STAGES);
+        assert_eq!(parsed["lineage_status"], "incomplete");
     }
 
     #[test]
