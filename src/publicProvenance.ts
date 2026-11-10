@@ -13,6 +13,7 @@ export type PublicModelStage = {
 export type PublicProvenanceView = {
   status: "unsigned_unverified_not_c2pa";
   involvement: "ai_generated";
+  assertionOrigin: "optic_rift_local_unsigned_record";
   lineage: "complete_within_available_local_history" | "incomplete";
   outputSha256: string;
   stages: PublicModelStage[];
@@ -50,6 +51,7 @@ export function parsePublicProvenance(value: unknown): PublicProvenanceView {
   if (!object(value) || value.record_version !== 2 ||
       value.kind !== "optic-rift-ai-generation-disclosure" ||
       value.ai_involvement !== "ai_generated" ||
+      value.assertion_origin !== "optic_rift_local_unsigned_record" ||
       value.credential_status !== "unsigned_unverified_not_c2pa" ||
       (value.lineage_status !== "complete_within_available_local_history" &&
        value.lineage_status !== "incomplete") ||
@@ -77,6 +79,7 @@ export function parsePublicProvenance(value: unknown): PublicProvenanceView {
   return {
     status: "unsigned_unverified_not_c2pa",
     involvement: "ai_generated",
+    assertionOrigin: "optic_rift_local_unsigned_record",
     lineage: value.lineage_status,
     outputSha256: value.output.sha256,
     stages,
