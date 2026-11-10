@@ -36,20 +36,30 @@ test("public model identifiers reject path-shaped and URL-shaped values", () => 
   assert.match(rust, /"Users\/alice\/private"/);
 });
 
-test("native Pictures export uses sanitized disclosure not the private source JSON", () => {
+test("native inspection and Pictures export share one sanitized source-backed disclosure", () => {
   const lib = source("../src-tauri/src/lib.rs");
   const generation = source("../src-tauri/src/generation.rs");
+  const commands = source("../src-tauri/src/model_commands.rs");
   assert.match(lib, /mod content_provenance;/);
+  assert.match(lib, /model_commands::generation_provenance_preview,/);
+  const shared = generation.slice(generation.indexOf("fn public_disclosure_bytes("),
+    generation.indexOf("pub fn save_copy("));
   const save = generation.slice(generation.indexOf("pub fn save_copy("),
     generation.indexOf("pub fn pictures_dir("));
+  assert.match(shared, /content_provenance::public_generation_receipt/);
+  assert.match(shared, /serde_json::from_slice::<Provenance>\(&parent_record\)/);
+  assert.match(shared, /verified_output\(app_local, parent_id\)/);
+  assert.match(shared, /pub fn preview_public_disclosure/);
+  assert.match(shared, /verified_output\(app_local, job_id\)/);
+  assert.match(shared, /public_disclosure_bytes\(app_local, &provenance\)/);
   assert.match(save, /verified_output\(app_local, job_id\)/);
-  assert.match(save, /content_provenance::public_generation_receipt/);
-  assert.match(save, /serde_json::from_slice::<Provenance>\(&parent_record\)/);
-  assert.match(save, /verified_output\(app_local, parent_id\)/);
-  assert.ok(save.indexOf("public_generation_receipt") < save.indexOf("fs::create_dir_all"),
+  assert.match(save, /public_disclosure_bytes\(app_local, &provenance\)/);
+  assert.ok(save.indexOf("public_disclosure_bytes") < save.indexOf("fs::create_dir_all"),
     "disclosure preflight must finish before any export files are created");
   assert.match(save, /sidecar\.write_all\(&record\)/);
   assert.doesNotMatch(save, /sidecar\.write_all\(&source_record\)/);
+  assert.match(commands, /generation::preview_public_disclosure/);
+  assert.match(commands, /spawn_blocking/);
 });
 
 test("unsigned and incomplete provenance is never represented as trusted C2PA", () => {
