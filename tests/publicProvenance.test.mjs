@@ -43,8 +43,8 @@ test("native Pictures export uses sanitized disclosure not the private source JS
 test("unsigned and incomplete provenance is never represented as trusted C2PA", () => {
   const rust = source("../src-tauri/src/content_provenance.rs");
   assert.match(rust, /complete = false/);
-  assert.match(rust, /visited\.contains\(parent_id\)/);
-  assert.match(rust, /parent\.output\["sha256"\]\.as_str\(\) == Some\(parent_digest\)/);
+  assert.match(rust, /visited\.contains\(&parent_id\)/);
+  assert.match(rust, /parent\.output\["sha256"\]\.as_str\(\) == Some\(parent_digest\.as_str\(\)\)/);
   assert.match(rust, /"incomplete"/);
   assert.match(rust, /"unsigned_unverified_not_c2pa"/);
   assert.doesNotMatch(rust.split("#[cfg(test)]")[0], /"c2pa_valid": true/);
