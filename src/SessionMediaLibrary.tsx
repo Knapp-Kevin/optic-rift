@@ -17,6 +17,7 @@ type Props = {
   onGeneratedResult: (result: { name: string; url: string; size: number }) => void;
   savedPhotos: readonly ProjectPhotoDocument[];
   savedPhotoProblems: readonly ProjectPhotoProblem[];
+  possibleIncompleteSaves: number;
   savedPhotoBusy: boolean;
   savedPhotoNotice: string;
   onOpenSavedPhoto: (assetId: string) => void;
@@ -27,7 +28,7 @@ type Props = {
  */
 export default function SessionMediaLibrary({
   items, projectName, notification, onDismissNotification, historyVersion, onImport, onOpen, onRemove, onGeneratedResult,
-  savedPhotos, savedPhotoProblems, savedPhotoBusy, savedPhotoNotice, onOpenSavedPhoto,
+  savedPhotos, savedPhotoProblems, possibleIncompleteSaves, savedPhotoBusy, savedPhotoNotice, onOpenSavedPhoto,
 }: Props) {
   const [filter, setFilter] = useState<KindFilter>("all");
   const [query, setQuery] = useState("");
@@ -94,6 +95,11 @@ export default function SessionMediaLibrary({
       <p>Reopen locally managed PNG originals and their latest saved editing settings.
         Other media remains session-only. These project files are not a portable bundle.</p>
       {savedPhotoNotice && <p role="status">{savedPhotoNotice}</p>}
+      {possibleIncompleteSaves > 0 && <div className="project-problems" role="status" aria-label="Possible incomplete photo saves">
+        <strong>{possibleIncompleteSaves} possible unfinished project photo save(s)</strong>
+        <p>These are staging-shaped entries, not confirmed saved photos. Nothing was deleted or restored.
+          Incomplete files may use disk space. Automatic cleanup is not enabled while recovery policy is unresolved.</p>
+      </div>}
       {!savedPhotos.length && !savedPhotoProblems.length &&
         <p className="session-library-empty">No PNG photos explicitly saved to this project yet.</p>}
       <ul className="session-media-grid">
