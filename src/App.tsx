@@ -44,6 +44,7 @@ export default function App() {
   const [photoDimensions, setPhotoDimensions] = useState<Record<string, { width: number; height: number }>>({});
   const [savedProjectPhotos, setSavedProjectPhotos] = useState<ProjectPhotoDocument[]>([]);
   const [savedPhotoProblems, setSavedPhotoProblems] = useState<ProjectPhotoProblem[]>([]);
+  const [possibleIncompleteSaves, setPossibleIncompleteSaves] = useState(0);
   const [projectPhotoBusy, setProjectPhotoBusy] = useState(false);
   const [projectPhotoNotice, setProjectPhotoNotice] = useState("");
   const [prompt, setPrompt] = useState("");
@@ -121,6 +122,7 @@ export default function App() {
     let active = true;
     setSavedProjectPhotos([]);
     setSavedPhotoProblems([]);
+    setPossibleIncompleteSaves(0);
     setProjectPhotoNotice("");
     if (projectId) {
       void photosClient.list(projectId).then((response) => {
@@ -128,6 +130,7 @@ export default function App() {
         if (response.ok) {
           setSavedProjectPhotos(response.value.photos);
           setSavedPhotoProblems(response.value.problems);
+          setPossibleIncompleteSaves(response.value.possible_incomplete_saves);
         } else {
           setProjectPhotoNotice("Could not list saved project photos: " + response.error);
         }
@@ -323,6 +326,7 @@ export default function App() {
         if (refreshed.ok) {
           setSavedProjectPhotos(refreshed.value.photos);
           setSavedPhotoProblems(refreshed.value.problems);
+          setPossibleIncompleteSaves(refreshed.value.possible_incomplete_saves);
         } else {
           setProjectPhotoNotice("Photo saved, but project listing failed: " + refreshed.error);
           return;
@@ -549,6 +553,7 @@ export default function App() {
           historyVersion={historyVersion} onImport={() => inputRef.current?.click()}
           onOpen={openMedia} onRemove={removeItem} onGeneratedResult={addGenerated}
           savedPhotos={savedProjectPhotos} savedPhotoProblems={savedPhotoProblems}
+          possibleIncompleteSaves={possibleIncompleteSaves}
           savedPhotoBusy={projectPhotoBusy} savedPhotoNotice={projectPhotoNotice}
           onOpenSavedPhoto={(assetId) => void openProjectPhoto(assetId)} />}
 
