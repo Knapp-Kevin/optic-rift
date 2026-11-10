@@ -56,11 +56,14 @@ test("Download status and Cancel stay on every destination, including the icon-o
   assert.match(css, /@media \(max-width:1200px\)\{\s*\.navigation\{z-index:20\}\s*\.navigation \.download-status\.compact\{position:fixed;/);
 });
 
-test("Media Library works without claiming persisted project assets or silently rendering previews", () => {
+test("Media Library distinguishes explicitly saved project PNGs from session-only media", () => {
   const app = source("../src/App.tsx");
   const library = source("../src/SessionMediaLibrary.tsx");
   assert.match(app, /view === "library" && <SessionMediaLibrary/);
-  assert.match(library, /Project media persistence is not implemented|project does not yet\s*store imported media/);
+  assert.match(library, /Opened media is session-only unless you explicitly save a PNG/);
+  assert.match(library, /savedPhotos\.map\(\(photo\)/);
+  assert.match(library, /Reopen editable photo/);
+  assert.match(library, /not a portable bundle/);
   assert.match(library, /Opened media matches|No opened media matches/);
   assert.match(library, /onImport\}/);
   assert.match(app, /notification=\{message\} onDismissNotification=\{\(\) => setMessage\(""\)\}/);

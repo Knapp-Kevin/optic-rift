@@ -11,6 +11,8 @@ export type MediaItem = {
   url: string;
   size: number;
   mimeType: string;
+  /** Explicit project-managed PNG copy; imported unsaved files omit this field. */
+  projectPhoto?: { projectId: string; assetId: string; revision: number };
   /** Session-only relationship. Not a signed project asset or persisted provenance. */
   derivedFrom?: {
     kind: "video-frame";

@@ -2,6 +2,7 @@ import { useState } from "react";
 import GenerationHistory from "./GenerationHistory";
 import { editorFor, type MediaItem } from "./creativeNavigation";
 import { formatSize } from "./mediaFormat";
+import type { ProjectPhotoDocument, ProjectPhotoProblem } from "./projectPhotos";
 
 type KindFilter = "all" | "image" | "video";
 type Props = {
@@ -14,6 +15,12 @@ type Props = {
   onOpen: (item: MediaItem) => void;
   onRemove: (id: string) => void;
   onGeneratedResult: (result: { name: string; url: string; size: number }) => void;
+  savedPhotos: readonly ProjectPhotoDocument[];
+  savedPhotoProblems: readonly ProjectPhotoProblem[];
+  possibleIncompleteSaves: number;
+  savedPhotoBusy: boolean;
+  savedPhotoNotice: string;
+  onOpenSavedPhoto: (assetId: string) => void;
 };
 
 /** Privacy-conscious session media: no unsolicited media thumbnails, no
@@ -21,6 +28,7 @@ type Props = {
  */
 export default function SessionMediaLibrary({
   items, projectName, notification, onDismissNotification, historyVersion, onImport, onOpen, onRemove, onGeneratedResult,
+  savedPhotos, savedPhotoProblems, possibleIncompleteSaves, savedPhotoBusy, savedPhotoNotice, onOpenSavedPhoto,
 }: Props) {
   const [filter, setFilter] = useState<KindFilter>("all");
   const [query, setQuery] = useState("");
@@ -37,14 +45,14 @@ export default function SessionMediaLibrary({
     <h1>Your visual workspace.</h1>
     <p className="lead">
       Find the photos and videos you've opened, then continue in the right Studio.
-      These opened files are available only during this session. A project does not yet
-      store imported media.
+      Opened media is session-only unless you explicitly save a PNG into the active project.
+      Managed project PNG copies and edit recipes can be reopened locally after restarting.
     </p>
     {notification && <div className="session-library-notice" role="status">
       <span>{notification}</span><button type="button" onClick={onDismissNotification}
         aria-label="Dismiss media notification">×</button>
     </div>}
-    {projectName && <p className="session-project-note">Current project: <strong>{projectName}</strong>. Media below is not yet attached to this project.</p>}
+    {projectName && <p className="session-project-note">Current project: <strong>{projectName}</strong>. Session media below is not automatically saved.</p>}
     <div className="session-media-toolbar">
       <button type="button" className="primary" onClick={onImport}>＋ Import photos or videos</button>
       <label className="session-search">Search opened media
@@ -82,6 +90,38 @@ export default function SessionMediaLibrary({
         </div>
       </li>)}
     </ul>
+    {projectName && <section className="session-saved-photos" aria-label="Saved project PNG photos">
+      <h2>Saved PNG photos in this project</h2>
+      <p>Reopen locally managed PNG originals and their latest saved editing settings.
+        Other media remains session-only. These project files are not a portable bundle.</p>
+      {savedPhotoNotice && <p role="status">{savedPhotoNotice}</p>}
+      {possibleIncompleteSaves > 0 && <div className="project-problems" role="status" aria-label="Possible incomplete photo saves">
+        <strong>{possibleIncompleteSaves} possible unfinished project photo save(s)</strong>
+        <p>These are staging-shaped entries, not confirmed saved photos. Nothing was deleted or restored.
+          Incomplete files may use disk space. Automatic cleanup is not enabled while recovery policy is unresolved.</p>
+      </div>}
+      {!savedPhotos.length && !savedPhotoProblems.length &&
+        <p className="session-library-empty">No PNG photos explicitly saved to this project yet.</p>}
+      <ul className="session-media-grid">
+        {savedPhotos.map((photo) => <li className="session-media-card" key={photo.asset_id}>
+          <div className="session-media-symbol" aria-hidden="true">▧</div>
+          <div className="session-media-detail">
+            <strong title={photo.source_name}>{photo.source_name}</strong>
+            <small>Managed PNG · Revision {photo.revision} · {photo.source_width} × {photo.source_height} source pixels</small>
+          </div>
+          <div className="session-media-actions">
+            <button type="button" className="secondary" disabled={savedPhotoBusy}
+              onClick={() => onOpenSavedPhoto(photo.asset_id)}>Reopen editable photo</button>
+          </div>
+        </li>)}
+      </ul>
+      {savedPhotoProblems.length > 0 && <div className="project-problems" role="status">
+        <strong>{savedPhotoProblems.length} saved photo record(s) could not be read</strong>
+        <ul>{savedPhotoProblems.map((problem) =>
+          <li key={problem.asset_id}><code>{problem.asset_id}</code>: {problem.error}</li>)}</ul>
+        <p>Unreadable records were not silently deleted or modified.</p>
+      </div>}
+    </section>}
     <section className="session-generated-section" aria-label="Local generated outputs">
       <h2>Recent generated images</h2>
       <p>Verified generated outputs can remain in Optic Rift's local output folder after restarting.
