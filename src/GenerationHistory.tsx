@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { saveWithPicturesConsent } from "./exportPrivacy";
+import { parsePublicProvenance, type PublicProvenanceView } from "./publicProvenance";
 import type { Provenance } from "./models";
 
 type MediaResult = { name: string; url: string; size: number };
@@ -17,11 +18,13 @@ export default function GenerationHistory({ refreshVersion, onResult }: Props) {
   const [working, setWorking] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [inspected, setInspected] = useState<{ jobId: string; view: PublicProvenanceView } | null>(null);
 
   useEffect(() => {
     let active = true;
     setLoading(true);
     setError("");
+    setInspected(null);
     void invoke<Provenance[]>("generation_outputs")
       .then((records) => {
         if (active) setItems(records.slice(0, 20));
@@ -52,6 +55,25 @@ export default function GenerationHistory({ refreshVersion, onResult }: Props) {
       });
     } catch (e) {
       if (objectUrl) URL.revokeObjectURL(objectUrl);
+      setError(readableError(e));
+    } finally {
+      setWorking(null);
+    }
+  }
+
+  async function inspect(item: Provenance) {
+    if (inspected?.jobId === item.job_id) {
+      setInspected(null);
+      return;
+    }
+    setWorking(item.job_id);
+    setError("");
+    setMessage("");
+    setInspected(null);
+    try {
+      const raw = await invoke<unknown>("generation_provenance_preview", { jobId: item.job_id });
+      setInspected({ jobId: item.job_id, view: parsePublicProvenance(raw) });
+    } catch (e) {
       setError(readableError(e));
     } finally {
       setWorking(null);
@@ -93,8 +115,27 @@ export default function GenerationHistory({ refreshVersion, onResult }: Props) {
         </div>
         <div className="model-actions">
           <button className="secondary" type="button" disabled={working !== null} onClick={() => void open(item)}>{working === item.job_id ? "Working…" : "Open"}</button>
+          <button className="secondary" type="button" disabled={working !== null}
+            onClick={() => void inspect(item)} aria-expanded={inspected?.jobId === item.job_id}>
+            {inspected?.jobId === item.job_id ? "Hide disclosure" : "Inspect AI disclosure"}
+          </button>
           <button className="secondary" type="button" disabled={working !== null} onClick={() => void save(item)}>Save copy</button>
         </div>
+        {inspected?.jobId === item.job_id && <section className="project-problems"
+          aria-label="Unsigned model provenance disclosure" role="region">
+          <p><strong>AI-generated (Optic Rift local record).</strong> Unsigned and unverified.
+            This is not a C2PA Content Credential or proof of authorship.</p>
+          <p>{inspected.view.lineage === "incomplete"
+            ? "Some referenced model stages could not be validated locally. The displayed history is incomplete."
+            : "Known local generation stages are listed below. External sources and signer identity have not been verified."}</p>
+          <ol>{inspected.view.stages.map((stage, index) =>
+            <li key={stage.jobId}>
+              <strong>Stage {index + 1}: {stage.modelRepo ?? "Model identity unavailable"}</strong>
+              <small> · Revision: {stage.modelRevision ?? "unknown"}
+                · Adapter: {stage.adapter ?? "unknown"} · Output SHA-256: <code title={stage.outputSha256}>{stage.outputSha256.slice(0, 16)}…</code>
+              </small>
+            </li>)}</ol>
+        </section>}
       </li>)}
     </ol>
     {error && <p className="project-error" role="alert">{error}</p>}
