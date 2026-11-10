@@ -1,0 +1,108 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import test from "node:test";
+
+const source = (file) => readFileSync(new URL(file, import.meta.url), "utf8");
+
+test("native public disclosure omits private generation fields by construction", () => {
+  const rust = source("../src-tauri/src/content_provenance.rs");
+  const production = rust.split("#[cfg(test)]")[0];
+  assert.match(production, /fn public_generation_receipt/);
+  assert.match(production, /"ai_involvement": "ai_generated"/);
+  assert.match(production, /"credential_status": "unsigned_unverified_not_c2pa"/);
+  assert.match(production, /"model_stages": stages/);
+  assert.match(production, /"lineage_status"/);
+  assert.match(production, /fn public_model_field/);
+  assert.match(production, /MAX_PUBLIC_RECORD_BYTES/);
+  assert.match(production, /MAX_STAGES/);
+  assert.doesNotMatch(production, /"prompt"\s*:/);
+  assert.doesNotMatch(production, /"negative_prompt"\s*:/);
+  assert.doesNotMatch(production, /"runtime"\s*:/);
+  assert.doesNotMatch(production, /"parameters"\s*:/);
+  assert.doesNotMatch(production, /"project_id"\s*:/);
+  assert.doesNotMatch(production, /"path"\s*:/);
+  assert.doesNotMatch(production, /std::fs|std::process::Command|unsafe\s*\{/);
+});
+
+test("public model identifiers reject path-shaped and URL-shaped values", () => {
+  const rust = source("../src-tauri/src/content_provenance.rs");
+  const production = rust.split("#[cfg(test)]")[0];
+  assert.match(production, /let valid_segment =/);
+  assert.match(production, /!segment\.starts_with\('\.'\)/);
+  assert.match(production, /!segment\.contains\("\.\."\)/);
+  assert.match(production, /let mut parts = value\.split\('\/'\)/);
+  assert.match(production, /"revision" \| "adapter" \| "adapter_version"/);
+  assert.match(rust, /relative_paths_and_unrecognized_identifiers_are_omitted/);
+  assert.match(rust, /"Users\/alice\/private"/);
+});
+
+test("native inspection and Pictures export share one sanitized source-backed disclosure", () => {
+  const lib = source("../src-tauri/src/lib.rs");
+  const generation = source("../src-tauri/src/generation.rs");
+  const commands = source("../src-tauri/src/model_commands.rs");
+  assert.match(lib, /mod content_provenance;/);
+  assert.match(lib, /model_commands::generation_provenance_preview,/);
+  const shared = generation.slice(generation.indexOf("fn public_disclosure_bytes("),
+    generation.indexOf("pub fn save_copy("));
+  const save = generation.slice(generation.indexOf("pub fn save_copy("),
+    generation.indexOf("pub fn pictures_dir("));
+  assert.match(shared, /content_provenance::public_generation_receipt/);
+  assert.match(shared, /serde_json::from_slice::<Provenance>\(&parent_record\)/);
+  assert.match(shared, /verified_output\(app_local, parent_id\)/);
+  assert.match(shared, /pub fn preview_public_disclosure/);
+  assert.match(shared, /verified_output\(app_local, job_id\)/);
+  assert.match(shared, /public_disclosure_bytes\(app_local, &provenance\)/);
+  assert.match(save, /verified_output\(app_local, job_id\)/);
+  assert.match(save, /public_disclosure_bytes\(app_local, &provenance\)/);
+  assert.ok(save.indexOf("public_disclosure_bytes") < save.indexOf("fs::create_dir_all"),
+    "disclosure preflight must finish before any export files are created");
+  assert.match(save, /sidecar\.write_all\(&record\)/);
+  assert.doesNotMatch(save, /sidecar\.write_all\(&source_record\)/);
+  assert.match(commands, /generation::preview_public_disclosure/);
+  assert.match(commands, /spawn_blocking/);
+});
+
+test("unsigned and incomplete provenance is never represented as trusted C2PA", () => {
+  const rust = source("../src-tauri/src/content_provenance.rs");
+  assert.match(rust, /complete = false/);
+  assert.match(rust, /visited\.contains\(&parent_id\)/);
+  assert.match(rust, /parent\.output\["sha256"\]\.as_str\(\) == Some\(parent_digest\.as_str\(\)\)/);
+  assert.match(rust, /"incomplete"/);
+  assert.match(rust, /"unsigned_unverified_not_c2pa"/);
+  assert.doesNotMatch(rust.split("#[cfg(test)]")[0], /"c2pa_valid": true/);
+});
+
+test("ordinary photo export preserves unknown source and unauthenticated creator status", () => {
+  const native = source("../src-tauri/src/photo_export.rs");
+  const production = native.split("#[cfg(test)]")[0];
+  const disclosure = production.slice(production.indexOf('"provenance_disclosure": {'),
+    production.indexOf('"adjustments": {'));
+  assert.ok(disclosure.length > 100, "native photo receipt requires disclosure");
+  for (const expected of [
+    '"operation": "optic_rift_photo_adjustment_export"',
+    '"operation_observation": "native_output_bytes_verified"',
+    '"adjustments_evidence": "webview_reported_not_independently_replayed"',
+    '"source_hash_evidence": "webview_reported_not_native_source_bound"',
+    '"source_origin": "unknown"',
+    '"ai_involvement_in_source": "unknown"',
+    '"actor_identity": "not_verified"',
+    '"usage_rights": "not_verified"',
+    '"credential_status": "unsigned_unverified_not_c2pa"',
+  ]) {
+    assert.ok(disclosure.includes(expected), expected);
+  }
+  assert.doesNotMatch(disclosure, /"human_verified"|"ai_free"|"artistic_integrity_score"/);
+  assert.ok(native.includes('receipt_json["provenance_disclosure"]["source_origin"]'));
+  assert.ok(native.includes('receipt_json["provenance_disclosure"]["ai_involvement_in_source"]'));
+  assert.match(production, /"source_sha256_webview_reported": request\.source_sha256/);
+  assert.match(production, /Sha256::digest\(&bytes\)/);
+});
+
+test("Pictures consent discloses redaction limits and cloud sync", () => {
+  const notice = source("../src/exportPrivacy.ts");
+  assert.match(notice, /Raw prompts are not copied/);
+  assert.match(notice, /not signed, encrypted, or a C2PA Content Credential/);
+  assert.match(notice, /OneDrive/);
+  assert.match(notice, /model identities/);
+  assert.match(notice, /local storage/);
+});

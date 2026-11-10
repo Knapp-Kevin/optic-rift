@@ -224,6 +224,21 @@ pub fn export_to_pictures(
         "record_version": 1,
         "kind": "adjusted-photo-export",
         "source_sha256_webview_reported": request.source_sha256,
+        // The native layer checked the exported bytes, not the provenance of
+        // the imported picture or the identity of whoever edited it. Keep
+        // workflow evidence, origin, actor, rights and signature separate.
+        "provenance_disclosure": {
+            "operation": "optic_rift_photo_adjustment_export",
+            "operation_observation": "native_output_bytes_verified",
+            "adjustments_evidence": "webview_reported_not_independently_replayed",
+            "source_hash_evidence": "webview_reported_not_native_source_bound",
+            "source_origin": "unknown",
+            "ai_involvement_in_source": "unknown",
+            "actor_identity": "not_verified",
+            "usage_rights": "not_verified",
+            "credential_status": "unsigned_unverified_not_c2pa",
+            "notice": "A local photo adjustment does not prove a human-created or AI-free source. This receipt is not signed C2PA, an identity credential or a license."
+        },
         "adjustments": {
             "brightness_percent": request.brightness,
             "contrast_percent": request.contrast,
@@ -367,6 +382,15 @@ mod tests {
         let receipt_json: serde_json::Value = serde_json::from_slice(
             &fs::read(second.path.with_extension("provenance.json")).unwrap()
         ).unwrap();
+        assert_eq!(receipt_json["provenance_disclosure"]["operation"], "optic_rift_photo_adjustment_export");
+        assert_eq!(receipt_json["provenance_disclosure"]["operation_observation"], "native_output_bytes_verified");
+        assert_eq!(receipt_json["provenance_disclosure"]["source_origin"], "unknown");
+        assert_eq!(receipt_json["provenance_disclosure"]["ai_involvement_in_source"], "unknown");
+        assert_eq!(receipt_json["provenance_disclosure"]["actor_identity"], "not_verified");
+        assert_eq!(receipt_json["provenance_disclosure"]["usage_rights"], "not_verified");
+        assert_eq!(receipt_json["provenance_disclosure"]["credential_status"], "unsigned_unverified_not_c2pa");
+        assert!(receipt_json.get("verified_human_creator").is_none());
+        assert!(receipt_json.get("artistic_integrity_score").is_none());
         assert_eq!(receipt_json["adjustments"]["flip_display_horizontal"].as_bool(), Some(true));
         assert_eq!(receipt_json["adjustments"]["flip_display_vertical"].as_bool(), Some(true));
         assert_eq!(receipt_json["adjustments"]["saturation_percent"].as_u64(), Some(75));

@@ -274,13 +274,34 @@ pub async fn generation_output_thumbnail<R: tauri::Runtime>(
     ))
 }
 
+/// Bounded, read-only public disclosure preview. Not a C2PA signature check.
+#[tauri::command]
+pub async fn generation_provenance_preview<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
+    job_id: String,
+) -> Result<serde_json::Value, String> {
+    let (_, local) = model_store::dirs(&app)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        generation::preview_public_disclosure(&local, &job_id)
+    })
+    .await
+    .map_err(|_| "Provenance inspection ended unexpectedly.".to_string())?
+}
+
 #[tauri::command]
 pub async fn generation_save<R: tauri::Runtime>(
     app: tauri::AppHandle<R>,
     job_id: String,
 ) -> Result<PathBuf, String> {
     let (_, local) = model_store::dirs(&app)?;
-    generation::save_copy(&local, &generation::pictures_dir(&app)?, &job_id)
+    let pictures = generation::pictures_dir(&app)?;
+    // Up to sixteen validated ancestry records may be inspected. Do not run
+    // that bounded filesystem traversal on Tauri's async reactor thread.
+    tauri::async_runtime::spawn_blocking(move || {
+        generation::save_copy(&local, &pictures, &job_id)
+    })
+    .await
+    .map_err(|_| "Generation export ended unexpectedly.".to_string())?
 }
 
 #[derive(Serialize)]
