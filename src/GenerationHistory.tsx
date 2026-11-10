@@ -81,6 +81,8 @@ export default function GenerationHistory({ refreshVersion, onResult }: Props) {
       <div><h3>Recent generations</h3><p>Images saved locally by Optic Rift, including previous sessions.</p></div>
       <button className="secondary" type="button" onClick={() => setRefresh(v => v + 1)} disabled={loading || working !== null}>Refresh</button>
     </div>
+    <p className="model-hint">Saving a copy includes a redacted AI/model disclosure without raw prompts.
+      This is an unsigned JSON receipt, not verified C2PA metadata. Local generation history still contains prompts.</p>
     {loading && <p className="model-hint" role="status">Loading local generations…</p>}
     {!loading && items.length === 0 && !error && <p className="model-hint">No generated images saved locally yet.</p>}
     <ol className="history-items">
