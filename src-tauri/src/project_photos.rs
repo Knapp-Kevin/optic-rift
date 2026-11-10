@@ -74,6 +74,9 @@ pub struct PhotoProblem {
 pub struct PhotoListing {
     pub photos: Vec<PhotoDocument>,
     pub problems: Vec<PhotoProblem>,
+    /// Count of staging-shaped entries, not proof that the app owns them.
+    /// Read-only inventory: never attempt deletion from a list/open request.
+    pub possible_incomplete_saves: usize,
 }
 #[derive(Debug, Serialize)]
 pub struct OpenedPhoto {
@@ -209,6 +212,22 @@ fn source_digest(bytes: &[u8]) -> String {
 fn revision_filename(revision: u32) -> String {
     format!("r{revision:06}.json")
 }
+
+/// Count only names matching our staging layouts, without following paths.
+/// A matching name does NOT confer deletion authority or establish ownership.
+fn possible_initial_staging(name: &str) -> bool {
+    name.strip_prefix('.')
+        .and_then(|s| s.strip_suffix(".partial"))
+        .is_some_and(|id| checked_id(id).is_ok())
+}
+fn possible_revision_staging(name: &str) -> bool {
+    let Some((raw_revision, id)) = name.strip_prefix('.')
+        .and_then(|s| s.strip_suffix(".partial"))
+        .and_then(|s| s.split_once('.'))
+    else { return false };
+    raw_revision.parse::<u32>().is_ok_and(|revision| (1..=MAX_REVISIONS).contains(&revision))
+        && checked_id(id).is_ok()
+}
 fn checked_file(path: &Path, limit: u64) -> Result<Vec<u8>, String> {
     let meta = fs::symlink_metadata(path).map_err(|_| "Project photo file is missing.")?;
     if !meta.is_file() || meta.file_type().is_symlink() || reparse(&meta) || meta.len() > limit {
@@ -258,11 +277,14 @@ fn write_revision(dir: &Path, doc: &PhotoDocument, published: bool) -> Result<()
     }
     Ok(())
 }
-fn latest_document(root: &Path, project: &Uuid, asset: &Uuid) -> Result<PhotoDocument, String> {
+fn latest_document_with_inventory(
+    root: &Path, project: &Uuid, asset: &Uuid,
+) -> Result<(PhotoDocument, usize), String> {
     let dir = asset_dir(root, project, asset);
     real_directory(&dir)?;
     let mut latest = 0;
     let mut incomplete = 0usize;
+    let mut possible_staging = 0usize;
     for entry in fs::read_dir(&dir).map_err(|_| "Cannot inspect photo revisions.")? {
         let entry = entry.map_err(|_| "Cannot inspect photo revision.")?;
         let name = entry.file_name().to_string_lossy().into_owned();
@@ -280,6 +302,7 @@ fn latest_document(root: &Path, project: &Uuid, asset: &Uuid) -> Result<PhotoDoc
             if incomplete > MAX_UNCOMMITTED_ENTRIES {
                 return Err("Too many incomplete photo revision entries; recovery is required.".into());
             }
+            if possible_revision_staging(&name) { possible_staging += 1; }
         }
     }
     if latest == 0 {
@@ -301,7 +324,11 @@ fn latest_document(root: &Path, project: &Uuid, asset: &Uuid) -> Result<PhotoDoc
         || u64::from(doc.source_width) * u64::from(doc.source_height) > MAX_PIXELS {
         return Err("Photo source metadata is invalid.".into());
     }
-    Ok(doc)
+    Ok((doc, possible_staging))
+}
+
+fn latest_document(root: &Path, project: &Uuid, asset: &Uuid) -> Result<PhotoDocument, String> {
+    latest_document_with_inventory(root, project, asset).map(|(doc, _)| doc)
 }
 
 fn checked_source(root: &Path, project: &Uuid, asset: &Uuid, doc: &PhotoDocument)
@@ -401,14 +428,18 @@ pub fn list(root: &Path, project_id: &str) -> Result<PhotoListing, String> {
             if incomplete > MAX_UNCOMMITTED_ENTRIES {
                 return Err("Too many incomplete project media entries; recovery is required.".into());
             }
+            if possible_initial_staging(&raw) { listing.possible_incomplete_saves += 1; }
             continue;
         };
         committed += 1;
         if committed > MAX_ASSETS {
             return Err("Project has too many committed media assets to list safely.".into());
         }
-        match latest_document(root, &project, &asset) {
-            Ok(doc) => listing.photos.push(doc),
+        match latest_document_with_inventory(root, &project, &asset) {
+            Ok((doc, staged)) => {
+                listing.possible_incomplete_saves += staged;
+                listing.photos.push(doc);
+            }
             Err(error) => listing.problems.push(PhotoProblem { asset_id: raw, error }),
         }
     }
@@ -571,7 +602,9 @@ mod tests {
         let saved = save(root.path(), request(&project.id)).unwrap();
         let folder = project_dir(root.path(), &checked_id(&project.id).unwrap());
         fs::create_dir(folder.join(format!(".{}.partial", Uuid::new_v4()))).unwrap();
-        assert_eq!(list(root.path(), &project.id).unwrap().photos.len(), 1);
+        let listing = list(root.path(), &project.id).unwrap();
+        assert_eq!(listing.photos.len(), 1);
+        assert_eq!(listing.possible_incomplete_saves, 1);
         assert_eq!(open(root.path(), &project.id, &saved.asset_id).unwrap().document.revision, 1);
     }
 
@@ -593,6 +626,7 @@ mod tests {
         let listing = list(root.path(), &project.id).unwrap();
         assert_eq!(listing.photos.len(), 1);
         assert!(listing.problems.is_empty());
+        assert_eq!(listing.possible_incomplete_saves, 26);
         assert_eq!(open(root.path(), &project.id, &saved.asset_id)
             .unwrap().document.revision, 1);
         let mut next = request(&project.id);
@@ -603,6 +637,24 @@ mod tests {
         // Recovery never destroys the incomplete data without a policy.
         assert_eq!(fs::read_dir(&project_folder).unwrap().count(), 14);
         assert_eq!(fs::read_dir(&asset_folder).unwrap().count(), 16);
+    }
+
+    #[test]
+    fn unfamiliar_and_fake_staging_names_do_not_claim_recoverable_assets() {
+        let root = TestRoot::new();
+        let project = crate::project_store::create(root.path(), "Lake").unwrap();
+        let saved = save(root.path(), request(&project.id)).unwrap();
+        let project_folder = project_dir(root.path(), &checked_id(&project.id).unwrap());
+        let asset_folder = asset_dir(root.path(), &checked_id(&project.id).unwrap(),
+            &checked_id(&saved.asset_id).unwrap());
+        fs::write(project_folder.join(".not-an-asset.partial"), b"untrusted").unwrap();
+        fs::write(asset_folder.join(".2.invalid-id.partial"), b"untrusted").unwrap();
+        fs::write(asset_folder.join("other.tmp"), b"untrusted").unwrap();
+        let listed = list(root.path(), &project.id).unwrap();
+        assert_eq!(listed.photos.len(), 1);
+        assert_eq!(listed.possible_incomplete_saves, 0);
+        assert!(listed.problems.is_empty());
+        assert_eq!(fs::read_dir(&asset_folder).unwrap().count(), 5);
     }
 
     #[test]
