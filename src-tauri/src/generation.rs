@@ -1023,7 +1023,28 @@ fn thumbnail_png(source: &[u8]) -> Result<Vec<u8>, String> {
     Ok(result)
 }
 
-/// Export a validated image and its redacted, UNSIGNED AI-disclosure receipt to Pictures\Optic Rift.
+/// Reuse the same privacy-minimized, unsigned disclosure for export and
+/// read-only inspection. Ancestor records are checked against their local PNG.
+fn public_disclosure_bytes(app_local: &Path, provenance: &Provenance) -> Result<Vec<u8>, String> {
+    crate::content_provenance::public_generation_receipt(provenance, |parent_id| {
+        let (_, parent_record) = verified_output(app_local, parent_id)?;
+        serde_json::from_slice::<Provenance>(&parent_record)
+            .map_err(|_| "A referenced generation record is invalid.".to_string())
+    })
+}
+
+/// Inspect a generated image's public disclosure without writing any files.
+/// This output is UNSIGNED: it is not a C2PA verifier or certificate check.
+pub fn preview_public_disclosure(app_local: &Path, job_id: &str) -> Result<Value, String> {
+    let (_, source_record) = verified_output(app_local, job_id)?;
+    let provenance: Provenance = serde_json::from_slice(&source_record)
+        .map_err(|_| "The local generation record is invalid.".to_string())?;
+    let bytes = public_disclosure_bytes(app_local, &provenance)?;
+    serde_json::from_slice(&bytes)
+        .map_err(|_| "Could not decode the redacted disclosure.".to_string())
+}
+
+/// Export a validated image and its redacted, UNSIGNED AI-disclosure receipt to Pictures/Optic Rift.
 /// Destination filenames use the full UUID, not just an eight-character prefix.
 /// Create-new prevents races from silently overwriting another application's file.
 /// Copying two files cannot be atomic across cloud-sync software; failures are reported
@@ -1033,17 +1054,8 @@ pub fn save_copy(app_local: &Path, pictures: &Path, job_id: &str) -> Result<Path
     let (png, source_record) = verified_output(app_local, job_id)?;
     let provenance: Provenance = serde_json::from_slice(&source_record)
         .map_err(|_| "The local generation record is invalid.".to_string())?;
-    // Construct an explicit unsigned disclosure BEFORE any export writes.
-    // Native verified_output checks each ancestor's PNG hash and record.
-    // Local private prompts/runtime/paths must never be copied into Pictures.
-    let record = crate::content_provenance::public_generation_receipt(
-        &provenance,
-        |parent_id| {
-            let (_, parent_record) = verified_output(app_local, parent_id)?;
-            serde_json::from_slice::<Provenance>(&parent_record)
-                .map_err(|_| "A referenced generation record is invalid.".to_string())
-        },
-    )?;
+    // Build the exact previewed redacted disclosure before creating export files.
+    let record = public_disclosure_bytes(app_local, &provenance)?;
 
     let dest_dir = pictures.join("Optic Rift");
     fs::create_dir_all(&dest_dir)
@@ -1550,6 +1562,31 @@ mod tests {
         assert_eq!(local_original["prompt"], "test");
         assert!(save_copy(&local, &pictures, &id).is_err());
         assert_eq!(fs::read(&saved).unwrap(), png);
+        fs::remove_dir_all(local).unwrap();
+    }
+
+    #[test]
+    fn read_only_public_preview_matches_export_without_exposing_private_history() {
+        let local = std::env::temp_dir().join(format!(
+            "optic-rift-inspect-{}", uuid::Uuid::new_v4()
+        ));
+        let pictures = local.join("Pictures");
+        let job_id = uuid::Uuid::new_v4().to_string();
+        write_output_pair(&local, &job_id);
+        let preview = preview_public_disclosure(&local, &job_id).unwrap();
+        assert_eq!(preview["ai_involvement"], "ai_generated");
+        assert_eq!(preview["credential_status"], "unsigned_unverified_not_c2pa");
+        assert_eq!(preview["model_stages"][0]["job_id"], job_id);
+        assert!(preview.get("prompt").is_none());
+        assert!(!pictures.exists(), "inspection must never create an export folder");
+
+        let dest = save_copy(&local, &pictures, &job_id).unwrap();
+        let receipt = dest.with_file_name(format!("optic-rift-{job_id}.provenance.json"));
+        let exported: Value = serde_json::from_slice(&fs::read(receipt).unwrap()).unwrap();
+        assert_eq!(preview, exported, "UI preview and public export must agree");
+        assert!(fs::read_to_string(
+            outputs_dir(&local).join(format!("{job_id}.json"))
+        ).unwrap().contains("test"));
         fs::remove_dir_all(local).unwrap();
     }
 
