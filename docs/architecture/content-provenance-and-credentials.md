@@ -42,10 +42,7 @@ AssetRevision
 
 The presence of `model_attempt` indicates *known model involvement*, not universal detection. Multiple models are separate events and can feed one another through asset IDs and validated digests. A model alias is **not** an immutable revision when the provider did not expose one. `actor_kind` is provenance evidence, not a legal determination of authorship.
 
-Separate three axes in the user experience:
-1. **Workflow claim:** native AI-generated, native AI-assisted edit, human editing action, mixed chain, unknown import.
-2. **Assertion origin:** observed by Optic Rift, asserted by imported credential, user-provided statement, unknown.
-3. **Cryptographic verification:** signed/trusted, signed but untrusted issuer, invalid/tampered, missing, or unsupported. A self-signed test claim must not be called externally trusted.
+**Evidence presentation contract:** Each public view must keep the *workflow event*, the *assertion origin*, and *credential verification* separate. The six-axis table below extends that foundation with independent creator identity, rights, and artistic-value domains. In particular, an integrity-valid C2PA claim with an untrusted issuer is **not** an identity-verified claim; an unsigned native local event must stay labeled unsigned. These axes must not be collapsed into one creator/origin badge.
 
 Never assert 'verified human-created' merely because no model event was observed. Even 'human edited' describes only *Optic Rift's editing action*, not the origin of its source pixels.
 
@@ -64,7 +61,7 @@ For interoperability, design around **six separable evidence questions**, never 
 | Rights and permissions | Independently substantiated license for a stated scope; artist declaration; rights unknown | A creator identity or signed media manifest grants copyright or permission to train/use media |
 | Artistic experience and value | Opt-in, artist-approved evidence-linked process narrative and contributor credits | Subjective artistic merit, effort, originality or ranking can be objectively certified by AI |
 
-**Identity trust model:** C2PA application/product signing identifies the responsible claim-generating tool. Optional **CAWG identity assertions** bind an individual or organization with their own credential and scoped roles; the product's signature must not silently impersonate the artist or claim that the app verified a human-only workflow. Support per-field consent before any future signing of an opt-in identity assertion, including pseudonymous participation, refusal and removal prior to publication. See https://cawg.io/specs/ , https://cawg.io/about/identity-framework/ and https://cawg.io/ux-guidance/1.0/ . A subsequent C2PA signature validating a creator-supplied assertion must distinguish **created** app assertions from **gathered** user/external assertions. Attribution, identity credential validation and media hard-binding must be independently reported.
+**Identity trust model:** C2PA application/product signing identifies the responsible claim-generating tool. Optional **CAWG identity assertions** bind an individual or organization with their own credential and scoped roles; the product's signature must not silently impersonate the artist or claim that the app verified a human-only workflow. Support per-field consent before any future signing of an opt-in identity assertion, including pseudonymous participation, refusal and removal prior to publication. See the [CAWG Identity Assertion v1.2](https://cawg.io/identity/) (ratified 2025-12-15), https://cawg.io/specs/ and https://cawg.io/ux-guidance/1.0/ . The exact schema, supported credential kinds, role vocabulary, independent verification APIs and dependency licenses must be checked at implementation time; this proposal must not imply an SDK already supports them. A subsequent C2PA signature validating a creator-supplied assertion must distinguish **created** app assertions from **gathered** user/external assertions. Attribution, identity credential validation and media hard-binding must be independently reported.
 
 **P0 compatibility invariant:** If Optic Rift generates AI media, its signed public disclosure stays legible regardless of whether a creator opts into CAWG or encrypts a private workflow appendix. A creator may contribute meaningful manual actions to an AI-assisted output, and those actions should be visible as such. If a creator imports an unsigned asset then paints or trims it, show the operation as **locally observed manual editing of an unknown-origin input**, never "verified human-made." An absent CAWG identity says nothing about artistic value. Qualified production output must never say "C2PA verified" without validating the signature, content binding and appropriate issuer trust. The updated #58 **fail-closed signer policy is recommended but not accepted**; no unsigned draft fallback is authorized by recording this paragraph.
 
@@ -131,5 +128,20 @@ Out of scope now: universal AI pixel detection; retrospective claims on unknown 
 - Destroy staged process at every commit step, simulate disk-full/permission denial, prove original unchanged, no ghost completed output and reliable restart. Use synthetic fixtures free of user secrets.
 - Pixel-exact output for lossless image path; no frame/sample loss and no additional encode for video credential embedding; preserve duration, color tags, orientation, audio presence and rational frame-range identity.
 - Third-party verifier on installed Windows with producer certificate and trusted timestamp policy; developer certificates are untrusted and qualify only the code path, not identity claims.
+
+## Proposed review disposition and unresolved owner choices (2026-11-10)
+
+This document is now **ready for independent architecture review**, not accepted or merge-qualified. Review of the *design* can proceed without producing production credentials or selecting a paid certificate provider. The final publication policy remains undecided.
+
+| Explicit choice | Evidence required before acceptance | Current state |
+| --- | --- | --- |
+| Product signer / trust-list identity and key custody | Named signer operator, certificate eligibility/trust, native isolation, offline renewal/expiry and revocation plan; no shared key in an installer | **Owner decision OPEN** |
+| Public disclosure and privacy defaults | Exact AI-use assertion for each supported operation; what model IDs/revisions may be public; consent, redaction and cloud-sync threat test | **Owner decision OPEN** |
+| Private forensic encryption / recipient sharing | Key loss, recoverability, portability, authenticated encryption, envelope size, deletion and explicit authorized sharing | **Owner decision OPEN** |
+| Missing signer or invalid recipient/metadata | Owner-approved fail-closed production path and a separately defined unsupported/draft experience, if any. Never infer that this draft permits unsigned public release | **Recommended, NOT ACCEPTED** |
+| PNG / MP4 SDK version, conformance and packaged rights | Pinned release + dependency license audit, installed Windows tests, media hard binding, independent validator, no re-encode solely for metadata | **Unqualified** |
+| Optional creator identity and artistic process (#64) | Separate consented CAWG actor assertion and provenance-evidence research; no artist certificate or score | **P1 discovery only / NO BUILD APPROVAL** |
+
+**Review finding:** The proposed source/claim/identity/rights partition is coherent and aligned with cited C2PA/CAWG concepts, but successful design review cannot grant production signing authority. A reviewer must independently validate normative assertion identifiers, issuer trust, supported formats, exact SDK dependency licenses, key handling, and tamper/stripped-data behavior. No creator story or identity product is authorized by the P0 architecture.
 
 **Decision ledger:** Pending owner acceptance on #58. The repo has no C2PA signed export merely because this proposal exists.
